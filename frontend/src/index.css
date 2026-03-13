@@ -216,15 +216,17 @@ input, textarea, select {
   align-items: center;
   justify-content: center;
   gap: var(--space-2);
-  padding: 9px 16px;
+  height: 36px;
+  padding: 0 16px;
   border-radius: var(--radius-md);
   border: 1px solid transparent;
   font-size: var(--font-size-sm);
   font-weight: 500;
-  transition: all var(--transition-fast);
+  transition: background var(--transition-fast), color var(--transition-fast), border-color var(--transition-fast);
   white-space: nowrap;
-  line-height: 1.25;
+  line-height: 1;
   letter-spacing: -0.01em;
+  box-sizing: border-box;
 }
 
 .btn:disabled {
@@ -257,12 +259,13 @@ input, textarea, select {
 .btn-ghost {
   background: transparent;
   color: var(--muted-foreground);
-  border-color: transparent;
+  border-color: var(--border);
 }
 
 .btn-ghost:hover:not(:disabled) {
   background: var(--accent);
   color: var(--accent-foreground);
+  border-color: #3f3f46;
 }
 
 .btn-outline {
@@ -273,6 +276,7 @@ input, textarea, select {
 
 .btn-outline:hover:not(:disabled) {
   background: var(--accent);
+  color: var(--foreground);
   border-color: var(--border);
 }
 
@@ -288,12 +292,14 @@ input, textarea, select {
 }
 
 .btn-lg {
-  padding: 11px 20px;
+  height: 40px;
+  padding: 0 20px;
   font-size: var(--font-size-base);
 }
 
 .btn-sm {
-  padding: 5px 10px;
+  height: 32px;
+  padding: 0 12px;
   font-size: var(--font-size-xs);
   border-radius: var(--radius-sm);
 }
@@ -1732,6 +1738,7 @@ details[open] .refine-history-toggle::before {
 .error-card .btn {
   color: rgba(220, 38, 38, 0.7);
   font-size: var(--font-size-xs);
+  border-color: rgba(220, 38, 38, 0.2);
 }
 
 .error-card .btn:hover {

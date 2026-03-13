@@ -108,14 +108,8 @@ export default function PostDetail() {
         <div className="post-detail">
           <Link
             to="/"
-            style={{
-              display: 'inline-flex',
-              alignItems: 'center',
-              gap: '4px',
-              marginBottom: 'var(--space-8)',
-              color: 'var(--muted-foreground)',
-              fontSize: 'var(--font-size-sm)',
-            }}
+            className="btn btn-ghost btn-sm"
+            style={{ marginBottom: 'var(--space-8)' }}
           >
             <ArrowLeft size={14} />
             Back to Board

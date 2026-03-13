@@ -56,7 +56,7 @@ export default function AuthModal({ onClose }) {
     <div className="modal-overlay" onClick={(e) => e.target === e.currentTarget && onClose()}>
       <div className="modal">
         <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: '4px' }}>
-          <button className="btn btn-ghost btn-icon-sm" onClick={onClose} style={{ borderRadius: 'var(--radius-md)' }}>
+          <button className="btn btn-ghost btn-icon-sm" onClick={onClose}>
             <X size={16} />
           </button>
         </div>
@@ -131,7 +131,6 @@ export default function AuthModal({ onClose }) {
               <button
                 className="btn btn-ghost btn-sm"
                 onClick={() => { setMode('register'); setError(''); }}
-                style={{ display: 'inline', padding: '0 4px' }}
               >
                 Sign up
               </button>
@@ -141,7 +140,6 @@ export default function AuthModal({ onClose }) {
               <button
                 className="btn btn-ghost btn-sm"
                 onClick={() => { setMode('login'); setError(''); }}
-                style={{ display: 'inline', padding: '0 4px' }}
               >
                 Sign in
               </button>

@@ -54,7 +54,7 @@ export default function Navbar() {
                   <UserAvatar user={user} size="28px" />
                   <span>{user?.name || user?.email}</span>
                 </div>
-                <button className="btn btn-ghost btn-icon-sm" onClick={logout} title="Log out" style={{ borderRadius: 'var(--radius-md)' }}>
+                <button className="btn btn-ghost btn-icon-sm" onClick={logout} title="Log out">
                   <LogOut size={15} />
                 </button>
               </>
