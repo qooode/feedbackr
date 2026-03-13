@@ -18,7 +18,9 @@ export default function AuthModal({ onClose }) {
       await loginWithDiscord();
       onClose();
     } catch (err) {
-      setError('Discord login failed. Please try again.');
+      console.error('Discord OAuth error:', err);
+      const msg = err?.data?.message || err?.message || 'Discord login failed.';
+      setError(msg);
     } finally {
       setLoading(false);
     }

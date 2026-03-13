@@ -8,29 +8,73 @@ export function AuthProvider({ children }) {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    // Listen for auth changes
     const unsubscribe = pb.authStore.onChange((token, record) => {
       setUser(record);
     });
 
-    setLoading(false);
+    // Check if we're returning from OAuth redirect
+    const params = new URLSearchParams(window.location.search);
+    const code = params.get('code');
+    const state = params.get('state');
+
+    if (code && state) {
+      completeOAuthRedirect(code, state);
+    } else {
+      setLoading(false);
+    }
+
     return () => unsubscribe();
   }, []);
 
-  const loginWithDiscord = useCallback(async () => {
+  const completeOAuthRedirect = async (code, state) => {
     try {
-      const authData = await pb.collection('users').authWithOAuth2({ provider: 'discord' });
-      return authData;
+      const provider = JSON.parse(localStorage.getItem('oauth_provider') || '{}');
+
+      if (provider.state !== state) {
+        throw new Error('OAuth state mismatch');
+      }
+
+      await pb.collection('users').authWithOAuth2Code(
+        provider.name,
+        code,
+        provider.codeVerifier,
+        window.location.origin + '/',
+      );
+
+      localStorage.removeItem('oauth_provider');
+      window.history.replaceState({}, '', '/');
     } catch (err) {
-      console.error('Discord login failed:', err);
-      throw err;
+      console.error('OAuth redirect completion failed:', err);
+      localStorage.removeItem('oauth_provider');
+      window.history.replaceState({}, '', '/');
+    } finally {
+      setLoading(false);
     }
+  };
+
+  const loginWithDiscord = useCallback(async () => {
+    const methods = await pb.collection('users').listAuthMethods();
+    const discord = methods.oauth2?.providers?.find(p => p.name === 'discord');
+
+    if (!discord) {
+      throw new Error('Discord provider not configured in PocketBase.');
+    }
+
+    // Store provider info for when we come back from redirect
+    localStorage.setItem('oauth_provider', JSON.stringify({
+      name: discord.name,
+      state: discord.state,
+      codeVerifier: discord.codeVerifier,
+    }));
+
+    // Full-page redirect to Discord (no popup!)
+    const redirectUrl = window.location.origin + '/';
+    window.location.href = discord.authURL + encodeURIComponent(redirectUrl);
   }, []);
 
   const loginWithEmail = useCallback(async (email, password) => {
     try {
-      const authData = await pb.collection('users').authWithPassword(email, password);
-      return authData;
+      return await pb.collection('users').authWithPassword(email, password);
     } catch (err) {
       console.error('Email login failed:', err);
       throw err;
@@ -45,7 +89,6 @@ export function AuthProvider({ children }) {
         passwordConfirm: password,
         name,
       });
-      // Auto-login after registration
       return loginWithEmail(email, password);
     } catch (err) {
       console.error('Registration failed:', err);
