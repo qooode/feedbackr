@@ -1,17 +1,17 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { DragDropContext, Droppable, Draggable } from '@hello-pangea/dnd';
-import { Shield, RefreshCw, ExternalLink } from 'lucide-react';
+import { Shield, RefreshCw } from 'lucide-react';
 import { useAuth } from '../hooks/useAuth';
 import pb from '../lib/pocketbase';
 
 const COLUMNS = [
-  { id: 'new', label: 'New', color: 'var(--color-new)' },
-  { id: 'in_review', label: 'In Review', color: 'var(--color-in-review)' },
-  { id: 'processing', label: 'Processing', color: 'var(--color-processing)' },
-  { id: 'done', label: 'Done', color: 'var(--color-done)' },
-  { id: 'dropped', label: 'Dropped', color: 'var(--color-dropped)' },
-  { id: 'later', label: 'Later', color: 'var(--color-later)' },
+  { id: 'new', label: 'New' },
+  { id: 'in_review', label: 'In Review' },
+  { id: 'processing', label: 'Processing' },
+  { id: 'done', label: 'Done' },
+  { id: 'dropped', label: 'Dropped' },
+  { id: 'later', label: 'Later' },
 ];
 
 export default function AdminKanban() {
@@ -68,14 +68,14 @@ export default function AdminKanban() {
     }
   };
 
-  // Not admin — redirect
+  // Not admin
   if (!isLoggedIn || !isAdmin) {
     return (
       <div className="page">
         <div className="container">
           <div className="empty-state">
             <div className="empty-state-icon">
-              <Shield size={48} />
+              <Shield size={40} strokeWidth={1.5} />
             </div>
             <h3 className="empty-state-title">Admin Access Required</h3>
             <p className="empty-state-text">
@@ -100,14 +100,21 @@ export default function AdminKanban() {
 
   return (
     <div className="page">
-      <div style={{ padding: '0 var(--space-lg)' }}>
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 'var(--space-xl)' }}>
+      <div style={{ padding: '0 var(--space-6)' }}>
+        <div style={{
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          marginBottom: 'var(--space-8)',
+        }}>
           <div>
             <h1 className="page-title">Admin Dashboard</h1>
-            <p className="page-subtitle">Drag and drop cards to update status. {posts.length} total posts.</p>
+            <p className="page-subtitle">
+              Drag and drop cards to update status. {posts.length} total posts.
+            </p>
           </div>
           <button className="btn btn-secondary" onClick={fetchAllPosts}>
-            <RefreshCw size={14} />
+            <RefreshCw size={13} />
             Refresh
           </button>
         </div>
@@ -119,7 +126,7 @@ export default function AdminKanban() {
               return (
                 <div key={column.id} className="kanban-column">
                   <div className="kanban-column-header">
-                    <span className="kanban-column-title" style={{ color: column.color }}>
+                    <span className="kanban-column-title">
                       {column.label}
                     </span>
                     <span className="kanban-column-count">{columnPosts.length}</span>
@@ -144,13 +151,13 @@ export default function AdminKanban() {
                               >
                                 <div className="kanban-card-title">{post.title}</div>
                                 <div className="kanban-card-meta">
-                                  <span className={`badge badge-${post.category}`} style={{ fontSize: '0.625rem' }}>
+                                  <span className={`badge badge-${post.category}`} style={{ fontSize: '10px' }}>
                                     {post.category}
                                   </span>
-                                  <span className={`badge badge-priority-${post.priority}`} style={{ fontSize: '0.625rem' }}>
+                                  <span className={`badge badge-priority-${post.priority}`} style={{ fontSize: '10px' }}>
                                     {post.priority}
                                   </span>
-                                  <span style={{ fontSize: '0.625rem', color: 'var(--text-tertiary)' }}>
+                                  <span style={{ fontSize: '10px', color: 'var(--muted-foreground)' }}>
                                     ▲ {post.votes_count || 0}
                                   </span>
                                 </div>

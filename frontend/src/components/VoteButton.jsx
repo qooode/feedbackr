@@ -3,7 +3,7 @@ import { ChevronUp } from 'lucide-react';
 import { useAuth } from '../hooks/useAuth';
 import pb from '../lib/pocketbase';
 
-export default function VoteButton({ post, size = 'default' }) {
+export default function VoteButton({ post }) {
   const { user, isLoggedIn } = useAuth();
   const [voted, setVoted] = useState(false);
   const [count, setCount] = useState(post.votes_count || 0);
@@ -23,7 +23,7 @@ export default function VoteButton({ post, size = 'default' }) {
           setVoted(true);
           setVoteId(records.items[0].id);
         }
-      } catch (err) {
+      } catch {
         // Ignore errors
       }
     };
@@ -31,19 +31,17 @@ export default function VoteButton({ post, size = 'default' }) {
   }, [user, post.id]);
 
   const handleVote = async (e) => {
-    e.stopPropagation(); // Prevent card click
+    e.stopPropagation();
     if (!isLoggedIn || loading) return;
 
     setLoading(true);
     try {
       if (voted && voteId) {
-        // Remove vote
         await pb.collection('votes').delete(voteId);
         setVoted(false);
         setVoteId(null);
         setCount((c) => Math.max(0, c - 1));
       } else {
-        // Add vote
         const record = await pb.collection('votes').create({
           post: post.id,
           user: user.id,
@@ -66,7 +64,7 @@ export default function VoteButton({ post, size = 'default' }) {
       disabled={!isLoggedIn || loading}
       title={isLoggedIn ? (voted ? 'Remove vote' : 'Upvote') : 'Sign in to vote'}
     >
-      <ChevronUp size={size === 'small' ? 14 : 16} />
+      <ChevronUp size={14} />
       <span>{count}</span>
     </button>
   );

@@ -1,5 +1,4 @@
 import { useNavigate } from 'react-router-dom';
-import { ChevronUp, MessageCircle } from 'lucide-react';
 import VoteButton from './VoteButton';
 
 export default function PostCard({ post }) {

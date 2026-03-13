@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Send, Sparkles, Check, RotateCcw, Eye } from 'lucide-react';
+import { ArrowRight, Sparkles, Check, RotateCcw, Eye, Send, MessageSquare, X } from 'lucide-react';
 import { useAuth } from '../hooks/useAuth';
 import { sendChatMessage, generatePost, searchSimilar } from '../lib/api';
 import AuthModal from '../components/AuthModal';
@@ -9,14 +9,19 @@ import pb from '../lib/pocketbase';
 export default function Submit() {
   const { user, isLoggedIn } = useAuth();
   const navigate = useNavigate();
-  const messagesEndRef = useRef(null);
-  const inputRef = useRef(null);
+  const textareaRef = useRef(null);
+  const followupRef = useRef(null);
+  const threadEndRef = useRef(null);
 
-  const [messages, setMessages] = useState([]);
   const [input, setInput] = useState('');
-  const [aiLoading, setAiLoading] = useState(false);
   const [showAuth, setShowAuth] = useState(false);
   const [error, setError] = useState('');
+
+  // AI conversation state
+  const [aiActive, setAiActive] = useState(false);
+  const [messages, setMessages] = useState([]);
+  const [followupInput, setFollowupInput] = useState('');
+  const [aiLoading, setAiLoading] = useState(false);
 
   // Generated post preview
   const [preview, setPreview] = useState(null);
@@ -26,25 +31,21 @@ export default function Submit() {
 
   // Similar posts
   const [similarPosts, setSimilarPosts] = useState([]);
-  const [checkingSimilar, setCheckingSimilar] = useState(false);
 
-  // Auto-scroll to bottom
+  // Auto-scroll conversation thread
   useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+    threadEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages, aiLoading]);
 
-  // Send initial AI greeting on mount
+  // Focus followup input when AI becomes active
   useEffect(() => {
-    if (isLoggedIn && messages.length === 0) {
-      setMessages([{
-        role: 'assistant',
-        content: "Hey! 👋 I'm here to help you submit feedback. What's on your mind? You can tell me about a bug, suggest a feature, or describe something that could be improved.",
-      }]);
+    if (aiActive && followupRef.current) {
+      followupRef.current.focus();
     }
-  }, [isLoggedIn]);
+  }, [aiActive, messages]);
 
-  const handleSend = async () => {
-    if (!input.trim() || aiLoading) return;
+  const handleInitialSubmit = async () => {
+    if (!input.trim()) return;
 
     if (!isLoggedIn) {
       setShowAuth(true);
@@ -52,16 +53,46 @@ export default function Submit() {
     }
 
     const userMessage = input.trim();
-    setInput('');
     setError('');
 
-    // Add user message
+    // Activate the AI panel
+    setAiActive(true);
+    const initialMessages = [{ role: 'user', content: userMessage }];
+    setMessages(initialMessages);
+    setInput('');
+
+    // Send to AI
+    setAiLoading(true);
+    try {
+      const response = await sendChatMessage(userMessage, [
+        { role: 'user', content: userMessage },
+      ]);
+
+      setMessages([
+        ...initialMessages,
+        { role: 'assistant', content: response.reply },
+      ]);
+
+      checkForReadiness(response.reply);
+    } catch (err) {
+      console.error('Chat error:', err);
+      setError(err?.message || 'Failed to get AI response.');
+    } finally {
+      setAiLoading(false);
+    }
+  };
+
+  const handleFollowup = async () => {
+    if (!followupInput.trim() || aiLoading) return;
+
+    const userMessage = followupInput.trim();
+    setFollowupInput('');
+    setError('');
+
     const newMessages = [...messages, { role: 'user', content: userMessage }];
     setMessages(newMessages);
 
-    // Build history (skip the initial greeting for API)
     const history = newMessages
-      .filter((_, i) => i > 0) // Skip initial assistant greeting
       .map((m) => ({ role: m.role, content: m.content }));
 
     setAiLoading(true);
@@ -73,18 +104,25 @@ export default function Submit() {
         { role: 'assistant', content: response.reply },
       ]);
 
-      // Check if AI says it has enough details
-      if (response.reply.toLowerCase().includes('enough details') ||
-          response.reply.toLowerCase().includes('generate your feedback') ||
-          response.reply.toLowerCase().includes('let me generate')) {
-        setShowGenerate(true);
-      }
+      checkForReadiness(response.reply);
     } catch (err) {
       console.error('Chat error:', err);
-      setError(err?.message || 'Failed to send message. Please try again.');
+      setError(err?.message || 'Failed to send message.');
     } finally {
       setAiLoading(false);
-      inputRef.current?.focus();
+      followupRef.current?.focus();
+    }
+  };
+
+  const checkForReadiness = (reply) => {
+    const lower = reply.toLowerCase();
+    if (
+      lower.includes('enough details') ||
+      lower.includes('generate your feedback') ||
+      lower.includes('let me generate') ||
+      lower.includes('ready to generate')
+    ) {
+      setShowGenerate(true);
     }
   };
 
@@ -92,17 +130,13 @@ export default function Submit() {
     setGenerating(true);
     setError('');
 
-    const history = messages
-      .filter((_, i) => i > 0)
-      .map((m) => ({ role: m.role, content: m.content }));
+    const history = messages.map((m) => ({ role: m.role, content: m.content }));
 
     try {
-      // Generate post and check for similar posts in parallel
-      const [postData, _] = await Promise.all([
+      const [postData] = await Promise.all([
         generatePost(history),
         checkForSimilar(),
       ]);
-
       setPreview(postData);
     } catch (err) {
       console.error('Generate error:', err);
@@ -113,22 +147,17 @@ export default function Submit() {
   };
 
   const checkForSimilar = async () => {
-    setCheckingSimilar(true);
     try {
-      // Use the last user messages as description
       const userMessages = messages
         .filter((m) => m.role === 'user')
         .map((m) => m.content)
         .join(' ');
-
       const result = await searchSimilar(userMessages);
-      if (result.similar && result.similar.length > 0) {
+      if (result.similar?.length > 0) {
         setSimilarPosts(result.similar);
       }
-    } catch (err) {
-      // Non-critical, just ignore
-    } finally {
-      setCheckingSimilar(false);
+    } catch {
+      // Non-critical
     }
   };
 
@@ -162,7 +191,6 @@ export default function Submit() {
     setError('');
 
     try {
-      // Add as a comment on the existing post
       const userMessages = messages
         .filter((m) => m.role === 'user')
         .map((m) => m.content)
@@ -184,20 +212,27 @@ export default function Submit() {
   };
 
   const handleReset = () => {
-    setMessages([{
-      role: 'assistant',
-      content: "Hey! 👋 I'm here to help you submit feedback. What's on your mind?",
-    }]);
+    setMessages([]);
     setPreview(null);
     setShowGenerate(false);
     setSimilarPosts([]);
+    setAiActive(false);
+    setFollowupInput('');
+    setInput('');
     setError('');
   };
 
   const handleKeyDown = (e) => {
     if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault();
-      handleSend();
+      handleInitialSubmit();
+    }
+  };
+
+  const handleFollowupKeyDown = (e) => {
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault();
+      handleFollowup();
     }
   };
 
@@ -208,14 +243,14 @@ export default function Submit() {
         <div className="container">
           <div className="empty-state">
             <div className="empty-state-icon">
-              <Sparkles size={48} />
+              <MessageSquare size={40} strokeWidth={1.5} />
             </div>
             <h3 className="empty-state-title">Sign in to submit feedback</h3>
             <p className="empty-state-text">
-              Our AI assistant will help you create a detailed feedback post.
+              Describe your idea and our AI will help structure it into a clear post.
             </p>
             <button className="btn btn-primary btn-lg" onClick={() => setShowAuth(true)}>
-              Sign In to Submit
+              Sign In to Continue
             </button>
           </div>
           {showAuth && <AuthModal onClose={() => setShowAuth(false)} />}
@@ -227,117 +262,203 @@ export default function Submit() {
   return (
     <div className="page">
       <div className="container">
-        <div className="chat-container">
-          <div className="page-header" style={{ textAlign: 'center' }}>
-            <h1 className="page-title">
-              <Sparkles size={28} style={{ display: 'inline', verticalAlign: 'middle', color: 'var(--accent)', marginRight: '8px' }} />
-              Submit Feedback
-            </h1>
-            <p className="page-subtitle">
-              Chat with our AI assistant — it'll help you create a detailed feedback post.
+        <div className="submit-layout">
+          {/* Hero */}
+          <div className="submit-hero">
+            <h1 className="submit-hero-title">Submit Feedback</h1>
+            <p className="submit-hero-subtitle">
+              Describe what's on your mind. AI will help refine your thoughts into a clear, actionable post.
             </p>
           </div>
 
-          {/* Chat Messages */}
-          <div className="chat-messages">
-            {messages.map((msg, i) => (
-              <div
-                key={i}
-                className={`chat-bubble ${msg.role === 'assistant' ? 'chat-bubble-ai' : 'chat-bubble-user'}`}
-              >
-                <div className="chat-bubble-label">
-                  {msg.role === 'assistant' ? 'AI Assistant' : 'You'}
-                </div>
-                {msg.content}
-              </div>
-            ))}
+          {/* Main Textarea Card */}
+          <div className="card submit-card">
+            <div className="submit-card-inner">
+              <textarea
+                ref={textareaRef}
+                className="submit-textarea"
+                placeholder="What would you like to share? Describe a bug, suggest a feature, or tell us how something could be better..."
+                value={input}
+                onChange={(e) => setInput(e.target.value)}
+                onKeyDown={handleKeyDown}
+                disabled={aiActive && !preview}
+                rows={5}
+              />
+            </div>
 
-            {aiLoading && (
-              <div className="typing-indicator">
-                <div className="typing-dot" />
-                <div className="typing-dot" />
-                <div className="typing-dot" />
+            <div className="submit-footer">
+              <div className="submit-footer-hint">
+                <Sparkles size={13} />
+                <span>AI will review and help structure your feedback</span>
               </div>
-            )}
-
-            {/* Generate Button */}
-            {showGenerate && !preview && !generating && (
-              <div style={{ display: 'flex', gap: 'var(--space-sm)', alignSelf: 'center', marginTop: 'var(--space-md)' }}>
-                <button className="btn btn-primary btn-lg" onClick={handleGenerate}>
-                  <Sparkles size={18} />
-                  Generate Feedback Post
+              <div className="submit-footer-actions">
+                {aiActive && (
+                  <button className="btn btn-ghost btn-sm" onClick={handleReset}>
+                    <RotateCcw size={13} />
+                    Reset
+                  </button>
+                )}
+                <button
+                  className="btn btn-primary"
+                  onClick={handleInitialSubmit}
+                  disabled={!input.trim() || (aiActive && !preview)}
+                >
+                  <ArrowRight size={15} />
+                  Submit
                 </button>
-                <button className="btn btn-ghost" onClick={handleReset}>
-                  <RotateCcw size={16} />
-                  Start Over
-                </button>
               </div>
-            )}
+            </div>
+          </div>
 
-            {generating && (
-              <div style={{ alignSelf: 'center', display: 'flex', alignItems: 'center', gap: 'var(--space-sm)', color: 'var(--accent)' }}>
-                <div className="spinner" />
-                <span>Generating your feedback post...</span>
+          {/* AI Conversation Panel */}
+          {aiActive && !preview && (
+            <div className="ai-panel">
+              <div className="ai-panel-header">
+                <div className="ai-panel-indicator" />
+                <span className="ai-panel-label">AI Assistant</span>
               </div>
-            )}
 
-            {/* Similar Posts */}
-            {similarPosts.length > 0 && !preview && (
-              <div className="card similar-posts" style={{ alignSelf: 'stretch' }}>
-                <div className="similar-posts-title">
-                  ⚠️ Similar posts found — your feedback might already exist
-                </div>
-                {similarPosts.map((p) => (
-                  <div key={p.id} className="similar-post-item">
-                    <div className="similar-post-info">
-                      <div className="similar-post-name">{p.title}</div>
-                      <div className="similar-post-snippet">{p.body}</div>
+              {/* Threaded conversation */}
+              <div className="conversation-thread">
+                {messages.map((msg, i) => (
+                  <div key={i} className="conversation-message">
+                    <div className={`conversation-avatar ${msg.role === 'assistant' ? 'conversation-avatar-ai' : ''}`}>
+                      {msg.role === 'assistant' ? '✦' : (user?.name || user?.email || '?')[0].toUpperCase()}
                     </div>
-                    <div style={{ display: 'flex', gap: 'var(--space-xs)' }}>
-                      <button
-                        className="btn btn-secondary btn-sm"
-                        onClick={() => navigate(`/post/${p.id}`)}
-                      >
-                        <Eye size={12} />
-                        View
-                      </button>
-                      <button
-                        className="btn btn-primary btn-sm"
-                        onClick={() => handleAddToExisting(p.id)}
-                        disabled={publishing}
-                      >
-                        Add to this
-                      </button>
+                    <div className="conversation-content">
+                      <div className="conversation-name">
+                        {msg.role === 'assistant' ? 'AI' : 'You'}
+                      </div>
+                      <div className={`conversation-text ${msg.role === 'user' ? 'user-text' : ''}`}>
+                        {msg.content}
+                      </div>
                     </div>
                   </div>
                 ))}
-                <div style={{ marginTop: 'var(--space-md)', fontSize: 'var(--font-size-xs)', color: 'var(--text-tertiary)' }}>
-                  Not a duplicate? Click "Generate Feedback Post" above to create a new post.
-                </div>
+
+                {aiLoading && (
+                  <div className="typing-indicator">
+                    <div className="typing-dot" />
+                    <div className="typing-dot" />
+                    <div className="typing-dot" />
+                  </div>
+                )}
+                <div ref={threadEndRef} />
               </div>
-            )}
 
-            {/* Preview Card */}
-            {preview && (
-              <div className="card preview-card" style={{ alignSelf: 'stretch' }}>
-                <div className="preview-header">
-                  <Sparkles size={16} />
-                  AI-Generated Preview
+              {/* Generate button row */}
+              {showGenerate && !generating && (
+                <div className="ai-panel-actions">
+                  <button className="btn btn-primary btn-sm" onClick={handleGenerate}>
+                    <Sparkles size={13} />
+                    Generate Post
+                  </button>
+                  <button className="btn btn-ghost btn-sm" onClick={handleReset}>
+                    <RotateCcw size={13} />
+                    Start Over
+                  </button>
                 </div>
+              )}
 
+              {generating && (
+                <div className="ai-panel-actions" style={{ justifyContent: 'center' }}>
+                  <div className="spinner" />
+                  <span style={{ fontSize: 'var(--font-size-xs)', color: 'var(--muted-foreground)' }}>
+                    Generating your post...
+                  </span>
+                </div>
+              )}
+
+              {/* Follow-up input */}
+              {!showGenerate && !generating && (
+                <div className="ai-followup">
+                  <input
+                    ref={followupRef}
+                    className="input"
+                    type="text"
+                    placeholder="Reply to AI..."
+                    value={followupInput}
+                    onChange={(e) => setFollowupInput(e.target.value)}
+                    onKeyDown={handleFollowupKeyDown}
+                    disabled={aiLoading}
+                  />
+                  <button
+                    className="btn btn-secondary btn-icon-sm"
+                    onClick={handleFollowup}
+                    disabled={!followupInput.trim() || aiLoading}
+                    style={{ borderRadius: 'var(--radius-md)' }}
+                  >
+                    <Send size={14} />
+                  </button>
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* Similar Posts */}
+          {similarPosts.length > 0 && !preview && (
+            <div className="card similar-posts">
+              <div className="similar-posts-title">
+                <span>⚠</span>
+                Similar posts already exist
+              </div>
+              {similarPosts.map((p) => (
+                <div key={p.id} className="similar-post-item">
+                  <div className="similar-post-info">
+                    <div className="similar-post-name">{p.title}</div>
+                    <div className="similar-post-snippet">{p.body}</div>
+                  </div>
+                  <div style={{ display: 'flex', gap: 'var(--space-2)', flexShrink: 0 }}>
+                    <button
+                      className="btn btn-secondary btn-sm"
+                      onClick={() => navigate(`/post/${p.id}`)}
+                    >
+                      <Eye size={12} />
+                      View
+                    </button>
+                    <button
+                      className="btn btn-primary btn-sm"
+                      onClick={() => handleAddToExisting(p.id)}
+                      disabled={publishing}
+                    >
+                      Add to this
+                    </button>
+                  </div>
+                </div>
+              ))}
+              <div style={{ marginTop: 'var(--space-3)', fontSize: 'var(--font-size-xs)', color: 'var(--muted-foreground)' }}>
+                Not a duplicate? Use "Generate Post" above to create a new post.
+              </div>
+            </div>
+          )}
+
+          {/* Preview Card */}
+          {preview && (
+            <div className="card preview-card">
+              <div className="preview-header">
+                <Sparkles size={13} />
+                AI-Generated Preview
+              </div>
+
+              <div className="preview-inner">
                 <input
                   className="input"
                   value={preview.title}
                   onChange={(e) => setPreview({ ...preview, title: e.target.value })}
-                  style={{ fontSize: 'var(--font-size-xl)', fontWeight: '700', marginBottom: 'var(--space-md)', background: 'transparent', border: '1px solid var(--border-subtle)' }}
+                  style={{
+                    fontSize: 'var(--font-size-xl)',
+                    fontWeight: '600',
+                    marginBottom: 'var(--space-4)',
+                    letterSpacing: '-0.02em',
+                  }}
                 />
 
                 <textarea
                   className="input"
                   value={preview.body}
                   onChange={(e) => setPreview({ ...preview, body: e.target.value })}
-                  rows={6}
-                  style={{ marginBottom: 'var(--space-md)', background: 'transparent', border: '1px solid var(--border-subtle)' }}
+                  rows={5}
+                  style={{ marginBottom: 'var(--space-4)' }}
                 />
 
                 <div className="preview-badges">
@@ -347,9 +468,9 @@ export default function Submit() {
                     onChange={(e) => setPreview({ ...preview, category: e.target.value })}
                     style={{ width: 'auto' }}
                   >
-                    <option value="bug">🐛 Bug</option>
-                    <option value="feature">✨ Feature</option>
-                    <option value="improvement">🔧 Improvement</option>
+                    <option value="bug">Bug</option>
+                    <option value="feature">Feature</option>
+                    <option value="improvement">Improvement</option>
                   </select>
 
                   <select
@@ -364,62 +485,41 @@ export default function Submit() {
                     <option value="critical">Critical</option>
                   </select>
                 </div>
-
-                <div className="preview-actions">
-                  <button
-                    className="btn btn-primary btn-lg"
-                    onClick={handlePublish}
-                    disabled={publishing}
-                  >
-                    {publishing ? <div className="spinner" /> : <><Check size={18} /> Publish Post</>}
-                  </button>
-                  <button className="btn btn-ghost" onClick={() => { setPreview(null); setShowGenerate(true); }}>
-                    <RotateCcw size={16} />
-                    Regenerate
-                  </button>
-                  <button className="btn btn-ghost" onClick={handleReset}>
-                    Start Over
-                  </button>
-                </div>
               </div>
-            )}
 
-            {error && (
-              <div className="error-message" style={{ alignSelf: 'stretch' }}>
-                {error}
-              </div>
-            )}
-
-            <div ref={messagesEndRef} />
-          </div>
-
-          {/* Input Area */}
-          {!preview && (
-            <div className="chat-input-area">
-              <div className="chat-input-row">
-                <textarea
-                  ref={inputRef}
-                  className="input"
-                  placeholder="Describe your feedback..."
-                  value={input}
-                  onChange={(e) => setInput(e.target.value)}
-                  onKeyDown={handleKeyDown}
-                  disabled={aiLoading || generating}
-                  rows={1}
-                  style={{ minHeight: '44px', maxHeight: '120px', resize: 'none' }}
-                />
+              <div className="preview-actions">
                 <button
-                  className="btn btn-primary btn-icon"
-                  onClick={handleSend}
-                  disabled={!input.trim() || aiLoading}
-                  style={{ width: '44px', height: '44px' }}
+                  className="btn btn-primary"
+                  onClick={handlePublish}
+                  disabled={publishing}
                 >
-                  <Send size={18} />
+                  {publishing ? (
+                    <div className="spinner" />
+                  ) : (
+                    <>
+                      <Check size={15} />
+                      Publish
+                    </>
+                  )}
+                </button>
+                <button
+                  className="btn btn-ghost btn-sm"
+                  onClick={() => { setPreview(null); setShowGenerate(true); }}
+                >
+                  <RotateCcw size={13} />
+                  Regenerate
+                </button>
+                <button className="btn btn-ghost btn-sm" onClick={handleReset}>
+                  Start Over
                 </button>
               </div>
-              <div style={{ fontSize: 'var(--font-size-xs)', color: 'var(--text-tertiary)', marginTop: 'var(--space-xs)', textAlign: 'center' }}>
-                Press Enter to send · Shift+Enter for new line
-              </div>
+            </div>
+          )}
+
+          {/* Error */}
+          {error && (
+            <div className="error-message" style={{ marginTop: 'var(--space-4)' }}>
+              {error}
             </div>
           )}
         </div>

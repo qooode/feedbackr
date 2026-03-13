@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Search, MessageSquarePlus, Inbox } from 'lucide-react';
+import { Search, Plus, Inbox } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import pb from '../lib/pocketbase';
 import PostCard from '../components/PostCard';
@@ -62,17 +62,17 @@ export default function Board() {
         </div>
 
         {/* Filter Bar */}
-        <div className="card filter-bar" style={{ marginBottom: 'var(--space-lg)' }}>
+        <div className="card filter-bar" style={{ marginBottom: 'var(--space-4)' }}>
           {/* Search */}
           <div className="search-input" style={{ position: 'relative' }}>
             <Search
-              size={16}
+              size={14}
               style={{
                 position: 'absolute',
                 left: '12px',
                 top: '50%',
                 transform: 'translateY(-50%)',
-                color: 'var(--text-tertiary)',
+                color: 'var(--muted-foreground)',
               }}
             />
             <input
@@ -81,7 +81,7 @@ export default function Board() {
               placeholder="Search feedback..."
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              style={{ paddingLeft: '36px' }}
+              style={{ paddingLeft: '34px' }}
             />
           </div>
 
@@ -103,7 +103,7 @@ export default function Board() {
             className="input"
             value={sort}
             onChange={(e) => setSort(e.target.value)}
-            style={{ width: 'auto', minWidth: '140px' }}
+            style={{ width: 'auto', minWidth: '130px' }}
           >
             {SORT_OPTIONS.map((opt) => (
               <option key={opt.value} value={opt.value}>
@@ -113,20 +113,13 @@ export default function Board() {
           </select>
         </div>
 
-        {/* Status filter pills */}
-        <div style={{ display: 'flex', gap: '4px', marginBottom: 'var(--space-lg)', flexWrap: 'wrap' }}>
+        {/* Status filter row */}
+        <div className="status-filters">
           {STATUSES.map((s) => (
             <button
               key={s}
-              className={`filter-btn ${status === s ? 'active' : ''}`}
+              className={`status-filter-btn ${status === s ? 'active' : ''}`}
               onClick={() => setStatus(s)}
-              style={{
-                padding: '4px 12px',
-                borderRadius: 'var(--radius-full)',
-                border: '1px solid var(--border-subtle)',
-                background: status === s ? 'var(--accent)' : 'var(--bg-glass)',
-                color: status === s ? 'white' : 'var(--text-secondary)',
-              }}
             >
               {s === 'all' ? 'All Status' : s.replace('_', ' ')}
             </button>
@@ -141,19 +134,19 @@ export default function Board() {
         ) : posts.length === 0 ? (
           <div className="empty-state">
             <div className="empty-state-icon">
-              <Inbox size={48} />
+              <Inbox size={40} strokeWidth={1.5} />
             </div>
             <h3 className="empty-state-title">No feedback yet</h3>
             <p className="empty-state-text">
-              Be the first to share your thoughts!
+              Be the first to share your thoughts.
             </p>
             <Link to="/submit" className="btn btn-primary btn-lg">
-              <MessageSquarePlus size={18} />
+              <Plus size={15} />
               Submit Feedback
             </Link>
           </div>
         ) : (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-sm)' }}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-2)' }}>
             {posts.map((post) => (
               <PostCard key={post.id} post={post} />
             ))}

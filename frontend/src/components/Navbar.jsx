@@ -1,6 +1,6 @@
 import { Link, useLocation } from 'react-router-dom';
 import { useAuth } from '../hooks/useAuth';
-import { MessageSquare, LayoutDashboard, LogOut, LogIn, Plus } from 'lucide-react';
+import { LayoutDashboard, LogOut, LogIn, Plus } from 'lucide-react';
 import AuthModal from './AuthModal';
 import { useState } from 'react';
 
@@ -18,8 +18,10 @@ export default function Navbar() {
       <nav className="navbar">
         <div className="navbar-inner">
           <Link to="/" className="navbar-brand">
-            <MessageSquare size={24} />
-            Feedbackr
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M7.9 20A9 9 0 1 0 4 16.1L2 22Z" />
+            </svg>
+            feedbackr
           </Link>
 
           <div className="navbar-links">
@@ -28,7 +30,7 @@ export default function Navbar() {
             {isAdmin && (
               <Link to="/admin" className={isActive('/admin')}>
                 <span style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
-                  <LayoutDashboard size={14} />
+                  <LayoutDashboard size={13} />
                   Admin
                 </span>
               </Link>
@@ -40,7 +42,7 @@ export default function Navbar() {
               <>
                 <Link to="/submit" className="btn btn-primary btn-sm">
                   <Plus size={14} />
-                  Submit Feedback
+                  New Post
                 </Link>
                 <div className="navbar-user">
                   <div className="navbar-avatar">
@@ -48,8 +50,8 @@ export default function Navbar() {
                   </div>
                   <span>{user?.name || user?.email}</span>
                 </div>
-                <button className="btn btn-ghost btn-icon" onClick={logout} title="Log out">
-                  <LogOut size={16} />
+                <button className="btn btn-ghost btn-icon-sm" onClick={logout} title="Log out" style={{ borderRadius: 'var(--radius-md)' }}>
+                  <LogOut size={15} />
                 </button>
               </>
             ) : (

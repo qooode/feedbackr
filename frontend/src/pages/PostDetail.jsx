@@ -41,7 +41,7 @@ export default function PostDetail() {
         expand: 'author',
       });
       setComments(result.items);
-    } catch (err) {
+    } catch {
       // Comments collection might not exist yet
     }
   };
@@ -67,14 +67,6 @@ export default function PostDetail() {
     }
   };
 
-  const formatDate = (dateStr) => {
-    return new Date(dateStr).toLocaleDateString('en-US', {
-      year: 'numeric',
-      month: 'short',
-      day: 'numeric',
-    });
-  };
-
   const timeAgo = (dateStr) => {
     const seconds = Math.floor((Date.now() - new Date(dateStr)) / 1000);
     if (seconds < 60) return 'just now';
@@ -84,7 +76,11 @@ export default function PostDetail() {
     if (hours < 24) return `${hours}h ago`;
     const days = Math.floor(hours / 24);
     if (days < 30) return `${days}d ago`;
-    return formatDate(dateStr);
+    return new Date(dateStr).toLocaleDateString('en-US', {
+      year: 'numeric',
+      month: 'short',
+      day: 'numeric',
+    });
   };
 
   if (loading) {
@@ -112,8 +108,18 @@ export default function PostDetail() {
     <div className="page">
       <div className="container">
         <div className="post-detail">
-          <Link to="/" style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', marginBottom: 'var(--space-lg)', color: 'var(--text-secondary)', fontSize: 'var(--font-size-sm)' }}>
-            <ArrowLeft size={16} />
+          <Link
+            to="/"
+            style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '4px',
+              marginBottom: 'var(--space-8)',
+              color: 'var(--muted-foreground)',
+              fontSize: 'var(--font-size-sm)',
+            }}
+          >
+            <ArrowLeft size={14} />
             Back to Board
           </Link>
 
@@ -127,11 +133,11 @@ export default function PostDetail() {
             </div>
 
             <div className="post-detail-author">
-              <div className="navbar-avatar" style={{ width: '24px', height: '24px', fontSize: '0.625rem' }}>
+              <div className="navbar-avatar" style={{ width: '22px', height: '22px', fontSize: '10px' }}>
                 {(post.expand?.author?.name || post.expand?.author?.email || '?')[0].toUpperCase()}
               </div>
               <span>{post.expand?.author?.name || post.expand?.author?.email || 'Anonymous'}</span>
-              <span>·</span>
+              <span style={{ color: 'var(--muted-foreground)' }}>·</span>
               <span style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
                 <Clock size={12} /> {timeAgo(post.created)}
               </span>
@@ -140,7 +146,7 @@ export default function PostDetail() {
 
           <div className="card post-detail-vote-bar">
             <VoteButton post={post} />
-            <span style={{ color: 'var(--text-secondary)', fontSize: 'var(--font-size-sm)' }}>
+            <span style={{ color: 'var(--muted-foreground)', fontSize: 'var(--font-size-sm)' }}>
               {post.votes_count || 0} {(post.votes_count === 1) ? 'vote' : 'votes'}
             </span>
           </div>
@@ -156,7 +162,7 @@ export default function PostDetail() {
             {comments.map((comment) => (
               <div key={comment.id} className="comment">
                 <div className="comment-header">
-                  <div className="navbar-avatar" style={{ width: '22px', height: '22px', fontSize: '0.625rem' }}>
+                  <div className="navbar-avatar" style={{ width: '22px', height: '22px', fontSize: '10px' }}>
                     {(comment.expand?.author?.name || comment.expand?.author?.email || '?')[0].toUpperCase()}
                   </div>
                   <span className="comment-author">
@@ -172,8 +178,12 @@ export default function PostDetail() {
             ))}
 
             {comments.length === 0 && (
-              <p style={{ color: 'var(--text-tertiary)', fontSize: 'var(--font-size-sm)', padding: 'var(--space-lg)' }}>
-                No comments yet. Be the first to share your thoughts!
+              <p style={{
+                color: 'var(--muted-foreground)',
+                fontSize: 'var(--font-size-sm)',
+                padding: 'var(--space-6) 0',
+              }}>
+                No comments yet. Be the first to share your thoughts.
               </p>
             )}
 
@@ -191,12 +201,17 @@ export default function PostDetail() {
                   type="submit"
                   disabled={!commentBody.trim() || submitting}
                 >
-                  <Send size={14} />
+                  <Send size={13} />
                   {submitting ? 'Sending...' : 'Send'}
                 </button>
               </form>
             ) : (
-              <p style={{ color: 'var(--text-tertiary)', fontSize: 'var(--font-size-sm)', padding: 'var(--space-lg)', textAlign: 'center' }}>
+              <p style={{
+                color: 'var(--muted-foreground)',
+                fontSize: 'var(--font-size-sm)',
+                padding: 'var(--space-6) 0',
+                textAlign: 'center',
+              }}>
                 Sign in to leave a comment.
               </p>
             )}
