@@ -5,7 +5,7 @@ import AuthModal from './AuthModal';
 import { useState } from 'react';
 
 export default function Navbar() {
-  const { user, isAdmin, isLoggedIn, logout } = useAuth();
+  const { user, isAdmin, isLoggedIn, logout, oauthError, clearOauthError } = useAuth();
   const location = useLocation();
   const [showAuth, setShowAuth] = useState(false);
 
@@ -61,6 +61,12 @@ export default function Navbar() {
       </nav>
 
       {showAuth && <AuthModal onClose={() => setShowAuth(false)} />}
+      {oauthError && (
+        <div style={{ position: 'fixed', bottom: 20, left: '50%', transform: 'translateX(-50%)', background: 'var(--status-dropped)', color: 'white', padding: '12px 20px', borderRadius: '8px', zIndex: 9999, display: 'flex', gap: '12px', alignItems: 'center', fontSize: '0.875rem' }}>
+          Discord error: {oauthError}
+          <button onClick={clearOauthError} style={{ background: 'none', border: 'none', color: 'white', cursor: 'pointer', fontWeight: 'bold' }}>✕</button>
+        </div>
+      )}
     </>
   );
 }

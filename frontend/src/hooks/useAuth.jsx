@@ -1,4 +1,4 @@
-import { createContext, useContext, useState, useEffect, useCallback } from 'react';
+import { createContext, useContext, useState, useEffect, useCallback, useRef } from 'react';
 import pb from '../lib/pocketbase';
 
 const AuthContext = createContext(null);
@@ -6,6 +6,8 @@ const AuthContext = createContext(null);
 export function AuthProvider({ children }) {
   const [user, setUser] = useState(pb.authStore.record);
   const [loading, setLoading] = useState(true);
+  const [oauthError, setOauthError] = useState('');
+  const oauthAttempted = useRef(false);
 
   useEffect(() => {
     const unsubscribe = pb.authStore.onChange((token, record) => {
@@ -17,7 +19,8 @@ export function AuthProvider({ children }) {
     const code = params.get('code');
     const state = params.get('state');
 
-    if (code && state) {
+    if (code && state && !oauthAttempted.current) {
+      oauthAttempted.current = true;
       completeOAuthRedirect(code, state);
     } else {
       setLoading(false);
@@ -30,21 +33,28 @@ export function AuthProvider({ children }) {
     try {
       const provider = JSON.parse(localStorage.getItem('oauth_provider') || '{}');
 
-      if (provider.state !== state) {
-        throw new Error('OAuth state mismatch');
+      if (!provider.name || !provider.state || !provider.codeVerifier) {
+        throw new Error('Missing OAuth provider data. Please try logging in again.');
       }
+
+      if (provider.state !== state) {
+        throw new Error('OAuth state mismatch. Please try logging in again.');
+      }
+
+      const redirectUrl = window.location.origin + '/';
 
       await pb.collection('users').authWithOAuth2Code(
         provider.name,
         code,
         provider.codeVerifier,
-        window.location.origin + '/',
+        redirectUrl,
       );
 
       localStorage.removeItem('oauth_provider');
       window.history.replaceState({}, '', '/');
     } catch (err) {
-      console.error('OAuth redirect completion failed:', err);
+      console.error('OAuth error:', err);
+      setOauthError(err?.data?.message || err?.message || 'OAuth login failed.');
       localStorage.removeItem('oauth_provider');
       window.history.replaceState({}, '', '/');
     } finally {
@@ -60,14 +70,12 @@ export function AuthProvider({ children }) {
       throw new Error('Discord provider not configured in PocketBase.');
     }
 
-    // Store provider info for when we come back from redirect
     localStorage.setItem('oauth_provider', JSON.stringify({
       name: discord.name,
       state: discord.state,
       codeVerifier: discord.codeVerifier,
     }));
 
-    // Full-page redirect to Discord (no popup!)
     const redirectUrl = window.location.origin + '/';
     window.location.href = discord.authURL + encodeURIComponent(redirectUrl);
   }, []);
@@ -100,11 +108,17 @@ export function AuthProvider({ children }) {
     pb.authStore.clear();
   }, []);
 
+  const clearOauthError = useCallback(() => {
+    setOauthError('');
+  }, []);
+
   const value = {
     user,
     loading,
     isAdmin: user?.is_admin === true,
     isLoggedIn: !!user,
+    oauthError,
+    clearOauthError,
     loginWithDiscord,
     loginWithEmail,
     register,
