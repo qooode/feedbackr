@@ -3,6 +3,7 @@ import { useParams, Link } from 'react-router-dom';
 import { ArrowLeft, Clock, Send } from 'lucide-react';
 import pb from '../lib/pocketbase';
 import VoteButton from '../components/VoteButton';
+import UserAvatar from '../components/UserAvatar';
 import { useAuth } from '../hooks/useAuth';
 
 export default function PostDetail() {
@@ -132,9 +133,7 @@ export default function PostDetail() {
             </div>
 
             <div className="post-detail-author">
-              <div className="navbar-avatar" style={{ width: '22px', height: '22px', fontSize: '10px' }}>
-                {(post.expand?.author?.name || post.expand?.author?.email || '?')[0].toUpperCase()}
-              </div>
+              <UserAvatar user={post.expand?.author} size="22px" />
               <span>{post.expand?.author?.name || post.expand?.author?.email || 'Anonymous'}</span>
               <span style={{ color: 'var(--muted-foreground)' }}>·</span>
               <span style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
@@ -161,9 +160,7 @@ export default function PostDetail() {
             {comments.map((comment) => (
               <div key={comment.id} className="comment">
                 <div className="comment-header">
-                  <div className="navbar-avatar" style={{ width: '22px', height: '22px', fontSize: '10px' }}>
-                    {(comment.expand?.author?.name || comment.expand?.author?.email || '?')[0].toUpperCase()}
-                  </div>
+                  <UserAvatar user={comment.expand?.author} size="22px" />
                   <span className="comment-author">
                     {comment.expand?.author?.name || comment.expand?.author?.email || 'Anonymous'}
                   </span>

@@ -1,5 +1,6 @@
 import { useNavigate } from 'react-router-dom';
 import VoteButton from './VoteButton';
+import UserAvatar from './UserAvatar';
 
 export default function PostCard({ post }) {
   const navigate = useNavigate();
@@ -29,7 +30,8 @@ export default function PostCard({ post }) {
           </span>
           {post.expand?.author && (
             <span className="post-card-author">
-              by {post.expand.author.name || post.expand.author.email}
+              <UserAvatar user={post.expand.author} size="18px" />
+              {post.expand.author.name || post.expand.author.email}
             </span>
           )}
         </div>

@@ -577,6 +577,9 @@ select.input {
 .post-card-author {
   font-size: var(--font-size-xs);
   color: var(--muted-foreground);
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
 }
 
 /* --- Filter Bar --- */

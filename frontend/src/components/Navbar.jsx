@@ -2,6 +2,7 @@ import { Link, useLocation } from 'react-router-dom';
 import { useAuth } from '../hooks/useAuth';
 import { LayoutDashboard, LogOut, LogIn, Plus } from 'lucide-react';
 import AuthModal from './AuthModal';
+import UserAvatar from './UserAvatar';
 import { useState } from 'react';
 
 export default function Navbar() {
@@ -45,9 +46,7 @@ export default function Navbar() {
                   New Post
                 </Link>
                 <div className="navbar-user">
-                  <div className="navbar-avatar">
-                    {(user?.name || user?.email || '?')[0].toUpperCase()}
-                  </div>
+                  <UserAvatar user={user} size="28px" />
                   <span>{user?.name || user?.email}</span>
                 </div>
                 <button className="btn btn-ghost btn-icon-sm" onClick={logout} title="Log out" style={{ borderRadius: 'var(--radius-md)' }}>

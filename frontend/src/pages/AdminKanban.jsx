@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { DragDropContext, Droppable, Draggable } from '@hello-pangea/dnd';
 import { Shield, RefreshCw } from 'lucide-react';
 import { useAuth } from '../hooks/useAuth';
+import UserAvatar from '../components/UserAvatar';
 import pb from '../lib/pocketbase';
 
 const COLUMNS = [
@@ -160,6 +161,11 @@ export default function AdminKanban() {
                                   <span style={{ fontSize: '10px', color: 'var(--muted-foreground)' }}>
                                     ▲ {post.votes_count || 0}
                                   </span>
+                                  {post.expand?.author && (
+                                    <span style={{ marginLeft: 'auto' }}>
+                                      <UserAvatar user={post.expand.author} size="18px" />
+                                    </span>
+                                  )}
                                 </div>
                               </div>
                             )}
