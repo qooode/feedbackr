@@ -1,16 +1,31 @@
 import { useState, useRef, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ArrowRight, Sparkles, Check, RotateCcw, Eye, Send, MessageSquare, X, AlertTriangle, MessageCircle, ChevronRight, Zap, PenLine } from 'lucide-react';
+import ReactMarkdown from 'react-markdown';
+import { ArrowRight, Sparkles, Check, RotateCcw, Eye, Send, MessageSquare, X, AlertTriangle, MessageCircle, ChevronDown, Zap, PenLine, Edit3, AlertCircle } from 'lucide-react';
 import { useAuth } from '../hooks/useAuth';
 import { sendChatMessage, generatePost, searchSimilar } from '../lib/api';
 import AuthModal from '../components/AuthModal';
 import pb from '../lib/pocketbase';
+
+const CATEGORIES = [
+  { value: 'bug', label: 'Bug', color: '#ef4444' },
+  { value: 'feature', label: 'Feature', color: '#a1a1aa' },
+  { value: 'improvement', label: 'Improvement', color: '#71717a' },
+];
+
+const PRIORITIES = [
+  { value: 'low', label: 'Low', color: '#52525b' },
+  { value: 'medium', label: 'Medium', color: '#71717a' },
+  { value: 'high', label: 'High', color: '#a1a1aa' },
+  { value: 'critical', label: 'Critical', color: '#dc2626' },
+];
 
 export default function Submit() {
   const { user, isLoggedIn } = useAuth();
   const navigate = useNavigate();
   const textareaRef = useRef(null);
   const followupRef = useRef(null);
+  const similarSectionRef = useRef(null);
 
   const [input, setInput] = useState('');
   const [showAuth, setShowAuth] = useState(false);
@@ -28,10 +43,17 @@ export default function Submit() {
   const [publishing, setPublishing] = useState(false);
   const [showGenerate, setShowGenerate] = useState(false);
 
+  // Preview/Edit toggle
+  const [previewMode, setPreviewMode] = useState('preview');
+
   // Similar posts
   const [similarPosts, setSimilarPosts] = useState([]);
   const [similarDismissed, setSimilarDismissed] = useState(false);
   const [checkingSimilar, setCheckingSimilar] = useState(false);
+
+  // Success state
+  const [showSuccess, setShowSuccess] = useState(false);
+  const [publishedId, setPublishedId] = useState(null);
 
   // Focus followup input when AI becomes active
   useEffect(() => {
@@ -39,6 +61,14 @@ export default function Submit() {
       followupRef.current.focus();
     }
   }, [aiActive, messages, showGenerate, generating]);
+
+  // Auto-dismiss error after 10 seconds
+  useEffect(() => {
+    if (error) {
+      const timer = setTimeout(() => setError(''), 10000);
+      return () => clearTimeout(timer);
+    }
+  }, [error]);
 
   // Current step for progress
   const currentStep = !aiActive ? 0 : preview ? 2 : 1;
@@ -144,6 +174,7 @@ export default function Submit() {
     try {
       const postData = await generatePost(history);
       setPreview(postData);
+      setPreviewMode('preview');
 
       // Re-check for similar posts using the structured title+body for better matching
       try {
@@ -175,7 +206,13 @@ export default function Submit() {
         ai_transcript: messages.map((m) => ({ role: m.role, content: m.content })),
       });
 
-      navigate(`/post/${record.id}`);
+      setPublishedId(record.id);
+      setShowSuccess(true);
+
+      // Navigate after showing success
+      setTimeout(() => {
+        navigate(`/post/${record.id}`);
+      }, 1800);
     } catch (err) {
       console.error('Publish error:', err);
       setError('Failed to publish. Please try again.');
@@ -216,6 +253,17 @@ export default function Submit() {
     setFollowupInput('');
     setInput('');
     setError('');
+    setPreviewMode('preview');
+  };
+
+  const handleStepClick = (step) => {
+    if (step === 0 && currentStep > 0) {
+      handleReset();
+    } else if (step === 1 && currentStep > 1) {
+      setPreview(null);
+      setShowGenerate(true);
+      setPreviewMode('preview');
+    }
   };
 
   const handleKeyDown = (e) => {
@@ -234,6 +282,9 @@ export default function Submit() {
 
   // Get the latest AI message for inline display
   const latestAiMessage = [...messages].reverse().find(m => m.role === 'assistant');
+
+  const charCount = input.length;
+  const charSufficient = charCount >= 30;
 
   // Not logged in
   if (!isLoggedIn) {
@@ -262,6 +313,17 @@ export default function Submit() {
     <div className="page">
       <div className="container">
         <div className="submit-layout">
+          {/* Success overlay */}
+          {showSuccess && (
+            <div className="success-overlay">
+              <div className="success-checkmark">
+                <Check size={32} strokeWidth={3} />
+              </div>
+              <div className="success-title">Post Published!</div>
+              <div className="success-subtitle">Redirecting you to your post...</div>
+            </div>
+          )}
+
           {/* Hero */}
           <div className="submit-hero">
             <h1 className="submit-hero-title">Submit Feedback</h1>
@@ -272,14 +334,20 @@ export default function Submit() {
 
           {/* Progress Steps */}
           <div className="submit-steps">
-            <div className={`submit-step ${currentStep >= 0 ? 'submit-step-active' : ''} ${currentStep > 0 ? 'submit-step-done' : ''}`}>
+            <div
+              className={`submit-step ${currentStep >= 0 ? 'submit-step-active' : ''} ${currentStep > 0 ? 'submit-step-done' : ''} ${currentStep > 0 ? 'submit-step-clickable' : ''}`}
+              onClick={() => handleStepClick(0)}
+            >
               <div className="submit-step-dot">
                 {currentStep > 0 ? <Check size={10} strokeWidth={3} /> : '1'}
               </div>
               <span className="submit-step-label">Describe</span>
             </div>
             <div className="submit-step-line" />
-            <div className={`submit-step ${currentStep >= 1 ? 'submit-step-active' : ''} ${currentStep > 1 ? 'submit-step-done' : ''}`}>
+            <div
+              className={`submit-step ${currentStep >= 1 ? 'submit-step-active' : ''} ${currentStep > 1 ? 'submit-step-done' : ''} ${currentStep > 1 ? 'submit-step-clickable' : ''}`}
+              onClick={() => handleStepClick(1)}
+            >
               <div className="submit-step-dot">
                 {currentStep > 1 ? <Check size={10} strokeWidth={3} /> : '2'}
               </div>
@@ -306,18 +374,30 @@ export default function Submit() {
                 rows={5}
               />
               <div className="submit-input-bar">
-                <div className="submit-input-hint">
-                  <Sparkles size={12} />
-                  <span>AI will review and help structure your feedback</span>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                  <div className="submit-input-hint">
+                    <Sparkles size={12} />
+                    <span>AI will review and help structure your feedback</span>
+                  </div>
+                  {charCount > 0 && charCount < 30 && (
+                    <span className="submit-char-nudge">
+                      — try adding a bit more detail
+                    </span>
+                  )}
                 </div>
-                <button
-                  className="btn btn-primary"
-                  onClick={handleInitialSubmit}
-                  disabled={!input.trim()}
-                >
-                  Continue
-                  <ArrowRight size={14} />
-                </button>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                  <span className={`submit-char-count ${charCount > 0 ? 'has-content' : ''} ${charSufficient ? 'sufficient' : ''}`}>
+                    {charCount > 0 ? charCount : ''}
+                  </span>
+                  <button
+                    className="btn btn-primary"
+                    onClick={handleInitialSubmit}
+                    disabled={!input.trim()}
+                  >
+                    Continue
+                    <ArrowRight size={14} />
+                  </button>
+                </div>
               </div>
             </div>
           )}
@@ -325,6 +405,20 @@ export default function Submit() {
           {/* Step 2: AI Refine Phase */}
           {aiActive && !preview && (
             <div className="refine-section">
+              {/* Inline duplicate banner at top */}
+              {similarPosts.length > 0 && !similarDismissed && (
+                <div
+                  className="duplicate-banner"
+                  onClick={() => similarSectionRef.current?.scrollIntoView({ behavior: 'smooth' })}
+                >
+                  <AlertTriangle size={14} className="duplicate-banner-icon" />
+                  <span className="duplicate-banner-text">
+                    <strong>{similarPosts.length} similar {similarPosts.length === 1 ? 'post' : 'posts'}</strong> found — scroll down to review
+                  </span>
+                  <ChevronDown size={14} className="duplicate-banner-arrow" />
+                </div>
+              )}
+
               {/* Your original feedback */}
               <div className="refine-original">
                 <div className="refine-original-label">
@@ -336,7 +430,7 @@ export default function Submit() {
                 </p>
               </div>
 
-              {/* AI Response — inline, not a chat bubble */}
+              {/* AI Response — inline, rendered as markdown */}
               {latestAiMessage && (
                 <div className="refine-ai-block">
                   <div className="refine-ai-header">
@@ -346,7 +440,7 @@ export default function Submit() {
                     <span>AI Feedback</span>
                   </div>
                   <div className="refine-ai-body">
-                    {latestAiMessage.content}
+                    <ReactMarkdown>{latestAiMessage.content}</ReactMarkdown>
                   </div>
 
                   {/* Previous exchanges collapsed */}
@@ -368,12 +462,25 @@ export default function Submit() {
                 </div>
               )}
 
+              {/* Skeleton loading state */}
               {aiLoading && (
                 <div className="refine-loading">
-                  <div className="refine-loading-bar">
-                    <div className="refine-loading-fill" />
+                  <div className="refine-loading-header">
+                    <div className="refine-loading-header-dot" />
+                    <div className="refine-loading-header-text" />
                   </div>
-                  <span>AI is analyzing your feedback...</span>
+                  <div className="refine-loading-body">
+                    <div className="refine-skeleton-line" />
+                    <div className="refine-skeleton-line" />
+                    <div className="refine-skeleton-line" />
+                    <div className="refine-skeleton-line" />
+                  </div>
+                  <div className="refine-loading-status">
+                    <div className="refine-loading-dot" />
+                    <div className="refine-loading-dot" />
+                    <div className="refine-loading-dot" />
+                    <span>AI is analyzing your feedback...</span>
+                  </div>
                 </div>
               )}
 
@@ -441,7 +548,7 @@ export default function Submit() {
 
           {/* Similar Posts */}
           {similarPosts.length > 0 && !similarDismissed && !preview && (
-            <div className="similar-card">
+            <div className="similar-card" ref={similarSectionRef}>
               <div className="similar-card-accent" />
               <div className="similar-card-header">
                 <div className="similar-card-icon">
@@ -509,56 +616,92 @@ export default function Submit() {
                     <Sparkles size={12} />
                     Generated Post
                   </div>
-                  <button className="btn btn-ghost btn-sm" onClick={() => { setPreview(null); setShowGenerate(true); }}>
-                    <RotateCcw size={12} />
-                    Regenerate
-                  </button>
-                </div>
-
-                <div className="publish-card-body">
-                  <input
-                    className="publish-title-input"
-                    value={preview.title}
-                    onChange={(e) => setPreview({ ...preview, title: e.target.value })}
-                    placeholder="Post title"
-                  />
-
-                  <textarea
-                    className="publish-body-input"
-                    value={preview.body}
-                    onChange={(e) => setPreview({ ...preview, body: e.target.value })}
-                    rows={5}
-                    placeholder="Post body"
-                  />
-
-                  <div className="publish-meta-row">
-                    <div className="publish-meta-item">
-                      <label className="publish-meta-label">Category</label>
-                      <select
-                        className="publish-meta-select"
-                        value={preview.category}
-                        onChange={(e) => setPreview({ ...preview, category: e.target.value })}
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    <div className="publish-view-toggle">
+                      <button
+                        className={`publish-view-toggle-btn ${previewMode === 'preview' ? 'active' : ''}`}
+                        onClick={() => setPreviewMode('preview')}
                       >
-                        <option value="bug">Bug</option>
-                        <option value="feature">Feature</option>
-                        <option value="improvement">Improvement</option>
-                      </select>
-                    </div>
-                    <div className="publish-meta-item">
-                      <label className="publish-meta-label">Priority</label>
-                      <select
-                        className="publish-meta-select"
-                        value={preview.priority}
-                        onChange={(e) => setPreview({ ...preview, priority: e.target.value })}
+                        <Eye size={11} />
+                        Preview
+                      </button>
+                      <button
+                        className={`publish-view-toggle-btn ${previewMode === 'edit' ? 'active' : ''}`}
+                        onClick={() => setPreviewMode('edit')}
                       >
-                        <option value="low">Low</option>
-                        <option value="medium">Medium</option>
-                        <option value="high">High</option>
-                        <option value="critical">Critical</option>
-                      </select>
+                        <Edit3 size={11} />
+                        Edit
+                      </button>
                     </div>
+                    <button className="btn btn-ghost btn-sm" onClick={() => { setPreview(null); setShowGenerate(true); }}>
+                      <RotateCcw size={12} />
+                      Regenerate
+                    </button>
                   </div>
                 </div>
+
+                {previewMode === 'preview' ? (
+                  <div className="publish-preview-rendered">
+                    <div className="publish-preview-title">{preview.title}</div>
+                    <div className="publish-preview-body">
+                      <ReactMarkdown>{preview.body}</ReactMarkdown>
+                    </div>
+                    <div className="publish-preview-meta">
+                      <span className={`badge badge-${preview.category}`}>{preview.category}</span>
+                      <span className={`badge badge-priority-${preview.priority}`}>{preview.priority}</span>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="publish-card-body">
+                    <input
+                      className="publish-title-input"
+                      value={preview.title}
+                      onChange={(e) => setPreview({ ...preview, title: e.target.value })}
+                      placeholder="Post title"
+                    />
+
+                    <textarea
+                      className="publish-body-input"
+                      value={preview.body}
+                      onChange={(e) => setPreview({ ...preview, body: e.target.value })}
+                      rows={5}
+                      placeholder="Post body"
+                    />
+
+                    <div className="publish-meta-row">
+                      <div className="publish-meta-item">
+                        <label className="publish-meta-label">Category</label>
+                        <div className="segmented-picker">
+                          {CATEGORIES.map((cat) => (
+                            <button
+                              key={cat.value}
+                              className={`segmented-option ${preview.category === cat.value ? 'selected' : ''}`}
+                              onClick={() => setPreview({ ...preview, category: cat.value })}
+                            >
+                              <span className="segmented-dot" style={{ background: cat.color }} />
+                              {cat.label}
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+                      <div className="publish-meta-item">
+                        <label className="publish-meta-label">Priority</label>
+                        <div className="segmented-picker">
+                          {PRIORITIES.map((pri) => (
+                            <button
+                              key={pri.value}
+                              className={`segmented-option ${preview.priority === pri.value ? 'selected' : ''}`}
+                              onClick={() => setPreview({ ...preview, priority: pri.value })}
+                            >
+                              <span className="segmented-dot" style={{ background: pri.color }} />
+                              {pri.label}
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                )}
 
                 {/* Final duplicate check on preview */}
                 {similarPosts.length > 0 && (
@@ -606,8 +749,17 @@ export default function Submit() {
 
           {/* Error */}
           {error && (
-            <div className="error-message" style={{ marginTop: 'var(--space-4)' }}>
-              {error}
+            <div className="error-card">
+              <div className="error-card-icon">
+                <AlertCircle size={14} />
+              </div>
+              <div className="error-card-content">
+                <div className="error-card-text">{error}</div>
+                <button className="btn btn-ghost btn-sm" onClick={() => setError('')}>
+                  <X size={12} />
+                  Dismiss
+                </button>
+              </div>
             </div>
           )}
         </div>
