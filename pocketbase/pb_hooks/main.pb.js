@@ -91,8 +91,9 @@ routerAdd("POST", "/api/feedbackr/chat", (e) => {
     })
 
     if (res.statusCode !== 200) {
-        console.log("OpenRouter error:", res.statusCode)
-        throw new InternalServerError("AI service temporarily unavailable.")
+        console.log("OpenRouter chat error:", res.statusCode, JSON.stringify(res.json))
+        const detail = res.json?.error?.message || "AI service temporarily unavailable."
+        throw new InternalServerError(detail)
     }
 
     return e.json(200, { reply: res.json?.choices?.[0]?.message?.content || "" })
@@ -125,8 +126,9 @@ routerAdd("POST", "/api/feedbackr/generate", (e) => {
     })
 
     if (res.statusCode !== 200) {
-        console.log("OpenRouter error:", res.statusCode)
-        throw new InternalServerError("AI service temporarily unavailable.")
+        console.log("OpenRouter generate error:", res.statusCode, JSON.stringify(res.json))
+        const detail = res.json?.error?.message || "AI service temporarily unavailable."
+        throw new InternalServerError(detail)
     }
 
     const content = res.json?.choices?.[0]?.message?.content || ""
