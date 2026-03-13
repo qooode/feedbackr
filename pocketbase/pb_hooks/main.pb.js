@@ -91,7 +91,7 @@ routerAdd("POST", "/api/feedbackr/chat", (e) => {
     })
 
     if (res.statusCode !== 200) {
-        console.log("OpenRouter error:", res.statusCode, res.raw)
+        console.log("OpenRouter error:", res.statusCode)
         throw new InternalServerError("AI service temporarily unavailable.")
     }
 
@@ -125,7 +125,7 @@ routerAdd("POST", "/api/feedbackr/generate", (e) => {
     })
 
     if (res.statusCode !== 200) {
-        console.log("OpenRouter error:", res.statusCode, res.raw)
+        console.log("OpenRouter error:", res.statusCode)
         throw new InternalServerError("AI service temporarily unavailable.")
     }
 
@@ -166,7 +166,12 @@ routerAdd("POST", "/api/feedbackr/similar", (e) => {
 
     if (words.length === 0) return e.json(200, { similar: [] })
 
-    const filter = words.map(w => `(title ~ '${w.replace(/'/g, "''")}' || body ~ '${w.replace(/'/g, "''")}')`).join(" || ")
+    // Sanitize: only allow alphanumeric (already stripped above, but double-check)
+    const filter = words.map(w => {
+        const safe = w.replace(/[^a-z0-9]/g, "")
+        if (!safe) return null
+        return `(title ~ '${safe}' || body ~ '${safe}')`
+    }).filter(Boolean).join(" || ")
 
     try {
         const records = $app.findRecordsByFilter("posts", filter, "-votes_count", 5, 0)

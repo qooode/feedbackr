@@ -46,4 +46,4 @@ EXPOSE 8090
 # Persistent data volume (SQLite DB, uploaded files)
 VOLUME /pb/pb_data
 
-CMD ["/pb/pocketbase", "serve", "--http=0.0.0.0:8090", "--dev"]
+CMD ["/pb/pocketbase", "serve", "--http=0.0.0.0:8090"]
