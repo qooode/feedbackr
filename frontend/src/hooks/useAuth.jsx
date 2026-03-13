@@ -6,6 +6,7 @@ const AuthContext = createContext(null);
 export function AuthProvider({ children }) {
   const [user, setUser] = useState(pb.authStore.record);
   const [loading, setLoading] = useState(true);
+  const [oauthStatus, setOauthStatus] = useState(''); // '', 'processing', 'error:message'
   const oauthAttempted = useRef(false);
 
   useEffect(() => {
@@ -13,13 +14,13 @@ export function AuthProvider({ children }) {
       setUser(record);
     });
 
-    // Check if returning from OAuth redirect
     const params = new URLSearchParams(window.location.search);
     const code = params.get('code');
     const state = params.get('state');
 
     if (code && state && !oauthAttempted.current) {
       oauthAttempted.current = true;
+      setOauthStatus('processing');
       completeOAuthRedirect(code, state);
     } else {
       setLoading(false);
@@ -31,28 +32,36 @@ export function AuthProvider({ children }) {
   const completeOAuthRedirect = async (code, state) => {
     try {
       const stored = localStorage.getItem('oauth_provider');
-      if (!stored) throw new Error('No OAuth session found. Please try again.');
+      if (!stored) {
+        setOauthStatus('error:No OAuth session found. Try logging in again.');
+        setLoading(false);
+        return;
+      }
 
       const provider = JSON.parse(stored);
-      if (provider.state !== state) throw new Error('OAuth state mismatch.');
+      if (provider.state !== state) {
+        setOauthStatus('error:OAuth state mismatch. Try logging in again.');
+        setLoading(false);
+        return;
+      }
 
-      await pb.collection('users').authWithOAuth2Code(
+      const result = await pb.collection('users').authWithOAuth2Code(
         provider.name,
         code,
         provider.codeVerifier,
         provider.redirectUrl,
-        // createData — tells PocketBase to auto-create user on first login
         { name: '' },
       );
 
       localStorage.removeItem('oauth_provider');
+      window.history.replaceState({}, '', window.location.pathname);
+      setOauthStatus('');
+      setLoading(false);
     } catch (err) {
-      console.error('OAuth completion error:', err);
-      // Store error so AuthModal can show it
-      sessionStorage.setItem('oauth_error', err?.data?.message || err?.message || 'OAuth login failed.');
+      console.error('OAuth error details:', JSON.stringify(err, null, 2));
+      const msg = err?.response?.message || err?.data?.message || err?.message || 'Unknown error';
+      setOauthStatus('error:' + msg);
       localStorage.removeItem('oauth_provider');
-    } finally {
-      // Clean URL params
       window.history.replaceState({}, '', window.location.pathname);
       setLoading(false);
     }
@@ -64,7 +73,6 @@ export function AuthProvider({ children }) {
 
     if (!discord) throw new Error('Discord not configured in PocketBase.');
 
-    // The redirect comes back to the current page
     const redirectUrl = window.location.origin + '/';
 
     localStorage.setItem('oauth_provider', JSON.stringify({
@@ -74,7 +82,6 @@ export function AuthProvider({ children }) {
       redirectUrl: redirectUrl,
     }));
 
-    // discord.authURL ends with "&redirect_uri=" — append our URL
     window.location.href = discord.authURL + encodeURIComponent(redirectUrl);
   }, []);
 
@@ -96,9 +103,15 @@ export function AuthProvider({ children }) {
     pb.authStore.clear();
   }, []);
 
+  const clearOauthStatus = useCallback(() => {
+    setOauthStatus('');
+  }, []);
+
   const value = {
     user,
     loading,
+    oauthStatus,
+    clearOauthStatus,
     isAdmin: user?.is_admin === true,
     isLoggedIn: !!user,
     loginWithDiscord,
