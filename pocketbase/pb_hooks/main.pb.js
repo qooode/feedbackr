@@ -13,20 +13,20 @@ console.log("[Feedbackr] OPENROUTER_API_KEY set:", !!$os.getenv("OPENROUTER_API_
 // =============================================================================
 
 var _rateLimits = {}
-var _envRateWindow = Number($os.getenv("RATE_WINDOW_SEC"))
-var _envMaxAI = Number($os.getenv("RATE_MAX_AI"))
-var _envMaxCreate = Number($os.getenv("RATE_MAX_CREATE"))
-var RATE_WINDOW_SEC = _envRateWindow > 0 ? _envRateWindow : 60
-var RATE_MAX_AI = _envMaxAI > 0 ? _envMaxAI : 15
-var RATE_MAX_CREATE = _envMaxCreate > 0 ? _envMaxCreate : 20
 
-console.log("[Feedbackr] Rate limits:", RATE_WINDOW_SEC + "s window,", RATE_MAX_AI, "AI max,", RATE_MAX_CREATE, "create max")
-
-function checkRateLimit(userId, bucket, max) {
+function checkRateLimit(userId, bucket, fallbackMax) {
+    var windowSec = 60
+    var max = fallbackMax
+    try {
+        var w = $os.getenv("RATE_WINDOW_SEC")
+        if (w) windowSec = +w || 60
+        var m = $os.getenv("RATE_MAX_" + bucket.toUpperCase())
+        if (m) max = +m || fallbackMax
+    } catch(ex) {}
     var now = Math.floor(Date.now() / 1000)
     var key = bucket + ":" + userId
     if (!_rateLimits[key]) _rateLimits[key] = []
-    var cutoff = now - RATE_WINDOW_SEC
+    var cutoff = now - windowSec
     var recent = []
     for (var i = 0; i < _rateLimits[key].length; i++) {
         if (_rateLimits[key][i] > cutoff) recent.push(_rateLimits[key][i])
@@ -51,7 +51,7 @@ routerAdd("POST", "/api/feedbackr/chat", function(e) {
         if (!e.auth) {
             return e.json(401, { code: 401, message: "You must be logged in." })
         }
-        if (!checkRateLimit(e.auth.id, "ai", RATE_MAX_AI)) {
+        if (!checkRateLimit(e.auth.id, "ai", 15)) {
             return e.json(429, { code: 429, message: "Too many requests. Please wait a moment." })
         }
         if (!OPENROUTER_API_KEY) {
@@ -146,7 +146,7 @@ routerAdd("POST", "/api/feedbackr/generate", function(e) {
         if (!e.auth) {
             return e.json(401, { code: 401, message: "You must be logged in." })
         }
-        if (!checkRateLimit(e.auth.id, "ai", RATE_MAX_AI)) {
+        if (!checkRateLimit(e.auth.id, "ai", 15)) {
             return e.json(429, { code: 429, message: "Too many requests. Please wait a moment." })
         }
         if (!OPENROUTER_API_KEY) {
@@ -235,7 +235,7 @@ routerAdd("POST", "/api/feedbackr/similar", function(e) {
         if (!e.auth) {
             return e.json(401, { code: 401, message: "You must be logged in." })
         }
-        if (!checkRateLimit(e.auth.id, "ai", RATE_MAX_AI)) {
+        if (!checkRateLimit(e.auth.id, "ai", 15)) {
             return e.json(429, { code: 429, message: "Too many requests. Please wait a moment." })
         }
 
@@ -413,7 +413,7 @@ onRecordDeleteRequest(function(e) {
 
 onRecordCreateRequest(function(e) {
     if (!e.auth) return e.json(401, { code: 401, message: "Not authenticated." })
-    if (!checkRateLimit(e.auth.id, "create", RATE_MAX_CREATE)) {
+    if (!checkRateLimit(e.auth.id, "create", 20)) {
         return e.json(429, { code: 429, message: "Too many requests. Slow down." })
     }
     e.record.set("author", e.auth.id)
@@ -434,7 +434,7 @@ onRecordCreateRequest(function(e) {
 
 onRecordCreateRequest(function(e) {
     if (!e.auth) return e.json(401, { code: 401, message: "Not authenticated." })
-    if (!checkRateLimit(e.auth.id, "create", RATE_MAX_CREATE)) {
+    if (!checkRateLimit(e.auth.id, "create", 20)) {
         return e.json(429, { code: 429, message: "Too many requests. Slow down." })
     }
     e.record.set("author", e.auth.id)
@@ -447,7 +447,7 @@ onRecordCreateRequest(function(e) {
 
 onRecordCreateRequest(function(e) {
     if (!e.auth) return e.json(401, { code: 401, message: "Not authenticated." })
-    if (!checkRateLimit(e.auth.id, "vote", RATE_MAX_CREATE)) {
+    if (!checkRateLimit(e.auth.id, "vote", 20)) {
         return e.json(429, { code: 429, message: "Too many vote requests. Slow down." })
     }
     e.record.set("user", e.auth.id)
