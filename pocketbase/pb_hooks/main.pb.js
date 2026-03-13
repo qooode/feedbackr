@@ -16,10 +16,7 @@ const AI_MODEL = $os.getenv("AI_MODEL") || "anthropic/claude-sonnet-4"
 const MAX_MESSAGES = 20
 const MAX_MESSAGE_LENGTH = 2000
 
-const ADMIN_EMAILS = ($os.getenv("ADMIN_EMAILS") || "")
-    .split(",")
-    .map(e => e.trim().toLowerCase())
-    .filter(e => e.length > 0)
+// ADMIN_EMAILS parsed inside hook callback to avoid VM scope issues
 
 // =============================================================================
 // SYSTEM PROMPTS
@@ -218,9 +215,18 @@ onRecordDeleteRequest((e) => {
 
 // Auto-promote admin by email
 onRecordAuthRequest((e) => {
-    if (ADMIN_EMAILS.length === 0) return e.next()
+    const adminEmailsRaw = $os.getenv("ADMIN_EMAILS") || ""
+    if (!adminEmailsRaw) return e.next()
+
+    const adminEmails = adminEmailsRaw.split(",")
+    const trimmed = []
+    for (let i = 0; i < adminEmails.length; i++) {
+        const cleaned = adminEmails[i].replace(/^\s+|\s+$/g, "").toLowerCase()
+        if (cleaned.length > 0) trimmed.push(cleaned)
+    }
+
     const email = (e.record.get("email") || "").toLowerCase()
-    if (email && ADMIN_EMAILS.includes(email) && !e.record.get("is_admin")) {
+    if (email && trimmed.indexOf(email) >= 0 && !e.record.get("is_admin")) {
         e.record.set("is_admin", true)
         $app.save(e.record)
         console.log("Auto-promoted to admin: " + email)
