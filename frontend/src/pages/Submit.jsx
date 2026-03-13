@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ArrowRight, Sparkles, Check, RotateCcw, Eye, Send, MessageSquare, X, AlertTriangle, MessageCircle } from 'lucide-react';
+import { ArrowRight, Sparkles, Check, RotateCcw, Eye, Send, MessageSquare, X, AlertTriangle, MessageCircle, ChevronRight, Zap, PenLine } from 'lucide-react';
 import { useAuth } from '../hooks/useAuth';
 import { sendChatMessage, generatePost, searchSimilar } from '../lib/api';
 import AuthModal from '../components/AuthModal';
@@ -11,7 +11,6 @@ export default function Submit() {
   const navigate = useNavigate();
   const textareaRef = useRef(null);
   const followupRef = useRef(null);
-  const threadEndRef = useRef(null);
 
   const [input, setInput] = useState('');
   const [showAuth, setShowAuth] = useState(false);
@@ -34,17 +33,15 @@ export default function Submit() {
   const [similarDismissed, setSimilarDismissed] = useState(false);
   const [checkingSimilar, setCheckingSimilar] = useState(false);
 
-  // Auto-scroll conversation thread
-  useEffect(() => {
-    threadEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-  }, [messages, aiLoading]);
-
   // Focus followup input when AI becomes active
   useEffect(() => {
-    if (aiActive && followupRef.current) {
+    if (aiActive && followupRef.current && !showGenerate && !generating) {
       followupRef.current.focus();
     }
-  }, [aiActive, messages]);
+  }, [aiActive, messages, showGenerate, generating]);
+
+  // Current step for progress
+  const currentStep = !aiActive ? 0 : preview ? 2 : 1;
 
   const handleInitialSubmit = async () => {
     if (!input.trim()) return;
@@ -240,6 +237,9 @@ export default function Submit() {
     }
   };
 
+  // Get the latest AI message for inline display
+  const latestAiMessage = [...messages].reverse().find(m => m.role === 'assistant');
+
   // Not logged in
   if (!isLoggedIn) {
     return (
@@ -275,295 +275,336 @@ export default function Submit() {
             </p>
           </div>
 
-          {/* Main Textarea Card */}
-          <div className="card submit-card">
-            <div className="submit-card-inner">
+          {/* Progress Steps */}
+          <div className="submit-steps">
+            <div className={`submit-step ${currentStep >= 0 ? 'submit-step-active' : ''} ${currentStep > 0 ? 'submit-step-done' : ''}`}>
+              <div className="submit-step-dot">
+                {currentStep > 0 ? <Check size={10} strokeWidth={3} /> : '1'}
+              </div>
+              <span className="submit-step-label">Describe</span>
+            </div>
+            <div className="submit-step-line" />
+            <div className={`submit-step ${currentStep >= 1 ? 'submit-step-active' : ''} ${currentStep > 1 ? 'submit-step-done' : ''}`}>
+              <div className="submit-step-dot">
+                {currentStep > 1 ? <Check size={10} strokeWidth={3} /> : '2'}
+              </div>
+              <span className="submit-step-label">Refine</span>
+            </div>
+            <div className="submit-step-line" />
+            <div className={`submit-step ${currentStep >= 2 ? 'submit-step-active' : ''}`}>
+              <div className="submit-step-dot">3</div>
+              <span className="submit-step-label">Publish</span>
+            </div>
+          </div>
+
+          {/* Step 1: Initial Input */}
+          {!aiActive && (
+            <div className="submit-input-card">
+              <div className="submit-input-glow" />
               <textarea
                 ref={textareaRef}
-                className="submit-textarea"
+                className="submit-textarea-v2"
                 placeholder="What would you like to share? Describe a bug, suggest a feature, or tell us how something could be better..."
                 value={input}
                 onChange={(e) => setInput(e.target.value)}
                 onKeyDown={handleKeyDown}
-                disabled={aiActive && !preview}
                 rows={5}
               />
-            </div>
-
-            <div className="submit-footer">
-              <div className="submit-footer-hint">
-                <Sparkles size={13} />
-                <span>AI will review and help structure your feedback</span>
-              </div>
-              <div className="submit-footer-actions">
-                {aiActive && (
-                  <button className="btn btn-ghost btn-sm" onClick={handleReset}>
-                    <RotateCcw size={13} />
-                    Reset
-                  </button>
-                )}
+              <div className="submit-input-bar">
+                <div className="submit-input-hint">
+                  <Sparkles size={12} />
+                  <span>AI will review and help structure your feedback</span>
+                </div>
                 <button
                   className="btn btn-primary"
                   onClick={handleInitialSubmit}
-                  disabled={!input.trim() || (aiActive && !preview)}
+                  disabled={!input.trim()}
                 >
-                  <ArrowRight size={15} />
-                  Submit
+                  Continue
+                  <ArrowRight size={14} />
                 </button>
               </div>
             </div>
-          </div>
+          )}
 
-          {/* AI Conversation Panel */}
+          {/* Step 2: AI Refine Phase */}
           {aiActive && !preview && (
-            <div className="ai-panel">
-              <div className="ai-panel-header">
-                <div className="ai-panel-indicator" />
-                <span className="ai-panel-label">AI Assistant</span>
+            <div className="refine-section">
+              {/* Your original feedback */}
+              <div className="refine-original">
+                <div className="refine-original-label">
+                  <PenLine size={12} />
+                  Your feedback
+                </div>
+                <p className="refine-original-text">
+                  {messages.find(m => m.role === 'user')?.content}
+                </p>
               </div>
 
-              {/* Threaded conversation */}
-              <div className="conversation-thread">
-                {messages.map((msg, i) => (
-                  <div key={i} className="conversation-message">
-                    <div className={`conversation-avatar ${msg.role === 'assistant' ? 'conversation-avatar-ai' : ''}`}>
-                      {msg.role === 'assistant' ? '✦' : (user?.name || user?.email || '?')[0].toUpperCase()}
+              {/* AI Response — inline, not a chat bubble */}
+              {latestAiMessage && (
+                <div className="refine-ai-block">
+                  <div className="refine-ai-header">
+                    <div className="refine-ai-icon">
+                      <Sparkles size={14} />
                     </div>
-                    <div className="conversation-content">
-                      <div className="conversation-name">
-                        {msg.role === 'assistant' ? 'AI' : 'You'}
-                      </div>
-                      <div className={`conversation-text ${msg.role === 'user' ? 'user-text' : ''}`}>
-                        {msg.content}
-                      </div>
-                    </div>
+                    <span>AI Feedback</span>
                   </div>
-                ))}
-
-                {aiLoading && (
-                  <div className="typing-indicator">
-                    <div className="typing-dot" />
-                    <div className="typing-dot" />
-                    <div className="typing-dot" />
+                  <div className="refine-ai-body">
+                    {latestAiMessage.content}
                   </div>
-                )}
-                <div ref={threadEndRef} />
-              </div>
 
-              {/* Generate button row */}
+                  {/* Previous exchanges collapsed */}
+                  {messages.filter(m => m.role === 'user').length > 1 && (
+                    <details className="refine-history">
+                      <summary className="refine-history-toggle">
+                        View conversation ({messages.length} messages)
+                      </summary>
+                      <div className="refine-history-list">
+                        {messages.slice(0, -1).map((msg, i) => (
+                          <div key={i} className={`refine-history-item ${msg.role === 'assistant' ? 'refine-history-ai' : ''}`}>
+                            <span className="refine-history-role">{msg.role === 'assistant' ? 'AI' : 'You'}</span>
+                            <p>{msg.content}</p>
+                          </div>
+                        ))}
+                      </div>
+                    </details>
+                  )}
+                </div>
+              )}
+
+              {aiLoading && (
+                <div className="refine-loading">
+                  <div className="refine-loading-bar">
+                    <div className="refine-loading-fill" />
+                  </div>
+                  <span>AI is analyzing your feedback...</span>
+                </div>
+              )}
+
+              {/* Follow-up or Generate */}
+              {!aiLoading && !showGenerate && (
+                <div className="refine-reply-card">
+                  <textarea
+                    ref={followupRef}
+                    className="refine-reply-input"
+                    placeholder="Add more details or answer the AI's question..."
+                    value={followupInput}
+                    onChange={(e) => setFollowupInput(e.target.value)}
+                    onKeyDown={handleFollowupKeyDown}
+                    rows={2}
+                  />
+                  <div className="refine-reply-bar">
+                    <button className="btn btn-ghost btn-sm" onClick={handleReset}>
+                      <RotateCcw size={12} />
+                      Start over
+                    </button>
+                    <button
+                      className="btn btn-primary btn-sm"
+                      onClick={handleFollowup}
+                      disabled={!followupInput.trim()}
+                    >
+                      Reply
+                      <Send size={12} />
+                    </button>
+                  </div>
+                </div>
+              )}
+
               {showGenerate && !generating && (
-                <div className="ai-panel-actions">
-                  <button className="btn btn-primary btn-sm" onClick={handleGenerate}>
-                    <Sparkles size={13} />
-                    Generate Post
-                  </button>
-                  <button className="btn btn-ghost btn-sm" onClick={handleReset}>
-                    <RotateCcw size={13} />
-                    Start Over
-                  </button>
+                <div className="refine-ready">
+                  <div className="refine-ready-icon">
+                    <Zap size={18} />
+                  </div>
+                  <div className="refine-ready-text">
+                    <strong>Ready to generate your post</strong>
+                    <span>The AI has enough context to create a structured feedback post.</span>
+                  </div>
+                  <div className="refine-ready-actions">
+                    <button className="btn btn-primary" onClick={handleGenerate}>
+                      <Sparkles size={14} />
+                      Generate Post
+                    </button>
+                    <button className="btn btn-ghost btn-sm" onClick={handleReset}>
+                      Start Over
+                    </button>
+                  </div>
                 </div>
               )}
 
               {generating && (
-                <div className="ai-panel-actions" style={{ justifyContent: 'center' }}>
-                  <div className="spinner" />
-                  <span style={{ fontSize: 'var(--font-size-xs)', color: 'var(--muted-foreground)' }}>
-                    Generating your post...
-                  </span>
-                </div>
-              )}
-
-              {/* Follow-up input */}
-              {!showGenerate && !generating && (
-                <div className="ai-followup">
-                  <input
-                    ref={followupRef}
-                    className="input"
-                    type="text"
-                    placeholder="Reply to AI..."
-                    value={followupInput}
-                    onChange={(e) => setFollowupInput(e.target.value)}
-                    onKeyDown={handleFollowupKeyDown}
-                    disabled={aiLoading}
-                  />
-                  <button
-                    className="btn btn-secondary btn-icon-sm"
-                    onClick={handleFollowup}
-                    disabled={!followupInput.trim() || aiLoading}
-                    style={{ borderRadius: 'var(--radius-md)' }}
-                  >
-                    <Send size={14} />
-                  </button>
+                <div className="refine-generating">
+                  <div className="refine-generating-animation">
+                    <div className="refine-generating-ring" />
+                    <Sparkles size={16} className="refine-generating-icon" />
+                  </div>
+                  <span>Crafting your post...</span>
                 </div>
               )}
             </div>
           )}
 
-          {/* Similar Posts — shown prominently before AI conversation */}
-          {similarPosts.length > 0 && !similarDismissed && (
-            <div className="card similar-posts similar-posts-prominent">
-              <div className="similar-posts-header">
-                <div className="similar-posts-icon">
-                  <AlertTriangle size={18} />
+          {/* Similar Posts */}
+          {similarPosts.length > 0 && !similarDismissed && !preview && (
+            <div className="similar-card">
+              <div className="similar-card-accent" />
+              <div className="similar-card-header">
+                <div className="similar-card-icon">
+                  <AlertTriangle size={16} />
                 </div>
                 <div>
-                  <div className="similar-posts-title">
-                    Similar feedback already exists
-                  </div>
-                  <div className="similar-posts-subtitle">
-                    Your feedback looks similar to existing posts. Adding your voice to an existing post helps us prioritize better.
+                  <div className="similar-card-title">Similar feedback exists</div>
+                  <div className="similar-card-desc">
+                    Consider adding your voice to an existing post to help us prioritize.
                   </div>
                 </div>
               </div>
 
-              <div className="similar-posts-list">
+              <div className="similar-card-list">
                 {similarPosts.map((p) => (
-                  <div key={p.id} className="similar-post-item">
-                    <div className="similar-post-info">
-                      <div className="similar-post-name">{p.title}</div>
-                      <div className="similar-post-snippet">{p.body}</div>
-                      <div className="similar-post-meta">
+                  <div key={p.id} className="similar-card-item">
+                    <div className="similar-card-item-info">
+                      <div className="similar-card-item-title">{p.title}</div>
+                      <div className="similar-card-item-snippet">{p.body}</div>
+                      <div className="similar-card-item-meta">
                         <span className={`badge badge-${p.category}`}>{p.category}</span>
-                        <span className="similar-post-votes">▲ {p.votes_count || 0}</span>
+                        <span className="similar-card-item-votes">▲ {p.votes_count || 0}</span>
                         {p.status && <span className={`badge badge-${p.status}`}>{p.status}</span>}
                       </div>
                     </div>
-                    <div className="similar-post-actions">
+                    <div className="similar-card-item-actions">
                       <button
                         className="btn btn-primary btn-sm"
                         onClick={() => handleAddToExisting(p.id)}
                         disabled={publishing}
                       >
                         <MessageCircle size={12} />
-                        Add my feedback here
+                        Add my feedback
                       </button>
                       <button
                         className="btn btn-ghost btn-sm"
                         onClick={() => navigate(`/post/${p.id}`)}
                       >
                         <Eye size={12} />
-                        View post
+                        View
                       </button>
                     </div>
                   </div>
                 ))}
               </div>
 
-              <div className="similar-posts-dismiss">
+              <div className="similar-card-dismiss">
                 <button
                   className="btn btn-ghost btn-sm"
                   onClick={() => setSimilarDismissed(true)}
                 >
-                  <X size={13} />
+                  <X size={12} />
                   This is different — continue with new post
                 </button>
               </div>
             </div>
           )}
 
-          {/* Preview Card */}
+          {/* Step 3: Preview & Publish */}
           {preview && (
-            <div className="card preview-card">
-              <div className="preview-header">
-                <Sparkles size={13} />
-                AI-Generated Preview
-              </div>
-
-              <div className="preview-inner">
-                <input
-                  className="input"
-                  value={preview.title}
-                  onChange={(e) => setPreview({ ...preview, title: e.target.value })}
-                  style={{
-                    fontSize: 'var(--font-size-xl)',
-                    fontWeight: '600',
-                    marginBottom: 'var(--space-4)',
-                    letterSpacing: '-0.02em',
-                  }}
-                />
-
-                <textarea
-                  className="input"
-                  value={preview.body}
-                  onChange={(e) => setPreview({ ...preview, body: e.target.value })}
-                  rows={5}
-                  style={{ marginBottom: 'var(--space-4)' }}
-                />
-
-                <div className="preview-badges">
-                  <select
-                    className="input"
-                    value={preview.category}
-                    onChange={(e) => setPreview({ ...preview, category: e.target.value })}
-                    style={{ width: 'auto' }}
-                  >
-                    <option value="bug">Bug</option>
-                    <option value="feature">Feature</option>
-                    <option value="improvement">Improvement</option>
-                  </select>
-
-                  <select
-                    className="input"
-                    value={preview.priority}
-                    onChange={(e) => setPreview({ ...preview, priority: e.target.value })}
-                    style={{ width: 'auto' }}
-                  >
-                    <option value="low">Low</option>
-                    <option value="medium">Medium</option>
-                    <option value="high">High</option>
-                    <option value="critical">Critical</option>
-                  </select>
+            <div className="publish-section">
+              <div className="publish-card">
+                <div className="publish-card-header">
+                  <div className="publish-card-tag">
+                    <Sparkles size={12} />
+                    Generated Post
+                  </div>
+                  <button className="btn btn-ghost btn-sm" onClick={() => { setPreview(null); setShowGenerate(true); }}>
+                    <RotateCcw size={12} />
+                    Regenerate
+                  </button>
                 </div>
-              </div>
 
-              {/* Final duplicate check on preview */}
-              {similarPosts.length > 0 && (
-                <div className="preview-similar-notice">
-                  <AlertTriangle size={14} />
-                  <span>
-                    Similar posts exist — consider adding to an existing one instead:
-                  </span>
-                  <div className="preview-similar-links">
-                    {similarPosts.slice(0, 3).map((p) => (
-                      <button
-                        key={p.id}
-                        className="btn btn-ghost btn-sm"
-                        onClick={() => handleAddToExisting(p.id)}
-                        disabled={publishing}
+                <div className="publish-card-body">
+                  <input
+                    className="publish-title-input"
+                    value={preview.title}
+                    onChange={(e) => setPreview({ ...preview, title: e.target.value })}
+                    placeholder="Post title"
+                  />
+
+                  <textarea
+                    className="publish-body-input"
+                    value={preview.body}
+                    onChange={(e) => setPreview({ ...preview, body: e.target.value })}
+                    rows={5}
+                    placeholder="Post body"
+                  />
+
+                  <div className="publish-meta-row">
+                    <div className="publish-meta-item">
+                      <label className="publish-meta-label">Category</label>
+                      <select
+                        className="publish-meta-select"
+                        value={preview.category}
+                        onChange={(e) => setPreview({ ...preview, category: e.target.value })}
                       >
-                        <MessageCircle size={12} />
-                        {p.title}
-                      </button>
-                    ))}
+                        <option value="bug">Bug</option>
+                        <option value="feature">Feature</option>
+                        <option value="improvement">Improvement</option>
+                      </select>
+                    </div>
+                    <div className="publish-meta-item">
+                      <label className="publish-meta-label">Priority</label>
+                      <select
+                        className="publish-meta-select"
+                        value={preview.priority}
+                        onChange={(e) => setPreview({ ...preview, priority: e.target.value })}
+                      >
+                        <option value="low">Low</option>
+                        <option value="medium">Medium</option>
+                        <option value="high">High</option>
+                        <option value="critical">Critical</option>
+                      </select>
+                    </div>
                   </div>
                 </div>
-              )}
 
-              <div className="preview-actions">
-                <button
-                  className="btn btn-primary"
-                  onClick={handlePublish}
-                  disabled={publishing}
-                >
-                  {publishing ? (
-                    <div className="spinner" />
-                  ) : (
-                    <>
-                      <Check size={15} />
-                      Publish as new post
-                    </>
-                  )}
-                </button>
-                <button
-                  className="btn btn-ghost btn-sm"
-                  onClick={() => { setPreview(null); setShowGenerate(true); }}
-                >
-                  <RotateCcw size={13} />
-                  Regenerate
-                </button>
-                <button className="btn btn-ghost btn-sm" onClick={handleReset}>
-                  Start Over
-                </button>
+                {/* Final duplicate check on preview */}
+                {similarPosts.length > 0 && (
+                  <div className="publish-similar-notice">
+                    <AlertTriangle size={13} />
+                    <span>Similar posts exist — consider adding to an existing one:</span>
+                    <div className="publish-similar-links">
+                      {similarPosts.slice(0, 3).map((p) => (
+                        <button
+                          key={p.id}
+                          className="btn btn-ghost btn-sm"
+                          onClick={() => handleAddToExisting(p.id)}
+                          disabled={publishing}
+                        >
+                          <MessageCircle size={11} />
+                          {p.title}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                <div className="publish-actions">
+                  <button className="btn btn-ghost btn-sm" onClick={handleReset}>
+                    Start Over
+                  </button>
+                  <button
+                    className="btn btn-primary btn-lg publish-btn"
+                    onClick={handlePublish}
+                    disabled={publishing}
+                  >
+                    {publishing ? (
+                      <div className="spinner" />
+                    ) : (
+                      <>
+                        <Check size={16} />
+                        Publish Post
+                      </>
+                    )}
+                  </button>
+                </div>
               </div>
             </div>
           )}
