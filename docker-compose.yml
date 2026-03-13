@@ -1,0 +1,35 @@
+version: "3.8"
+
+services:
+  feedbackr:
+    build: .
+    ports:
+      - "8090:8090"
+    volumes:
+      - pb_data:/pb/pb_data
+    environment:
+      # ── Required ──────────────────────────────────────
+      - OPENROUTER_API_KEY=${OPENROUTER_API_KEY}
+
+      # ── PocketBase Superuser (auto-created on first boot) ──
+      - PB_SUPERUSER_EMAIL=${PB_SUPERUSER_EMAIL}
+      - PB_SUPERUSER_PASSWORD=${PB_SUPERUSER_PASSWORD}
+
+      # ── Admin Users (auto-promoted on login) ──────────
+      # Comma-separated list of emails that get is_admin=true
+      - ADMIN_EMAILS=${ADMIN_EMAILS}
+
+      # ── Optional ──────────────────────────────────────
+      # AI model to use (default: anthropic/claude-sonnet-4)
+      - AI_MODEL=${AI_MODEL:-anthropic/claude-sonnet-4}
+      # Your app URL (used as OpenRouter referer)
+      - APP_URL=${APP_URL:-http://localhost:8090}
+
+      # ── Discord OAuth (optional) ──────────────────────
+      # Configure in PocketBase admin UI after first boot
+      # - DISCORD_CLIENT_ID=${DISCORD_CLIENT_ID}
+      # - DISCORD_CLIENT_SECRET=${DISCORD_CLIENT_SECRET}
+    restart: unless-stopped
+
+volumes:
+  pb_data:
