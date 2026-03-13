@@ -7,7 +7,6 @@
 console.log("[Feedbackr] hooks v2 loaded")
 console.log("[Feedbackr] AI_MODEL:", $os.getenv("AI_MODEL") || "anthropic/claude-sonnet-4")
 console.log("[Feedbackr] OPENROUTER_API_KEY set:", !!$os.getenv("OPENROUTER_API_KEY"))
-console.log("[Feedbackr] RATE_MAX_AI:", RATE_MAX_AI, "RATE_MAX_CREATE:", RATE_MAX_CREATE)
 
 // =============================================================================
 // RATE LIMITER (in-memory, resets on server restart)
