@@ -128,7 +128,7 @@ routerAdd("POST", "/api/feedbackr/chat", (e) => {
 
     console.log("[chat] success, reply length:", reply.length)
     return e.json(200, { reply: reply })
-}, $apis.requireAuth())
+})
 
 routerAdd("POST", "/api/feedbackr/generate", (e) => {
     console.log("[generate] handler entered")
@@ -206,7 +206,7 @@ routerAdd("POST", "/api/feedbackr/generate", (e) => {
         console.log("[generate] Failed to parse AI response:", content)
         throw new BadRequestError("Failed to generate post. AI response was not valid.")
     }
-}, $apis.requireAuth())
+})
 
 routerAdd("POST", "/api/feedbackr/similar", (e) => {
     if (!e.auth) throw new UnauthorizedError("You must be logged in.")
@@ -242,7 +242,7 @@ routerAdd("POST", "/api/feedbackr/similar", (e) => {
     } catch {
         return e.json(200, { similar: [] })
     }
-}, $apis.requireAuth())
+})
 
 // =============================================================================
 // OWNERSHIP ENFORCEMENT (since API rules use simple auth checks)
