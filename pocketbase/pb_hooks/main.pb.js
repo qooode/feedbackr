@@ -8,6 +8,30 @@ console.log("[Feedbackr] AI_MODEL:", $os.getenv("AI_MODEL") || "anthropic/claude
 console.log("[Feedbackr] OPENROUTER_API_KEY set:", !!$os.getenv("OPENROUTER_API_KEY"))
 
 // =============================================================================
+// RATE LIMITER (in-memory, resets on server restart)
+// =============================================================================
+
+var _rateLimits = {}
+var RATE_WINDOW_SEC = 60
+var RATE_MAX_AI = 15
+var RATE_MAX_CREATE = 20
+
+function checkRateLimit(userId, bucket, max) {
+    var now = Math.floor(Date.now() / 1000)
+    var key = bucket + ":" + userId
+    if (!_rateLimits[key]) _rateLimits[key] = []
+    var cutoff = now - RATE_WINDOW_SEC
+    var recent = []
+    for (var i = 0; i < _rateLimits[key].length; i++) {
+        if (_rateLimits[key][i] > cutoff) recent.push(_rateLimits[key][i])
+    }
+    _rateLimits[key] = recent
+    if (recent.length >= max) return false
+    _rateLimits[key].push(now)
+    return true
+}
+
+// =============================================================================
 // AI ROUTES
 // =============================================================================
 
@@ -20,6 +44,9 @@ routerAdd("POST", "/api/feedbackr/chat", function(e) {
 
         if (!e.auth) {
             return e.json(401, { code: 401, message: "You must be logged in." })
+        }
+        if (!checkRateLimit(e.auth.id, "ai", RATE_MAX_AI)) {
+            return e.json(429, { code: 429, message: "Too many requests. Please wait a moment." })
         }
         if (!OPENROUTER_API_KEY) {
             return e.json(400, { code: 400, message: "AI service not configured. Set OPENROUTER_API_KEY." })
@@ -108,6 +135,9 @@ routerAdd("POST", "/api/feedbackr/generate", function(e) {
         if (!e.auth) {
             return e.json(401, { code: 401, message: "You must be logged in." })
         }
+        if (!checkRateLimit(e.auth.id, "ai", RATE_MAX_AI)) {
+            return e.json(429, { code: 429, message: "Too many requests. Please wait a moment." })
+        }
         if (!OPENROUTER_API_KEY) {
             return e.json(400, { code: 400, message: "AI service not configured." })
         }
@@ -182,6 +212,9 @@ routerAdd("POST", "/api/feedbackr/similar", function(e) {
     try {
         if (!e.auth) {
             return e.json(401, { code: 401, message: "You must be logged in." })
+        }
+        if (!checkRateLimit(e.auth.id, "ai", RATE_MAX_AI)) {
+            return e.json(429, { code: 429, message: "Too many requests. Please wait a moment." })
         }
 
         var OPENROUTER_API_KEY = $os.getenv("OPENROUTER_API_KEY")
@@ -333,7 +366,7 @@ routerAdd("POST", "/api/feedbackr/similar", function(e) {
 onRecordUpdateRequest(function(e) {
     if (!e.auth) return e.json(401, { code: 401, message: "Not authenticated." })
     var isOwner = e.record.get("author") === e.auth.id
-    var isAdmin = e.record.get("is_admin") === true
+    var isAdmin = e.auth.get("is_admin") === true
     if (!isOwner && !isAdmin) return e.json(403, { code: 403, message: "You can only edit your own comments." })
     return e.next()
 }, "comments")
@@ -341,7 +374,7 @@ onRecordUpdateRequest(function(e) {
 onRecordDeleteRequest(function(e) {
     if (!e.auth) return e.json(401, { code: 401, message: "Not authenticated." })
     var isOwner = e.record.get("author") === e.auth.id
-    var isAdmin = e.record.get("is_admin") === true
+    var isAdmin = e.auth.get("is_admin") === true
     if (!isOwner && !isAdmin) return e.json(403, { code: 403, message: "You can only delete your own comments." })
     return e.next()
 }, "comments")
@@ -351,6 +384,47 @@ onRecordDeleteRequest(function(e) {
     if (e.record.get("user") !== e.auth.id) return e.json(403, { code: 403, message: "You can only remove your own vote." })
     return e.next()
 }, "votes")
+
+// =============================================================================
+// CREATE REQUEST GUARDS — prevent field spoofing
+// =============================================================================
+
+onRecordCreateRequest(function(e) {
+    if (!e.auth) return e.json(401, { code: 401, message: "Not authenticated." })
+    if (!checkRateLimit(e.auth.id, "create", RATE_MAX_CREATE)) {
+        return e.json(429, { code: 429, message: "Too many requests. Slow down." })
+    }
+    e.record.set("author", e.auth.id)
+    e.record.set("status", "new")
+    e.record.set("votes_count", 0)
+    var title = String(e.record.get("title") || "")
+    if (title.length > 300) return e.json(400, { code: 400, message: "Title too long (max 300 chars)." })
+    var body = String(e.record.get("body") || "")
+    if (body.length > 10000) return e.json(400, { code: 400, message: "Body too long (max 10,000 chars)." })
+    return e.next()
+}, "posts")
+
+onRecordCreateRequest(function(e) {
+    if (!e.auth) return e.json(401, { code: 401, message: "Not authenticated." })
+    if (!checkRateLimit(e.auth.id, "create", RATE_MAX_CREATE)) {
+        return e.json(429, { code: 429, message: "Too many requests. Slow down." })
+    }
+    e.record.set("author", e.auth.id)
+    var body = String(e.record.get("body") || "")
+    if (body.length > 5000) return e.json(400, { code: 400, message: "Comment too long (max 5,000 chars)." })
+    return e.next()
+}, "comments")
+
+onRecordCreateRequest(function(e) {
+    if (!e.auth) return e.json(401, { code: 401, message: "Not authenticated." })
+    e.record.set("user", e.auth.id)
+    return e.next()
+}, "votes")
+
+onRecordCreateRequest(function(e) {
+    e.record.set("is_admin", false)
+    return e.next()
+}, "users")
 
 // =============================================================================
 // AUTH HOOKS

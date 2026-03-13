@@ -33,8 +33,8 @@ export default function Board() {
       if (category !== 'all') filters.push(`category = "${category}"`);
       if (status !== 'all') filters.push(`status = "${status}"`);
       if (search.trim()) {
-        const escaped = search.trim().replace(/"/g, '\\"');
-        filters.push(`(title ~ "${escaped}" || body ~ "${escaped}")`);
+        const sanitized = search.trim().replace(/[^\w\s]/g, '').slice(0, 100);
+        if (sanitized) filters.push(`(title ~ "${sanitized}" || body ~ "${sanitized}")`);
       }
 
       const result = await pb.collection('posts').getList(1, 50, {
