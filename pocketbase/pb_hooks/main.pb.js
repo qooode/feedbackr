@@ -12,7 +12,7 @@ console.log("[Feedbackr] OPENROUTER_API_KEY set:", !!$os.getenv("OPENROUTER_API_
 // RATE LIMITER (in-memory, resets on server restart)
 // =============================================================================
 
-var _rateLimits = {}
+$app.store().set("rateLimits", {})
 
 function checkRateLimit(userId, bucket, fallbackMax) {
     var windowSec = 60
@@ -23,17 +23,20 @@ function checkRateLimit(userId, bucket, fallbackMax) {
         var m = $os.getenv("RATE_MAX_" + bucket.toUpperCase())
         if (m) max = +m || fallbackMax
     } catch(ex) {}
+    var limits = $app.store().get("rateLimits") || {}
     var now = Math.floor(Date.now() / 1000)
     var key = bucket + ":" + userId
-    if (!_rateLimits[key]) _rateLimits[key] = []
+    if (!limits[key]) limits[key] = []
     var cutoff = now - windowSec
     var recent = []
-    for (var i = 0; i < _rateLimits[key].length; i++) {
-        if (_rateLimits[key][i] > cutoff) recent.push(_rateLimits[key][i])
+    for (var i = 0; i < limits[key].length; i++) {
+        if (limits[key][i] > cutoff) recent.push(limits[key][i])
     }
-    _rateLimits[key] = recent
+    limits[key] = recent
+    $app.store().set("rateLimits", limits)
     if (recent.length >= max) return false
-    _rateLimits[key].push(now)
+    limits[key].push(now)
+    $app.store().set("rateLimits", limits)
     return true
 }
 
