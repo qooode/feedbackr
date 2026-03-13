@@ -29,6 +29,11 @@ services:
       # Your app URL (used as OpenRouter referer)
       - APP_URL=${APP_URL:-http://localhost:8090}
 
+      # ── Rate Limiting (optional) ────────────────────
+      - RATE_WINDOW_SEC=${RATE_WINDOW_SEC:-60}
+      - RATE_MAX_AI=${RATE_MAX_AI:-15}
+      - RATE_MAX_CREATE=${RATE_MAX_CREATE:-20}
+
       # ── Custom Branding (optional) ─────────────────────
       # Custom name shown in navbar & browser tab (default: feedbackr)
       - VITE_APP_NAME=${VITE_APP_NAME:-}

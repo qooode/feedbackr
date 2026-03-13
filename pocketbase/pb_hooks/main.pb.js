@@ -12,9 +12,9 @@ console.log("[Feedbackr] OPENROUTER_API_KEY set:", !!$os.getenv("OPENROUTER_API_
 // =============================================================================
 
 var _rateLimits = {}
-var RATE_WINDOW_SEC = 60
-var RATE_MAX_AI = 15
-var RATE_MAX_CREATE = 20
+var RATE_WINDOW_SEC = parseInt($os.getenv("RATE_WINDOW_SEC")) || 60
+var RATE_MAX_AI = parseInt($os.getenv("RATE_MAX_AI")) || 15
+var RATE_MAX_CREATE = parseInt($os.getenv("RATE_MAX_CREATE")) || 20
 
 function checkRateLimit(userId, bucket, max) {
     var now = Math.floor(Date.now() / 1000)
