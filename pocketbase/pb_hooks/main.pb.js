@@ -117,14 +117,8 @@ routerAdd("POST", "/api/feedbackr/chat", function(e) {
         console.log("[chat] response:", res.statusCode)
 
         if (res.statusCode !== 200) {
-            var detail = "HTTP " + res.statusCode
-            try {
-                if (res.json && res.json.error && res.json.error.message) {
-                    detail = res.json.error.message
-                }
-                console.log("[chat] error body:", JSON.stringify(res.json))
-            } catch(ex) {}
-            return e.json(400, { code: 400, message: "AI error: " + detail })
+            try { console.log("[chat] AI error:", res.statusCode, JSON.stringify(res.json)) } catch(ex) {}
+            return e.json(502, { code: 502, message: "AI service temporarily unavailable." })
         }
 
         var reply = ""
@@ -134,7 +128,7 @@ routerAdd("POST", "/api/feedbackr/chat", function(e) {
 
     } catch(err) {
         console.log("[chat] CRASH:", String(err))
-        return e.json(500, { code: 500, message: "Chat error: " + String(err) })
+        return e.json(500, { code: 500, message: "Something went wrong. Please try again." })
     }
 })
 
@@ -204,11 +198,8 @@ routerAdd("POST", "/api/feedbackr/generate", function(e) {
         })
 
         if (res.statusCode !== 200) {
-            var detail = "HTTP " + res.statusCode
-            try {
-                if (res.json && res.json.error && res.json.error.message) detail = res.json.error.message
-            } catch(ex) {}
-            return e.json(400, { code: 400, message: "AI error: " + detail })
+            try { console.log("[generate] AI error:", res.statusCode, JSON.stringify(res.json)) } catch(ex) {}
+            return e.json(502, { code: 502, message: "AI service temporarily unavailable." })
         }
 
         var content = ""
@@ -229,7 +220,7 @@ routerAdd("POST", "/api/feedbackr/generate", function(e) {
 
     } catch(err) {
         console.log("[generate] CRASH:", String(err))
-        return e.json(500, { code: 500, message: "Generate error: " + String(err) })
+        return e.json(500, { code: 500, message: "Something went wrong. Please try again." })
     }
 })
 
@@ -423,9 +414,15 @@ onRecordCreateRequest(function(e) {
     e.record.set("status", "new")
     e.record.set("votes_count", 0)
     var title = String(e.record.get("title") || "")
+    if (title.length < 5) return e.json(400, { code: 400, message: "Title too short (min 5 chars)." })
     if (title.length > 300) return e.json(400, { code: 400, message: "Title too long (max 300 chars)." })
     var body = String(e.record.get("body") || "")
+    if (body.length < 20) return e.json(400, { code: 400, message: "Body too short (min 20 chars)." })
     if (body.length > 10000) return e.json(400, { code: 400, message: "Body too long (max 10,000 chars)." })
+    var transcript = e.record.get("ai_transcript")
+    if (transcript && JSON.stringify(transcript).length > 50000) {
+        e.record.set("ai_transcript", null)
+    }
     return e.next()
 }, "posts")
 
@@ -437,6 +434,7 @@ onRecordCreateRequest(function(e) {
     e.record.set("author", e.auth.id)
     e.record.set("is_ai_merged", false)
     var body = String(e.record.get("body") || "")
+    if (body.length < 2) return e.json(400, { code: 400, message: "Comment too short." })
     if (body.length > 5000) return e.json(400, { code: 400, message: "Comment too long (max 5,000 chars)." })
     return e.next()
 }, "comments")
