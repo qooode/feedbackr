@@ -37,7 +37,6 @@ export default function PostDetail() {
     try {
       const result = await pb.collection('comments').getList(1, 100, {
         filter: `post = '${id}'`,
-        sort: 'created',
         expand: 'author',
       });
       setComments(result.items);
