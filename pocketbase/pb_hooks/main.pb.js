@@ -123,7 +123,12 @@ routerAdd("POST", "/api/feedbackr/generate", function(e) {
         var systemPrompt = "Based on the conversation below, generate a structured feedback post as a JSON object.\n\n" +
             "Output ONLY valid JSON with these exact fields:\n" +
             "{\"title\": \"concise title\", \"body\": \"description\", \"category\": \"bug|feature|improvement\", \"priority\": \"low|medium|high|critical\"}\n\n" +
-            "Rules: title max 80 chars, body 2-4 paragraphs, no markdown. Output ONLY JSON, no code fences."
+            "Rules:\n" +
+            "- title max 80 chars, body 2-4 paragraphs, no markdown.\n" +
+            "- CRITICAL: Write the body in FIRST PERSON from the perspective of the person who submitted the feedback (use \"I\", \"my\", \"me\"). " +
+            "This post will appear as authored by them, so it must read as THEIR words. " +
+            "NEVER use third-person like \"users\", \"the user\", \"they reported\", etc.\n" +
+            "- Output ONLY JSON, no code fences."
 
         var apiMessages = [{ role: "system", content: systemPrompt }]
         for (var i = 0; i < history.length; i++) {
