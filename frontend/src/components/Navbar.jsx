@@ -7,7 +7,9 @@ import { useState } from 'react';
 export default function Navbar() {
   const { user, isAdmin, isLoggedIn, logout } = useAuth();
   const location = useLocation();
-  const [showAuth, setShowAuth] = useState(false);
+  const [showAuth, setShowAuth] = useState(() => {
+    return !!sessionStorage.getItem('oauth_error');
+  });
 
   const isActive = (path) => location.pathname === path ? 'navbar-link active' : 'navbar-link';
 

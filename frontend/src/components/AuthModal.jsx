@@ -8,7 +8,14 @@ export default function AuthModal({ onClose }) {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [name, setName] = useState('');
-  const [error, setError] = useState('');
+  const [error, setError] = useState(() => {
+    const oauthErr = sessionStorage.getItem('oauth_error');
+    if (oauthErr) {
+      sessionStorage.removeItem('oauth_error');
+      return oauthErr;
+    }
+    return '';
+  });
   const [loading, setLoading] = useState(false);
 
   const handleDiscord = async () => {
