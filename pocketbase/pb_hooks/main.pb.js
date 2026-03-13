@@ -25,7 +25,7 @@ routerAdd("POST", "/api/feedbackr/chat", function(e) {
             return e.json(400, { code: 400, message: "AI service not configured. Set OPENROUTER_API_KEY." })
         }
 
-        var reqInfo = $apis.requestInfo(e)
+        var reqInfo = e.requestInfo()
         var body = reqInfo.body || {}
         var message = String(body.message || "").trim()
         var history = body.history || []
@@ -112,7 +112,7 @@ routerAdd("POST", "/api/feedbackr/generate", function(e) {
             return e.json(400, { code: 400, message: "AI service not configured." })
         }
 
-        var reqInfo = $apis.requestInfo(e)
+        var reqInfo = e.requestInfo()
         var body = reqInfo.body || {}
         var history = body.history || []
 
@@ -179,7 +179,7 @@ routerAdd("POST", "/api/feedbackr/similar", function(e) {
             return e.json(401, { code: 401, message: "You must be logged in." })
         }
 
-        var reqInfo = $apis.requestInfo(e)
+        var reqInfo = e.requestInfo()
         var body = reqInfo.body || {}
         var description = String(body.description || "").trim()
         if (!description) return e.json(200, { similar: [] })
