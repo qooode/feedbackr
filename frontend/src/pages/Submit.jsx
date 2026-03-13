@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ArrowRight, Sparkles, Check, RotateCcw, Eye, Send, MessageSquare, X } from 'lucide-react';
+import { ArrowRight, Sparkles, Check, RotateCcw, Eye, Send, MessageSquare, X, AlertTriangle, MessageCircle } from 'lucide-react';
 import { useAuth } from '../hooks/useAuth';
 import { sendChatMessage, generatePost, searchSimilar } from '../lib/api';
 import AuthModal from '../components/AuthModal';
@@ -31,6 +31,8 @@ export default function Submit() {
 
   // Similar posts
   const [similarPosts, setSimilarPosts] = useState([]);
+  const [similarDismissed, setSimilarDismissed] = useState(false);
+  const [checkingSimilar, setCheckingSimilar] = useState(false);
 
   // Auto-scroll conversation thread
   useEffect(() => {
@@ -54,12 +56,22 @@ export default function Submit() {
 
     const userMessage = input.trim();
     setError('');
+    setSimilarDismissed(false);
+    setSimilarPosts([]);
 
     // Activate the AI panel
     setAiActive(true);
     const initialMessages = [{ role: 'user', content: userMessage }];
     setMessages(initialMessages);
     setInput('');
+
+    // Check for similar posts immediately (in parallel with AI)
+    setCheckingSimilar(true);
+    searchSimilar(userMessage).then(result => {
+      if (result.similar?.length > 0) {
+        setSimilarPosts(result.similar);
+      }
+    }).catch(() => {}).finally(() => setCheckingSimilar(false));
 
     // Send to AI
     setAiLoading(true);
@@ -133,11 +145,16 @@ export default function Submit() {
     const history = messages.map((m) => ({ role: m.role, content: m.content }));
 
     try {
-      const [postData] = await Promise.all([
-        generatePost(history),
-        checkForSimilar(),
-      ]);
+      const postData = await generatePost(history);
       setPreview(postData);
+
+      // Re-check for similar posts using the structured title+body for better matching
+      try {
+        const result = await searchSimilar(`${postData.title} ${postData.body}`);
+        if (result.similar?.length > 0) {
+          setSimilarPosts(result.similar);
+        }
+      } catch {}
     } catch (err) {
       console.error('Generate error:', err);
       setError('Failed to generate post. Please try again.');
@@ -146,20 +163,6 @@ export default function Submit() {
     }
   };
 
-  const checkForSimilar = async () => {
-    try {
-      const userMessages = messages
-        .filter((m) => m.role === 'user')
-        .map((m) => m.content)
-        .join(' ');
-      const result = await searchSimilar(userMessages);
-      if (result.similar?.length > 0) {
-        setSimilarPosts(result.similar);
-      }
-    } catch {
-      // Non-critical
-    }
-  };
 
   const handlePublish = async () => {
     if (!preview) return;
@@ -216,6 +219,7 @@ export default function Submit() {
     setPreview(null);
     setShowGenerate(false);
     setSimilarPosts([]);
+    setSimilarDismissed(false);
     setAiActive(false);
     setFollowupInput('');
     setInput('');
@@ -395,39 +399,64 @@ export default function Submit() {
             </div>
           )}
 
-          {/* Similar Posts */}
-          {similarPosts.length > 0 && !preview && (
-            <div className="card similar-posts">
-              <div className="similar-posts-title">
-                <span>⚠</span>
-                Similar posts already exist
-              </div>
-              {similarPosts.map((p) => (
-                <div key={p.id} className="similar-post-item">
-                  <div className="similar-post-info">
-                    <div className="similar-post-name">{p.title}</div>
-                    <div className="similar-post-snippet">{p.body}</div>
+          {/* Similar Posts — shown prominently before AI conversation */}
+          {similarPosts.length > 0 && !similarDismissed && (
+            <div className="card similar-posts similar-posts-prominent">
+              <div className="similar-posts-header">
+                <div className="similar-posts-icon">
+                  <AlertTriangle size={18} />
+                </div>
+                <div>
+                  <div className="similar-posts-title">
+                    Similar feedback already exists
                   </div>
-                  <div style={{ display: 'flex', gap: 'var(--space-2)', flexShrink: 0 }}>
-                    <button
-                      className="btn btn-secondary btn-sm"
-                      onClick={() => navigate(`/post/${p.id}`)}
-                    >
-                      <Eye size={12} />
-                      View
-                    </button>
-                    <button
-                      className="btn btn-primary btn-sm"
-                      onClick={() => handleAddToExisting(p.id)}
-                      disabled={publishing}
-                    >
-                      Add to this
-                    </button>
+                  <div className="similar-posts-subtitle">
+                    Your feedback looks similar to existing posts. Adding your voice to an existing post helps us prioritize better.
                   </div>
                 </div>
-              ))}
-              <div style={{ marginTop: 'var(--space-3)', fontSize: 'var(--font-size-xs)', color: 'var(--muted-foreground)' }}>
-                Not a duplicate? Use "Generate Post" above to create a new post.
+              </div>
+
+              <div className="similar-posts-list">
+                {similarPosts.map((p) => (
+                  <div key={p.id} className="similar-post-item">
+                    <div className="similar-post-info">
+                      <div className="similar-post-name">{p.title}</div>
+                      <div className="similar-post-snippet">{p.body}</div>
+                      <div className="similar-post-meta">
+                        <span className={`badge badge-${p.category}`}>{p.category}</span>
+                        <span className="similar-post-votes">▲ {p.votes_count || 0}</span>
+                        {p.status && <span className={`badge badge-${p.status}`}>{p.status}</span>}
+                      </div>
+                    </div>
+                    <div className="similar-post-actions">
+                      <button
+                        className="btn btn-primary btn-sm"
+                        onClick={() => handleAddToExisting(p.id)}
+                        disabled={publishing}
+                      >
+                        <MessageCircle size={12} />
+                        Add my feedback here
+                      </button>
+                      <button
+                        className="btn btn-ghost btn-sm"
+                        onClick={() => navigate(`/post/${p.id}`)}
+                      >
+                        <Eye size={12} />
+                        View post
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+
+              <div className="similar-posts-dismiss">
+                <button
+                  className="btn btn-ghost btn-sm"
+                  onClick={() => setSimilarDismissed(true)}
+                >
+                  <X size={13} />
+                  This is different — continue with new post
+                </button>
               </div>
             </div>
           )}
@@ -487,6 +516,29 @@ export default function Submit() {
                 </div>
               </div>
 
+              {/* Final duplicate check on preview */}
+              {similarPosts.length > 0 && (
+                <div className="preview-similar-notice">
+                  <AlertTriangle size={14} />
+                  <span>
+                    Similar posts exist — consider adding to an existing one instead:
+                  </span>
+                  <div className="preview-similar-links">
+                    {similarPosts.slice(0, 3).map((p) => (
+                      <button
+                        key={p.id}
+                        className="btn btn-ghost btn-sm"
+                        onClick={() => handleAddToExisting(p.id)}
+                        disabled={publishing}
+                      >
+                        <MessageCircle size={12} />
+                        {p.title}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
+
               <div className="preview-actions">
                 <button
                   className="btn btn-primary"
@@ -498,7 +550,7 @@ export default function Submit() {
                   ) : (
                     <>
                       <Check size={15} />
-                      Publish
+                      Publish as new post
                     </>
                   )}
                 </button>
