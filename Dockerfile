@@ -30,9 +30,8 @@ RUN wget -q "https://github.com/pocketbase/pocketbase/releases/download/v${POCKE
     && rm pocketbase_*.zip \
     && chmod +x /pb/pocketbase
 
-# Copy server-side hooks and migrations
+# Copy server-side hooks (handles everything: collection setup, AI proxy, auth)
 COPY pocketbase/pb_hooks /pb/pb_hooks
-COPY pocketbase/pb_migrations /pb/pb_migrations
 
 # Copy built frontend as PocketBase static files
 COPY --from=frontend-build /app/frontend/dist /pb/pb_public
