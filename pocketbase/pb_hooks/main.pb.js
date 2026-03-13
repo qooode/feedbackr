@@ -184,11 +184,17 @@ routerAdd("POST", "/api/feedbackr/similar", function(e) {
             return e.json(401, { code: 401, message: "You must be logged in." })
         }
 
+        var OPENROUTER_API_KEY = $os.getenv("OPENROUTER_API_KEY")
+        var AI_MODEL = $os.getenv("AI_MODEL") || "anthropic/claude-sonnet-4"
+
         var reqInfo = e.requestInfo()
         var body = reqInfo.body || {}
         var description = String(body.description || "").trim()
         if (!description) return e.json(200, { similar: [] })
 
+        // -----------------------------------------------------------------
+        // Stage 1: Keyword pre-filter (cheap, fast)
+        // -----------------------------------------------------------------
         var stopWords = {
             "the":1,"a":1,"an":1,"is":1,"are":1,"was":1,"were":1,"be":1,"been":1,"being":1,
             "have":1,"has":1,"had":1,"do":1,"does":1,"did":1,"will":1,"would":1,"could":1,
@@ -214,21 +220,108 @@ routerAdd("POST", "/api/feedbackr/similar", function(e) {
             if (safe) parts.push("(title ~ '" + safe + "' || body ~ '" + safe + "')")
         }
 
-        var records = $app.findRecordsByFilter("posts", parts.join(" || "), "-votes_count", 5, 0)
-        var similar = []
+        var records = $app.findRecordsByFilter("posts", parts.join(" || "), "-votes_count", 10, 0)
+        if (records.length === 0) return e.json(200, { similar: [] })
+
+        // Build candidate list for AI
+        var candidates = []
         for (var k = 0; k < records.length; k++) {
             var r = records[k]
-            similar.push({
+            candidates.push({
                 id: r.id,
                 title: r.get("title"),
-                body: String(r.get("body")).slice(0, 200),
+                body: String(r.get("body")).slice(0, 300),
                 category: r.get("category"),
                 votes_count: r.get("votes_count"),
                 status: r.get("status"),
             })
         }
-        return e.json(200, { similar: similar })
+
+        // -----------------------------------------------------------------
+        // Stage 2: AI semantic judge (if API key available)
+        // -----------------------------------------------------------------
+        if (!OPENROUTER_API_KEY) {
+            // No AI key — fall back to returning keyword matches as-is
+            return e.json(200, { similar: candidates.slice(0, 5) })
+        }
+
+        var candidateList = ""
+        for (var c = 0; c < candidates.length; c++) {
+            candidateList += (c + 1) + ". [ID: " + candidates[c].id + "] \"" + candidates[c].title + "\" — " + candidates[c].body.slice(0, 150) + "\n"
+        }
+
+        var systemPrompt = "You are a duplicate detection system for a feedback board. " +
+            "Given a NEW feedback submission and a list of EXISTING posts, determine which existing posts describe the SAME issue or request.\n\n" +
+            "Rules:\n" +
+            "- Two posts are duplicates if they describe the same underlying problem, feature request, or improvement — even if worded differently.\n" +
+            "- 'App crashes when opening settings' and 'Fatal error in preferences page' ARE duplicates.\n" +
+            "- 'Add dark mode' and 'Need better contrast' are NOT duplicates (related but different requests).\n" +
+            "- Be strict: only flag true duplicates, not merely related topics.\n\n" +
+            "Output ONLY a JSON array of matching IDs, e.g. [\"abc123\", \"def456\"]. If no duplicates, output [].\n" +
+            "Output ONLY the JSON array, nothing else."
+
+        var userPrompt = "NEW FEEDBACK:\n\"" + description.slice(0, 500) + "\"\n\nEXISTING POSTS:\n" + candidateList
+
+        try {
+            var res = $http.send({
+                url: "https://openrouter.ai/api/v1/chat/completions",
+                method: "POST",
+                headers: {
+                    "Authorization": "Bearer " + OPENROUTER_API_KEY,
+                    "Content-Type": "application/json",
+                    "HTTP-Referer": $os.getenv("APP_URL") || "https://feedbackr.app",
+                    "X-Title": "Feedbackr",
+                },
+                body: JSON.stringify({
+                    model: AI_MODEL,
+                    messages: [
+                        { role: "system", content: systemPrompt },
+                        { role: "user", content: userPrompt },
+                    ],
+                    max_tokens: 200,
+                    temperature: 0,
+                }),
+                timeout: 15,
+            })
+
+            if (res.statusCode !== 200) {
+                console.log("[similar] AI call failed:", res.statusCode, "— falling back to keyword results")
+                return e.json(200, { similar: candidates.slice(0, 5) })
+            }
+
+            var aiContent = ""
+            try { aiContent = res.json.choices[0].message.content } catch(ex) {}
+
+            // Parse the AI's response — expect a JSON array of IDs
+            var matchedIds = []
+            try {
+                var jsonMatch = aiContent.match(/\[[\s\S]*\]/)
+                if (jsonMatch) matchedIds = JSON.parse(jsonMatch[0])
+            } catch(ex) {
+                console.log("[similar] AI response parse error:", aiContent)
+                return e.json(200, { similar: candidates.slice(0, 5) })
+            }
+
+            if (matchedIds.length === 0) return e.json(200, { similar: [] })
+
+            // Filter candidates to only AI-confirmed duplicates
+            var confirmed = []
+            for (var m = 0; m < candidates.length && confirmed.length < 5; m++) {
+                if (matchedIds.indexOf(candidates[m].id) >= 0) {
+                    confirmed.push(candidates[m])
+                }
+            }
+
+            console.log("[similar] keyword candidates:", candidates.length, "→ AI confirmed:", confirmed.length)
+            return e.json(200, { similar: confirmed })
+
+        } catch(aiErr) {
+            console.log("[similar] AI error:", String(aiErr), "— falling back to keyword results")
+            return e.json(200, { similar: candidates.slice(0, 5) })
+        }
+
     } catch(err) {
+        console.log("[similar] error:", String(err))
         return e.json(200, { similar: [] })
     }
 })
