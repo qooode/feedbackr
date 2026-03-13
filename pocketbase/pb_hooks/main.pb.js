@@ -181,15 +181,9 @@ routerAdd("POST", "/api/feedbackr/generate", function(e) {
             return e.json(400, { code: 400, message: "Total conversation too large." })
         }
 
-        var systemPrompt = "Based on the conversation below, generate a structured feedback post as a JSON object.\n\n" +
-            "Output ONLY valid JSON with these exact fields:\n" +
-            "{\"title\": \"concise title\", \"body\": \"description\", \"category\": \"bug|feature|improvement\", \"priority\": \"low|medium|high|critical\"}\n\n" +
-            "Rules:\n" +
-            "- title max 80 chars, body 2-4 paragraphs, no markdown.\n" +
-            "- CRITICAL: Write the body in FIRST PERSON from the perspective of the person who submitted the feedback (use \"I\", \"my\", \"me\"). " +
-            "This post will appear as authored by them, so it must read as THEIR words. " +
-            "NEVER use third-person like \"users\", \"the user\", \"they reported\", etc.\n" +
-            "- Output ONLY JSON, no code fences."
+        // Short, role-based system prompt — Grok models follow these better
+        var systemPrompt = "You are a JSON generator. You receive a feedback conversation and output a single JSON object. " +
+            "You MUST respond with ONLY valid JSON, no explanations, no markdown, no code fences."
 
         var apiMessages = [{ role: "system", content: systemPrompt }]
         for (var i = 0; i < history.length; i++) {
@@ -197,6 +191,20 @@ routerAdd("POST", "/api/feedbackr/generate", function(e) {
             if (r !== "user" && r !== "assistant") continue
             apiMessages.push({ role: r, content: String(history[i].content).slice(0, 2000) })
         }
+
+        // Final user message with the actual task — keeps instructions close to output
+        apiMessages.push({ role: "user", content:
+            "Now generate a JSON object summarizing the feedback conversation above.\n\n" +
+            "Required JSON format:\n" +
+            "{\"title\": \"string\", \"body\": \"string\", \"category\": \"string\", \"priority\": \"string\"}\n\n" +
+            "Field rules:\n" +
+            "- title: concise summary, max 80 characters\n" +
+            "- body: 2-4 paragraphs written in FIRST PERSON (use \"I\", \"my\", \"me\"). " +
+            "This will be posted as the user's words. Never use \"users\", \"the user\", or third-person.\n" +
+            "- category: exactly one of: bug, feature, improvement\n" +
+            "- priority: exactly one of: low, medium, high, critical\n\n" +
+            "Respond with ONLY the JSON object."
+        })
 
         var res = $http.send({
             url: "https://openrouter.ai/api/v1/chat/completions",
@@ -207,7 +215,13 @@ routerAdd("POST", "/api/feedbackr/generate", function(e) {
                 "HTTP-Referer": $os.getenv("APP_URL") || "https://feedbackr.app",
                 "X-Title": "Feedbackr",
             },
-            body: JSON.stringify({ model: AI_MODEL, messages: apiMessages, max_tokens: 1500, temperature: 0.3 }),
+            body: JSON.stringify({
+                model: AI_MODEL,
+                messages: apiMessages,
+                max_tokens: 1500,
+                temperature: 0.3,
+                response_format: { type: "json_object" },
+            }),
             timeout: 30,
         })
 
@@ -219,18 +233,30 @@ routerAdd("POST", "/api/feedbackr/generate", function(e) {
         var content = ""
         try { content = res.json.choices[0].message.content } catch(ex) {}
 
+        console.log("[generate] raw AI content:", content.slice(0, 500))
+
         // Strip markdown code fences the AI might wrap around JSON
         var cleaned = content.replace(/```(?:json)?\s*/gi, "").replace(/```\s*/g, "").trim()
 
-        console.log("[generate] raw AI content:", content.slice(0, 300))
-
         var parsed
         try {
-            var jsonMatch = cleaned.match(/\{[\s\S]*\}/)
-            parsed = JSON.parse(jsonMatch ? jsonMatch[0] : cleaned)
-        } catch(parseErr) {
-            console.log("[generate] JSON parse failed:", String(parseErr), "content:", cleaned.slice(0, 500))
-            return e.json(502, { code: 502, message: "AI returned invalid data. Please try again." })
+            // Try direct parse first (should work with response_format: json_object)
+            parsed = JSON.parse(cleaned)
+        } catch(e1) {
+            try {
+                // Fallback: extract last JSON object (skip any echoed template)
+                var allMatches = cleaned.match(/\{[^{}]*\}/g)
+                if (allMatches && allMatches.length > 0) {
+                    parsed = JSON.parse(allMatches[allMatches.length - 1])
+                } else {
+                    // Try greedy match
+                    var jsonMatch = cleaned.match(/\{[\s\S]*\}/)
+                    parsed = JSON.parse(jsonMatch ? jsonMatch[0] : cleaned)
+                }
+            } catch(e2) {
+                console.log("[generate] JSON parse failed:", String(e2), "content:", cleaned.slice(0, 500))
+                return e.json(502, { code: 502, message: "AI returned invalid data. Please try again." })
+            }
         }
 
         var validCats = ["bug", "feature", "improvement"]
