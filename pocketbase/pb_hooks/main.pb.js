@@ -93,7 +93,9 @@ routerAdd("POST", "/api/feedbackr/chat", function(e) {
 
         var apiMessages = [{ role: "system", content: systemPrompt }]
         for (var i = 0; i < history.length; i++) {
-            apiMessages.push({ role: history[i].role, content: String(history[i].content).slice(0, 2000) })
+            var r = String(history[i].role)
+            if (r !== "user" && r !== "assistant") continue
+            apiMessages.push({ role: r, content: String(history[i].content).slice(0, 2000) })
         }
         apiMessages.push({ role: "user", content: message })
 
@@ -158,6 +160,18 @@ routerAdd("POST", "/api/feedbackr/generate", function(e) {
         if (history.length < 2) {
             return e.json(400, { code: 400, message: "Not enough conversation." })
         }
+        if (history.length >= 20) {
+            return e.json(400, { code: 400, message: "Conversation limit reached." })
+        }
+
+        // Cap total payload size to prevent cost abuse
+        var totalChars = 0
+        for (var h = 0; h < history.length; h++) {
+            totalChars += String(history[h].content || "").length
+        }
+        if (totalChars > 16000) {
+            return e.json(400, { code: 400, message: "Total conversation too large." })
+        }
 
         var systemPrompt = "Based on the conversation below, generate a structured feedback post as a JSON object.\n\n" +
             "Output ONLY valid JSON with these exact fields:\n" +
@@ -171,7 +185,9 @@ routerAdd("POST", "/api/feedbackr/generate", function(e) {
 
         var apiMessages = [{ role: "system", content: systemPrompt }]
         for (var i = 0; i < history.length; i++) {
-            apiMessages.push({ role: history[i].role, content: String(history[i].content).slice(0, 2000) })
+            var r = String(history[i].role)
+            if (r !== "user" && r !== "assistant") continue
+            apiMessages.push({ role: r, content: String(history[i].content).slice(0, 2000) })
         }
 
         var res = $http.send({
@@ -231,7 +247,7 @@ routerAdd("POST", "/api/feedbackr/similar", function(e) {
 
         var reqInfo = e.requestInfo()
         var body = reqInfo.body || {}
-        var description = String(body.description || "").trim()
+        var description = String(body.description || "").trim().slice(0, 2000)
         if (!description) return e.json(200, { similar: [] })
 
         // -----------------------------------------------------------------
