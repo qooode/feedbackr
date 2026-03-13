@@ -11,6 +11,13 @@ WORKDIR /app/frontend
 COPY frontend/package*.json ./
 RUN npm ci --ignore-scripts
 COPY frontend/ ./
+
+# Vite bakes VITE_* at build time — pass via --build-arg or compose
+ARG VITE_APP_NAME
+ARG VITE_LOGO_URL
+ENV VITE_APP_NAME=${VITE_APP_NAME}
+ENV VITE_LOGO_URL=${VITE_LOGO_URL}
+
 RUN npm run build
 
 # --- Stage 2: Final image ---

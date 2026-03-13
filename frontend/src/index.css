@@ -437,6 +437,13 @@ select.input {
   color: var(--muted-foreground);
 }
 
+.navbar-brand-logo {
+  width: 22px;
+  height: 22px;
+  object-fit: contain;
+  border-radius: var(--radius-sm);
+}
+
 .navbar-links {
   display: flex;
   align-items: center;

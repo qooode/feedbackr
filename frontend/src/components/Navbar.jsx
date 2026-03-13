@@ -3,6 +3,7 @@ import { useAuth } from '../hooks/useAuth';
 import { LayoutDashboard, LogOut, LogIn, Plus } from 'lucide-react';
 import AuthModal from './AuthModal';
 import UserAvatar from './UserAvatar';
+import { APP_NAME, LOGO_URL } from '../lib/config';
 import { useState } from 'react';
 
 export default function Navbar() {
@@ -19,10 +20,14 @@ export default function Navbar() {
       <nav className="navbar">
         <div className="navbar-inner">
           <Link to="/" className="navbar-brand">
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M7.9 20A9 9 0 1 0 4 16.1L2 22Z" />
-            </svg>
-            feedbackr
+            {LOGO_URL ? (
+              <img src={LOGO_URL} alt={APP_NAME} className="navbar-brand-logo" />
+            ) : (
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M7.9 20A9 9 0 1 0 4 16.1L2 22Z" />
+              </svg>
+            )}
+            {APP_NAME}
           </Link>
 
           <div className="navbar-links">
