@@ -14,7 +14,10 @@ console.log("[Feedbackr] OPENROUTER_API_KEY set:", !!$os.getenv("OPENROUTER_API_
 
 $app.store().set("rateLimits", {})
 
-function checkRateLimit(userId, bucket, fallbackMax) {
+// Store the rate-limit function in $app.store() so it is accessible
+// from every hook/route callback (PocketBase JSVM runs each callback
+// in its own isolated Goja context).
+$app.store().set("checkRateLimit", function(userId, bucket, fallbackMax) {
     var windowSec = 60
     var max = fallbackMax
     try {
@@ -38,7 +41,7 @@ function checkRateLimit(userId, bucket, fallbackMax) {
     limits[key].push(now)
     $app.store().set("rateLimits", limits)
     return true
-}
+})
 
 // =============================================================================
 // AI ROUTES
@@ -54,6 +57,7 @@ routerAdd("POST", "/api/feedbackr/chat", function(e) {
         if (!e.auth) {
             return e.json(401, { code: 401, message: "You must be logged in." })
         }
+        var checkRateLimit = $app.store().get("checkRateLimit")
         if (!checkRateLimit(e.auth.id, "ai", 15)) {
             return e.json(429, { code: 429, message: "Too many requests. Please wait a moment." })
         }
@@ -149,6 +153,7 @@ routerAdd("POST", "/api/feedbackr/generate", function(e) {
         if (!e.auth) {
             return e.json(401, { code: 401, message: "You must be logged in." })
         }
+        var checkRateLimit = $app.store().get("checkRateLimit")
         if (!checkRateLimit(e.auth.id, "ai", 15)) {
             return e.json(429, { code: 429, message: "Too many requests. Please wait a moment." })
         }
@@ -238,6 +243,7 @@ routerAdd("POST", "/api/feedbackr/similar", function(e) {
         if (!e.auth) {
             return e.json(401, { code: 401, message: "You must be logged in." })
         }
+        var checkRateLimit = $app.store().get("checkRateLimit")
         if (!checkRateLimit(e.auth.id, "ai", 15)) {
             return e.json(429, { code: 429, message: "Too many requests. Please wait a moment." })
         }
@@ -416,6 +422,7 @@ onRecordDeleteRequest(function(e) {
 
 onRecordCreateRequest(function(e) {
     if (!e.auth) return e.json(401, { code: 401, message: "Not authenticated." })
+    var checkRateLimit = $app.store().get("checkRateLimit")
     if (!checkRateLimit(e.auth.id, "create", 20)) {
         return e.json(429, { code: 429, message: "Too many requests. Slow down." })
     }
@@ -437,6 +444,7 @@ onRecordCreateRequest(function(e) {
 
 onRecordCreateRequest(function(e) {
     if (!e.auth) return e.json(401, { code: 401, message: "Not authenticated." })
+    var checkRateLimit = $app.store().get("checkRateLimit")
     if (!checkRateLimit(e.auth.id, "create", 20)) {
         return e.json(429, { code: 429, message: "Too many requests. Slow down." })
     }
@@ -450,6 +458,7 @@ onRecordCreateRequest(function(e) {
 
 onRecordCreateRequest(function(e) {
     if (!e.auth) return e.json(401, { code: 401, message: "Not authenticated." })
+    var checkRateLimit = $app.store().get("checkRateLimit")
     if (!checkRateLimit(e.auth.id, "vote", 20)) {
         return e.json(429, { code: 429, message: "Too many vote requests. Slow down." })
     }
