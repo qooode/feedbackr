@@ -36,7 +36,7 @@ export default function PostDetail() {
   const fetchComments = async () => {
     try {
       const result = await pb.collection('comments').getList(1, 100, {
-        filter: `post = "${id}"`,
+        filter: `post = '${id}'`,
         sort: 'created',
         expand: 'author',
       });
