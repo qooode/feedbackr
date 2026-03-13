@@ -16,6 +16,9 @@ const AI_MODEL = $os.getenv("AI_MODEL") || "anthropic/claude-sonnet-4"
 const MAX_MESSAGES = 20
 const MAX_MESSAGE_LENGTH = 2000
 
+console.log("[Feedbackr] AI_MODEL:", AI_MODEL)
+console.log("[Feedbackr] OPENROUTER_API_KEY set:", !!OPENROUTER_API_KEY)
+
 // ADMIN_EMAILS parsed inside hook callback to avoid VM scope issues
 
 // =============================================================================
@@ -61,7 +64,7 @@ Rules:
 
 routerAdd("POST", "/api/feedbackr/chat", (e) => {
     if (!e.auth) throw new UnauthorizedError("You must be logged in to submit feedback.")
-    if (!OPENROUTER_API_KEY) throw new InternalServerError("AI service not configured. Set OPENROUTER_API_KEY env var.")
+    if (!OPENROUTER_API_KEY) throw new BadRequestError("AI service not configured. Set OPENROUTER_API_KEY env var.")
 
     const body = $apis.requestInfo(e).body
     const message = String(body.message || "").trim()
@@ -77,23 +80,29 @@ routerAdd("POST", "/api/feedbackr/chat", (e) => {
         { role: "user", content: message }
     ]
 
-    const res = $http.send({
-        url: "https://openrouter.ai/api/v1/chat/completions",
-        method: "POST",
-        headers: {
-            "Authorization": "Bearer " + OPENROUTER_API_KEY,
-            "Content-Type": "application/json",
-            "HTTP-Referer": $os.getenv("APP_URL") || "https://feedbackr.app",
-            "X-Title": "Feedbackr",
-        },
-        body: JSON.stringify({ model: AI_MODEL, messages, max_tokens: 500, temperature: 0.7 }),
-        timeout: 30,
-    })
+    let res
+    try {
+        res = $http.send({
+            url: "https://openrouter.ai/api/v1/chat/completions",
+            method: "POST",
+            headers: {
+                "Authorization": "Bearer " + OPENROUTER_API_KEY,
+                "Content-Type": "application/json",
+                "HTTP-Referer": $os.getenv("APP_URL") || "https://feedbackr.app",
+                "X-Title": "Feedbackr",
+            },
+            body: JSON.stringify({ model: AI_MODEL, messages, max_tokens: 500, temperature: 0.7 }),
+            timeout: 30,
+        })
+    } catch (err) {
+        console.log("OpenRouter network error:", err)
+        throw new BadRequestError("Failed to reach AI service. Check your API key and network.")
+    }
 
     if (res.statusCode !== 200) {
         console.log("OpenRouter chat error:", res.statusCode, JSON.stringify(res.json))
-        const detail = res.json?.error?.message || "AI service temporarily unavailable."
-        throw new InternalServerError(detail)
+        const detail = res.json?.error?.message || ("AI error (HTTP " + res.statusCode + ")")
+        throw new BadRequestError("AI error: " + detail)
     }
 
     return e.json(200, { reply: res.json?.choices?.[0]?.message?.content || "" })
@@ -101,7 +110,7 @@ routerAdd("POST", "/api/feedbackr/chat", (e) => {
 
 routerAdd("POST", "/api/feedbackr/generate", (e) => {
     if (!e.auth) throw new UnauthorizedError("You must be logged in.")
-    if (!OPENROUTER_API_KEY) throw new InternalServerError("AI service not configured.")
+    if (!OPENROUTER_API_KEY) throw new BadRequestError("AI service not configured.")
 
     const body = $apis.requestInfo(e).body
     const history = body.history || []
@@ -112,23 +121,29 @@ routerAdd("POST", "/api/feedbackr/generate", (e) => {
         ...history.map(m => ({ role: m.role, content: String(m.content).slice(0, MAX_MESSAGE_LENGTH) })),
     ]
 
-    const res = $http.send({
-        url: "https://openrouter.ai/api/v1/chat/completions",
-        method: "POST",
-        headers: {
-            "Authorization": "Bearer " + OPENROUTER_API_KEY,
-            "Content-Type": "application/json",
-            "HTTP-Referer": $os.getenv("APP_URL") || "https://feedbackr.app",
-            "X-Title": "Feedbackr",
-        },
-        body: JSON.stringify({ model: AI_MODEL, messages, max_tokens: 1500, temperature: 0.3 }),
-        timeout: 30,
-    })
+    let res
+    try {
+        res = $http.send({
+            url: "https://openrouter.ai/api/v1/chat/completions",
+            method: "POST",
+            headers: {
+                "Authorization": "Bearer " + OPENROUTER_API_KEY,
+                "Content-Type": "application/json",
+                "HTTP-Referer": $os.getenv("APP_URL") || "https://feedbackr.app",
+                "X-Title": "Feedbackr",
+            },
+            body: JSON.stringify({ model: AI_MODEL, messages, max_tokens: 1500, temperature: 0.3 }),
+            timeout: 30,
+        })
+    } catch (err) {
+        console.log("OpenRouter network error:", err)
+        throw new BadRequestError("Failed to reach AI service. Check your API key and network.")
+    }
 
     if (res.statusCode !== 200) {
         console.log("OpenRouter generate error:", res.statusCode, JSON.stringify(res.json))
-        const detail = res.json?.error?.message || "AI service temporarily unavailable."
-        throw new InternalServerError(detail)
+        const detail = res.json?.error?.message || ("AI error (HTTP " + res.statusCode + ")")
+        throw new BadRequestError("AI error: " + detail)
     }
 
     const content = res.json?.choices?.[0]?.message?.content || ""
@@ -148,7 +163,7 @@ routerAdd("POST", "/api/feedbackr/generate", (e) => {
         })
     } catch {
         console.log("Failed to parse AI response:", content)
-        throw new InternalServerError("Failed to generate post.")
+        throw new BadRequestError("Failed to generate post. AI response was not valid.")
     }
 }, $apis.requireAuth())
 
