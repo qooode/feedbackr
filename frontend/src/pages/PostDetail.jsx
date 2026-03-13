@@ -54,9 +54,7 @@ export default function PostDetail() {
     try {
       await pb.collection('comments').create({
         post: id,
-        author: user.id,
         body: commentBody.trim(),
-        is_ai_merged: false,
       });
       setCommentBody('');
       fetchComments();

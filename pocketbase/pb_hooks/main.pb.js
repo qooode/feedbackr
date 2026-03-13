@@ -67,6 +67,15 @@ routerAdd("POST", "/api/feedbackr/chat", function(e) {
             return e.json(400, { code: 400, message: "Conversation limit reached." })
         }
 
+        // Cap total payload size to prevent cost abuse
+        var totalChars = message.length
+        for (var h = 0; h < history.length; h++) {
+            totalChars += String(history[h].content || "").length
+        }
+        if (totalChars > 16000) {
+            return e.json(400, { code: 400, message: "Total conversation too large." })
+        }
+
         var systemPrompt = "You are a friendly feedback collection assistant for a software product. " +
             "Your job is to help users submit clear, detailed feedback.\n\n" +
             "RULES:\n" +
@@ -410,6 +419,7 @@ onRecordCreateRequest(function(e) {
         return e.json(429, { code: 429, message: "Too many requests. Slow down." })
     }
     e.record.set("author", e.auth.id)
+    e.record.set("is_ai_merged", false)
     var body = String(e.record.get("body") || "")
     if (body.length > 5000) return e.json(400, { code: 400, message: "Comment too long (max 5,000 chars)." })
     return e.next()
@@ -417,6 +427,9 @@ onRecordCreateRequest(function(e) {
 
 onRecordCreateRequest(function(e) {
     if (!e.auth) return e.json(401, { code: 401, message: "Not authenticated." })
+    if (!checkRateLimit(e.auth.id, "vote", RATE_MAX_CREATE)) {
+        return e.json(429, { code: 429, message: "Too many vote requests. Slow down." })
+    }
     e.record.set("user", e.auth.id)
     return e.next()
 }, "votes")
@@ -476,3 +489,27 @@ onRecordAfterDeleteSuccess(function(e) {
         $app.save(post)
     } catch(err) {}
 }, "votes")
+
+// =============================================================================
+// STRIP SENSITIVE FIELDS FROM PUBLIC API
+// =============================================================================
+
+onRecordEnrich(function(e) {
+    // Hide ai_transcript from everyone except the post author and admins
+    var isOwner = e.requestInfo.auth && e.record.get("author") === e.requestInfo.auth.id
+    var isAdmin = e.requestInfo.auth && e.requestInfo.auth.get("is_admin") === true
+    if (!isOwner && !isAdmin) {
+        e.record.set("ai_transcript", null)
+    }
+    return e.next()
+}, "posts")
+
+onRecordEnrich(function(e) {
+    // Hide email from non-self users (only show name and avatar)
+    var isSelf = e.requestInfo.auth && e.record.id === e.requestInfo.auth.id
+    var isAdmin = e.requestInfo.auth && e.requestInfo.auth.get("is_admin") === true
+    if (!isSelf && !isAdmin) {
+        e.record.set("email", "")
+    }
+    return e.next()
+}, "users")

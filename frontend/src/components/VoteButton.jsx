@@ -44,7 +44,6 @@ export default function VoteButton({ post }) {
       } else {
         const record = await pb.collection('votes').create({
           post: post.id,
-          user: user.id,
         });
         setVoted(true);
         setVoteId(record.id);

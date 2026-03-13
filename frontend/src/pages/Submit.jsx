@@ -172,9 +172,6 @@ export default function Submit() {
         body: preview.body,
         category: preview.category,
         priority: preview.priority,
-        status: 'new',
-        author: user.id,
-        votes_count: 0,
         ai_transcript: messages.map((m) => ({ role: m.role, content: m.content })),
       });
 
@@ -198,9 +195,7 @@ export default function Submit() {
 
       await pb.collection('comments').create({
         post: postId,
-        author: user.id,
         body: userMessages,
-        is_ai_merged: true,
       });
 
       navigate(`/post/${postId}`);
