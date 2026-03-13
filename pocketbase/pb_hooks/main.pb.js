@@ -63,24 +63,29 @@ Rules:
 // =============================================================================
 
 routerAdd("POST", "/api/feedbackr/chat", (e) => {
+    console.log("[chat] handler entered")
     if (!e.auth) throw new UnauthorizedError("You must be logged in to submit feedback.")
     if (!OPENROUTER_API_KEY) throw new BadRequestError("AI service not configured. Set OPENROUTER_API_KEY env var.")
 
-    const body = $apis.requestInfo(e).body
-    const message = String(body.message || "").trim()
-    const history = body.history || []
+    console.log("[chat] parsing body")
+    var reqInfo = $apis.requestInfo(e)
+    var body = reqInfo.body || {}
+    var message = String(body.message || "").trim()
+    var history = body.history || []
 
     if (!message) throw new BadRequestError("Message cannot be empty.")
-    if (message.length > MAX_MESSAGE_LENGTH) throw new BadRequestError(`Message too long. Max ${MAX_MESSAGE_LENGTH} chars.`)
+    if (message.length > MAX_MESSAGE_LENGTH) throw new BadRequestError("Message too long. Max " + MAX_MESSAGE_LENGTH + " chars.")
     if (history.length >= MAX_MESSAGES) throw new BadRequestError("Conversation limit reached.")
 
-    const messages = [
-        { role: "system", content: SYSTEM_PROMPT_CHAT },
-        ...history.map(m => ({ role: m.role, content: String(m.content).slice(0, MAX_MESSAGE_LENGTH) })),
-        { role: "user", content: message }
-    ]
+    var apiMessages = [{ role: "system", content: SYSTEM_PROMPT_CHAT }]
+    for (var i = 0; i < history.length; i++) {
+        apiMessages.push({ role: history[i].role, content: String(history[i].content).slice(0, MAX_MESSAGE_LENGTH) })
+    }
+    apiMessages.push({ role: "user", content: message })
 
-    let res
+    console.log("[chat] sending to OpenRouter, model:", AI_MODEL, "messages:", apiMessages.length)
+
+    var res
     try {
         res = $http.send({
             url: "https://openrouter.ai/api/v1/chat/completions",
@@ -91,37 +96,58 @@ routerAdd("POST", "/api/feedbackr/chat", (e) => {
                 "HTTP-Referer": $os.getenv("APP_URL") || "https://feedbackr.app",
                 "X-Title": "Feedbackr",
             },
-            body: JSON.stringify({ model: AI_MODEL, messages, max_tokens: 500, temperature: 0.7 }),
+            body: JSON.stringify({ model: AI_MODEL, messages: apiMessages, max_tokens: 500, temperature: 0.7 }),
             timeout: 30,
         })
     } catch (err) {
-        console.log("OpenRouter network error:", err)
-        throw new BadRequestError("Failed to reach AI service. Check your API key and network.")
+        console.log("[chat] $http.send threw:", String(err))
+        throw new BadRequestError("Failed to reach AI service: " + String(err))
     }
 
+    console.log("[chat] response status:", res.statusCode)
+
     if (res.statusCode !== 200) {
-        console.log("OpenRouter chat error:", res.statusCode, JSON.stringify(res.json))
-        const detail = res.json?.error?.message || ("AI error (HTTP " + res.statusCode + ")")
+        var errBody = ""
+        try { errBody = JSON.stringify(res.json) } catch(e2) { errBody = "unparseable" }
+        console.log("[chat] OpenRouter error:", res.statusCode, errBody)
+        var detail = "HTTP " + res.statusCode
+        try {
+            if (res.json && res.json.error && res.json.error.message) {
+                detail = res.json.error.message
+            }
+        } catch(e2) {}
         throw new BadRequestError("AI error: " + detail)
     }
 
-    return e.json(200, { reply: res.json?.choices?.[0]?.message?.content || "" })
+    var reply = ""
+    try {
+        reply = res.json.choices[0].message.content
+    } catch(e2) {
+        console.log("[chat] could not extract reply from response")
+    }
+
+    console.log("[chat] success, reply length:", reply.length)
+    return e.json(200, { reply: reply })
 }, $apis.requireAuth())
 
 routerAdd("POST", "/api/feedbackr/generate", (e) => {
+    console.log("[generate] handler entered")
     if (!e.auth) throw new UnauthorizedError("You must be logged in.")
     if (!OPENROUTER_API_KEY) throw new BadRequestError("AI service not configured.")
 
-    const body = $apis.requestInfo(e).body
-    const history = body.history || []
+    var reqInfo = $apis.requestInfo(e)
+    var body = reqInfo.body || {}
+    var history = body.history || []
     if (history.length < 2) throw new BadRequestError("Not enough conversation.")
 
-    const messages = [
-        { role: "system", content: SYSTEM_PROMPT_GENERATE },
-        ...history.map(m => ({ role: m.role, content: String(m.content).slice(0, MAX_MESSAGE_LENGTH) })),
-    ]
+    var apiMessages = [{ role: "system", content: SYSTEM_PROMPT_GENERATE }]
+    for (var i = 0; i < history.length; i++) {
+        apiMessages.push({ role: history[i].role, content: String(history[i].content).slice(0, MAX_MESSAGE_LENGTH) })
+    }
 
-    let res
+    console.log("[generate] sending to OpenRouter, model:", AI_MODEL)
+
+    var res
     try {
         res = $http.send({
             url: "https://openrouter.ai/api/v1/chat/completions",
@@ -132,37 +158,52 @@ routerAdd("POST", "/api/feedbackr/generate", (e) => {
                 "HTTP-Referer": $os.getenv("APP_URL") || "https://feedbackr.app",
                 "X-Title": "Feedbackr",
             },
-            body: JSON.stringify({ model: AI_MODEL, messages, max_tokens: 1500, temperature: 0.3 }),
+            body: JSON.stringify({ model: AI_MODEL, messages: apiMessages, max_tokens: 1500, temperature: 0.3 }),
             timeout: 30,
         })
     } catch (err) {
-        console.log("OpenRouter network error:", err)
-        throw new BadRequestError("Failed to reach AI service. Check your API key and network.")
+        console.log("[generate] $http.send threw:", String(err))
+        throw new BadRequestError("Failed to reach AI service: " + String(err))
     }
 
+    console.log("[generate] response status:", res.statusCode)
+
     if (res.statusCode !== 200) {
-        console.log("OpenRouter generate error:", res.statusCode, JSON.stringify(res.json))
-        const detail = res.json?.error?.message || ("AI error (HTTP " + res.statusCode + ")")
+        var errBody = ""
+        try { errBody = JSON.stringify(res.json) } catch(e2) { errBody = "unparseable" }
+        console.log("[generate] OpenRouter error:", res.statusCode, errBody)
+        var detail = "HTTP " + res.statusCode
+        try {
+            if (res.json && res.json.error && res.json.error.message) {
+                detail = res.json.error.message
+            }
+        } catch(e2) {}
         throw new BadRequestError("AI error: " + detail)
     }
 
-    const content = res.json?.choices?.[0]?.message?.content || ""
+    var content = ""
     try {
-        let parsed
-        const jsonMatch = content.match(/\{[\s\S]*\}/)
+        content = res.json.choices[0].message.content
+    } catch(e2) {
+        console.log("[generate] could not extract content from response")
+    }
+
+    try {
+        var parsed
+        var jsonMatch = content.match(/\{[\s\S]*\}/)
         parsed = jsonMatch ? JSON.parse(jsonMatch[0]) : JSON.parse(content)
 
-        const validCats = ["bug", "feature", "improvement"]
-        const validPri = ["low", "medium", "high", "critical"]
+        var validCats = ["bug", "feature", "improvement"]
+        var validPri = ["low", "medium", "high", "critical"]
 
         return e.json(200, {
             title: String(parsed.title || "").slice(0, 200),
             body: String(parsed.body || ""),
-            category: validCats.includes(parsed.category) ? parsed.category : "improvement",
-            priority: validPri.includes(parsed.priority) ? parsed.priority : "medium",
+            category: validCats.indexOf(parsed.category) >= 0 ? parsed.category : "improvement",
+            priority: validPri.indexOf(parsed.priority) >= 0 ? parsed.priority : "medium",
         })
-    } catch {
-        console.log("Failed to parse AI response:", content)
+    } catch (e2) {
+        console.log("[generate] Failed to parse AI response:", content)
         throw new BadRequestError("Failed to generate post. AI response was not valid.")
     }
 }, $apis.requireAuth())
