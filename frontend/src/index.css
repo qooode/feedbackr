@@ -147,6 +147,23 @@ a:hover {
   color: var(--muted-foreground);
 }
 
+/* Prevent the generic a:hover from overriding button text colors */
+a.btn:hover {
+  color: inherit;
+}
+
+a.btn-primary:hover {
+  color: var(--primary-foreground);
+}
+
+a.btn-secondary:hover {
+  color: var(--secondary-foreground);
+}
+
+a.btn-ghost:hover {
+  color: var(--accent-foreground);
+}
+
 button {
   cursor: pointer;
   font-family: var(--font-family);
@@ -685,9 +702,19 @@ select.input {
   cursor: pointer;
 }
 
+.submit-step-clickable:hover {
+  opacity: 0.75;
+}
+
 .submit-step-clickable:hover .submit-step-dot {
   border-color: var(--foreground);
   background: rgba(250, 250, 250, 0.1);
+}
+
+/* Keep the done state's solid white dot even on hover */
+.submit-step-clickable.submit-step-done:hover .submit-step-dot {
+  background: var(--foreground);
+  color: var(--background);
 }
 
 .submit-step-clickable:hover .submit-step-label {
