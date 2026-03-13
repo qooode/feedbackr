@@ -3,18 +3,12 @@
 // =============================================================================
 // Feedbackr — PocketBase Server-Side Hooks
 // =============================================================================
-// Everything runs from this single file. Collections are auto-created on boot,
-// AI requests are proxied server-side, admin is auto-promoted from env.
+// Collections are auto-created by pb_migrations on first boot.
+// This file handles: AI proxy, admin auto-promotion, ownership enforcement,
+// and vote counting.
 //
-// Required env vars:
-//   OPENROUTER_API_KEY     — your OpenRouter API key
-//
-// Optional env vars:
-//   AI_MODEL               — model to use (default: anthropic/claude-sonnet-4)
-//   ADMIN_EMAILS           — comma-separated emails to auto-promote to admin
-//   PB_SUPERUSER_EMAIL     — auto-create PocketBase superuser on first boot
-//   PB_SUPERUSER_PASSWORD  — password for the auto-created superuser
-//   APP_URL                — your public URL (for OpenRouter referer)
+// Required env:  OPENROUTER_API_KEY
+// Optional env:  AI_MODEL, ADMIN_EMAILS, APP_URL
 // =============================================================================
 
 const OPENROUTER_API_KEY = $os.getenv("OPENROUTER_API_KEY")
@@ -26,118 +20,6 @@ const ADMIN_EMAILS = ($os.getenv("ADMIN_EMAILS") || "")
     .split(",")
     .map(e => e.trim().toLowerCase())
     .filter(e => e.length > 0)
-
-// =============================================================================
-// AUTO-SETUP: Create collections + superuser on first boot
-// =============================================================================
-
-onBootstrap((e) => {
-    // --- Extend users with is_admin ---
-    const users = e.app.findCollectionByNameOrId("users")
-    if (!users.fields.getByName("is_admin")) {
-        users.fields.add(new BoolField({ name: "is_admin", required: false }))
-        users.listRule = ""
-        users.viewRule = ""
-        users.updateRule = "@request.auth.id = id"
-        users.deleteRule = "@request.auth.id = id"
-        e.app.save(users)
-        console.log("✅ Extended users collection with is_admin")
-    }
-
-    // --- Create posts collection ---
-    try {
-        e.app.findCollectionByNameOrId("posts")
-    } catch {
-        const posts = new Collection({
-            type: "base",
-            name: "posts",
-            listRule: "",
-            viewRule: "",
-            createRule: "@request.auth.id != ''",
-            updateRule: "@request.auth.is_admin = true",
-            deleteRule: "@request.auth.is_admin = true",
-            fields: [
-                new TextField({ name: "title", required: true, max: 300 }),
-                new TextField({ name: "body", required: true }),
-                new SelectField({ name: "category", required: true, values: ["bug", "feature", "improvement"], maxSelect: 1 }),
-                new SelectField({ name: "status", required: true, values: ["new", "in_review", "processing", "done", "dropped", "later"], maxSelect: 1 }),
-                new SelectField({ name: "priority", required: true, values: ["low", "medium", "high", "critical"], maxSelect: 1 }),
-                new RelationField({ name: "author", required: true, maxSelect: 1, collectionId: users.id }),
-                new NumberField({ name: "votes_count", required: false, min: 0 }),
-                new JSONField({ name: "ai_transcript", required: false }),
-            ],
-        })
-        e.app.save(posts)
-        console.log("✅ Created posts collection")
-    }
-
-    // --- Create comments collection ---
-    try {
-        e.app.findCollectionByNameOrId("comments")
-    } catch {
-        const postsCol = e.app.findCollectionByNameOrId("posts")
-        const comments = new Collection({
-            type: "base",
-            name: "comments",
-            listRule: "",
-            viewRule: "",
-            createRule: "@request.auth.id != ''",
-            updateRule: "@request.auth.id != ''",
-            deleteRule: "@request.auth.id != ''",
-            fields: [
-                new RelationField({ name: "post", required: true, maxSelect: 1, collectionId: postsCol.id, cascadeDelete: true }),
-                new RelationField({ name: "author", required: true, maxSelect: 1, collectionId: users.id }),
-                new TextField({ name: "body", required: true }),
-                new BoolField({ name: "is_ai_merged", required: false }),
-            ],
-        })
-        e.app.saveNoValidate(comments)
-        console.log("✅ Created comments collection")
-    }
-
-    // --- Create votes collection ---
-    try {
-        e.app.findCollectionByNameOrId("votes")
-    } catch {
-        const postsCol = e.app.findCollectionByNameOrId("posts")
-        const votes = new Collection({
-            type: "base",
-            name: "votes",
-            listRule: "",
-            viewRule: "",
-            createRule: "@request.auth.id != ''",
-            updateRule: null,
-            deleteRule: "@request.auth.id != ''",
-            fields: [
-                new RelationField({ name: "post", required: true, maxSelect: 1, collectionId: postsCol.id, cascadeDelete: true }),
-                new RelationField({ name: "user", required: true, maxSelect: 1, collectionId: users.id }),
-            ],
-            indexes: [
-                "CREATE UNIQUE INDEX idx_votes_unique ON votes (post, \"user\")",
-            ],
-        })
-        e.app.saveNoValidate(votes)
-        console.log("✅ Created votes collection")
-    }
-
-    // --- Create superuser from env ---
-    const suEmail = $os.getenv("PB_SUPERUSER_EMAIL")
-    const suPassword = $os.getenv("PB_SUPERUSER_PASSWORD")
-    if (suEmail && suPassword) {
-        try {
-            e.app.findAuthRecordByEmail("_superusers", suEmail)
-        } catch {
-            const superusers = e.app.findCollectionByNameOrId("_superusers")
-            const record = new Record(superusers)
-            record.set("email", suEmail)
-            record.set("password", suPassword)
-            e.app.save(record)
-            console.log("✅ Superuser created: " + suEmail)
-        }
-    }
-
-    return e.next()
-})
 
 // =============================================================================
 // SYSTEM PROMPTS
@@ -180,7 +62,6 @@ Rules:
 // AI ROUTES
 // =============================================================================
 
-// --- POST /api/feedbackr/chat ---
 routerAdd("POST", "/api/feedbackr/chat", (e) => {
     if (!e.auth) throw new UnauthorizedError("You must be logged in to submit feedback.")
     if (!OPENROUTER_API_KEY) throw new InternalServerError("AI service not configured. Set OPENROUTER_API_KEY env var.")
@@ -191,7 +72,7 @@ routerAdd("POST", "/api/feedbackr/chat", (e) => {
 
     if (!message) throw new BadRequestError("Message cannot be empty.")
     if (message.length > MAX_MESSAGE_LENGTH) throw new BadRequestError(`Message too long. Max ${MAX_MESSAGE_LENGTH} chars.`)
-    if (history.length >= MAX_MESSAGES) throw new BadRequestError("Conversation limit reached. Please generate your post or start over.")
+    if (history.length >= MAX_MESSAGES) throw new BadRequestError("Conversation limit reached.")
 
     const messages = [
         { role: "system", content: SYSTEM_PROMPT_CHAT },
@@ -214,20 +95,19 @@ routerAdd("POST", "/api/feedbackr/chat", (e) => {
 
     if (res.statusCode !== 200) {
         console.log("OpenRouter error:", res.statusCode, res.raw)
-        throw new InternalServerError("AI service is temporarily unavailable. Please try again.")
+        throw new InternalServerError("AI service temporarily unavailable.")
     }
 
     return e.json(200, { reply: res.json?.choices?.[0]?.message?.content || "" })
 }, $apis.requireAuth())
 
-// --- POST /api/feedbackr/generate ---
 routerAdd("POST", "/api/feedbackr/generate", (e) => {
     if (!e.auth) throw new UnauthorizedError("You must be logged in.")
     if (!OPENROUTER_API_KEY) throw new InternalServerError("AI service not configured.")
 
     const body = $apis.requestInfo(e).body
     const history = body.history || []
-    if (history.length < 2) throw new BadRequestError("Not enough conversation to generate a post.")
+    if (history.length < 2) throw new BadRequestError("Not enough conversation.")
 
     const messages = [
         { role: "system", content: SYSTEM_PROMPT_GENERATE },
@@ -249,7 +129,7 @@ routerAdd("POST", "/api/feedbackr/generate", (e) => {
 
     if (res.statusCode !== 200) {
         console.log("OpenRouter error:", res.statusCode, res.raw)
-        throw new InternalServerError("AI service is temporarily unavailable. Please try again.")
+        throw new InternalServerError("AI service temporarily unavailable.")
     }
 
     const content = res.json?.choices?.[0]?.message?.content || ""
@@ -258,22 +138,21 @@ routerAdd("POST", "/api/feedbackr/generate", (e) => {
         const jsonMatch = content.match(/\{[\s\S]*\}/)
         parsed = jsonMatch ? JSON.parse(jsonMatch[0]) : JSON.parse(content)
 
-        const validCategories = ["bug", "feature", "improvement"]
-        const validPriorities = ["low", "medium", "high", "critical"]
+        const validCats = ["bug", "feature", "improvement"]
+        const validPri = ["low", "medium", "high", "critical"]
 
         return e.json(200, {
             title: String(parsed.title || "").slice(0, 200),
             body: String(parsed.body || ""),
-            category: validCategories.includes(parsed.category) ? parsed.category : "improvement",
-            priority: validPriorities.includes(parsed.priority) ? parsed.priority : "medium",
+            category: validCats.includes(parsed.category) ? parsed.category : "improvement",
+            priority: validPri.includes(parsed.priority) ? parsed.priority : "medium",
         })
     } catch {
         console.log("Failed to parse AI response:", content)
-        throw new InternalServerError("Failed to generate post. Please try again.")
+        throw new InternalServerError("Failed to generate post.")
     }
 }, $apis.requireAuth())
 
-// --- POST /api/feedbackr/similar ---
 routerAdd("POST", "/api/feedbackr/similar", (e) => {
     if (!e.auth) throw new UnauthorizedError("You must be logged in.")
 
@@ -306,6 +185,34 @@ routerAdd("POST", "/api/feedbackr/similar", (e) => {
 }, $apis.requireAuth())
 
 // =============================================================================
+// OWNERSHIP ENFORCEMENT (since API rules use simple auth checks)
+// =============================================================================
+
+// Comments: only author can update/delete their own (or admin)
+onRecordUpdateRequest((e) => {
+    if (!e.auth) throw new UnauthorizedError("Not authenticated.")
+    const isOwner = e.record.get("author") === e.auth.id
+    const isAdmin = e.auth.get("is_admin") === true
+    if (!isOwner && !isAdmin) throw new ForbiddenError("You can only edit your own comments.")
+    return e.next()
+}, "comments")
+
+onRecordDeleteRequest((e) => {
+    if (!e.auth) throw new UnauthorizedError("Not authenticated.")
+    const isOwner = e.record.get("author") === e.auth.id
+    const isAdmin = e.auth.get("is_admin") === true
+    if (!isOwner && !isAdmin) throw new ForbiddenError("You can only delete your own comments.")
+    return e.next()
+}, "comments")
+
+// Votes: only the voter can delete their own vote
+onRecordDeleteRequest((e) => {
+    if (!e.auth) throw new UnauthorizedError("Not authenticated.")
+    if (e.record.get("user") !== e.auth.id) throw new ForbiddenError("You can only remove your own vote.")
+    return e.next()
+}, "votes")
+
+// =============================================================================
 // AUTH HOOKS
 // =============================================================================
 
@@ -316,7 +223,7 @@ onRecordAuthRequest((e) => {
     if (email && ADMIN_EMAILS.includes(email) && !e.record.get("is_admin")) {
         e.record.set("is_admin", true)
         $app.save(e.record)
-        console.log("✅ Auto-promoted to admin: " + email)
+        console.log("Auto-promoted to admin: " + email)
     }
     return e.next()
 }, "users")
@@ -330,7 +237,7 @@ onRecordUpdateRequest((e) => {
 }, "users")
 
 // =============================================================================
-// VOTE SYNC
+// VOTE COUNT SYNC
 // =============================================================================
 
 onRecordAfterCreateSuccess((e) => {
