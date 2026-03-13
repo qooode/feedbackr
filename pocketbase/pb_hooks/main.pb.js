@@ -219,8 +219,19 @@ routerAdd("POST", "/api/feedbackr/generate", function(e) {
         var content = ""
         try { content = res.json.choices[0].message.content } catch(ex) {}
 
-        var jsonMatch = content.match(/\{[\s\S]*\}/)
-        var parsed = jsonMatch ? JSON.parse(jsonMatch[0]) : JSON.parse(content)
+        // Strip markdown code fences the AI might wrap around JSON
+        var cleaned = content.replace(/```(?:json)?\s*/gi, "").replace(/```\s*/g, "").trim()
+
+        console.log("[generate] raw AI content:", content.slice(0, 300))
+
+        var parsed
+        try {
+            var jsonMatch = cleaned.match(/\{[\s\S]*\}/)
+            parsed = JSON.parse(jsonMatch ? jsonMatch[0] : cleaned)
+        } catch(parseErr) {
+            console.log("[generate] JSON parse failed:", String(parseErr), "content:", cleaned.slice(0, 500))
+            return e.json(502, { code: 502, message: "AI returned invalid data. Please try again." })
+        }
 
         var validCats = ["bug", "feature", "improvement"]
         var validPri = ["low", "medium", "high", "critical"]
