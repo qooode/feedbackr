@@ -343,12 +343,9 @@ export default function Submit() {
               {/* AI response */}
               {latestAiMessage && (
                 <div className="refine-response">
-                  <div className="refine-response-header">
-                    <Sparkles size={12} />
-                    <span>AI Assistant</span>
-                  </div>
                   <div className="refine-response-body">
-                    {latestAiMessage.content}
+                    <span className="refine-ai-badge">AI</span>
+                    <p className="refine-response-text">{latestAiMessage.content}</p>
                   </div>
                 </div>
               )}
@@ -395,7 +392,7 @@ export default function Submit() {
               {aiLoading && (
                 <div className="refine-loading-inline">
                   <Loader2 size={14} className="animate-spin" />
-                  <span>Analyzing your feedback...</span>
+                  <span>Thinking...</span>
                 </div>
               )}
 
@@ -423,7 +420,7 @@ export default function Submit() {
                     ref={followupRef}
                     className="input"
                     type="text"
-                    placeholder="Answer the AI's questions..."
+                    placeholder="Type your answer..."
                     value={followupInput}
                     onChange={(e) => setFollowupInput(e.target.value)}
                     onKeyDown={handleFollowupKeyDown}

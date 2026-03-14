@@ -714,24 +714,37 @@ select.input {
   border-bottom: 1px solid var(--border);
 }
 
-.refine-response-header {
+.refine-response-body {
   display: flex;
-  align-items: center;
-  gap: var(--space-2);
-  padding: var(--space-3) var(--space-5);
-  border-bottom: 1px solid var(--border);
-  font-size: var(--font-size-xs);
-  font-weight: 500;
-  color: var(--muted-foreground);
+  align-items: flex-start;
+  gap: var(--space-3);
+  padding: var(--space-4) var(--space-5);
 }
 
-.refine-response-body {
-  padding: var(--space-4) var(--space-5);
+.refine-ai-badge {
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  border-radius: var(--radius-sm);
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  font-size: 10px;
+  font-weight: 600;
+  color: var(--muted-foreground);
+  letter-spacing: 0.02em;
+  margin-top: 1px;
+}
+
+.refine-response-text {
   font-size: var(--font-size-base);
   color: var(--foreground);
   line-height: 1.6;
-  white-space: pre-wrap;
   font-weight: 500;
+  white-space: pre-wrap;
+  margin: 0;
 }
 
 /* --- AI Quick-Reply Options --- */
@@ -884,7 +897,7 @@ details[open] .refine-history-toggle::before {
 
 .refine-reply {
   display: flex;
-  align-items: center;
+  flex-direction: column;
   gap: var(--space-3);
   padding: var(--space-3) var(--space-4);
 }
@@ -906,7 +919,7 @@ details[open] .refine-history-toggle::before {
 .refine-reply-actions {
   display: flex;
   gap: var(--space-2);
-  flex-shrink: 0;
+  justify-content: flex-end;
 }
 
 .refine-ready {
