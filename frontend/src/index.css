@@ -442,6 +442,13 @@ select.input {
   justify-content: space-between;
 }
 
+.navbar-left {
+  display: flex;
+  align-items: center;
+  gap: 0;
+  min-width: 0;
+}
+
 .navbar-brand {
   display: flex;
   align-items: center;
@@ -451,6 +458,7 @@ select.input {
   color: var(--foreground);
   text-decoration: none;
   letter-spacing: -0.02em;
+  flex-shrink: 0;
 }
 
 .navbar-brand:hover {
@@ -466,6 +474,25 @@ select.input {
   height: 22px;
   object-fit: contain;
   border-radius: var(--radius-sm);
+}
+
+/* Breadcrumb — visible only on mobile via media query below */
+.navbar-breadcrumb {
+  display: none;
+  align-items: center;
+  gap: 2px;
+  color: var(--muted-foreground);
+  margin-left: 2px;
+  min-width: 0;
+}
+
+.navbar-breadcrumb-label {
+  font-size: var(--font-size-sm);
+  font-weight: 500;
+  color: var(--foreground);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .navbar-links {
@@ -521,6 +548,144 @@ select.input {
   font-weight: 600;
   color: var(--muted-foreground);
   border: 1px solid var(--border);
+}
+
+/* Hamburger — hidden on desktop, shown on mobile */
+.navbar-hamburger {
+  display: none;
+}
+
+/* Desktop-only items — hidden on mobile */
+.navbar-desktop-only {
+  display: inline-flex;
+}
+
+/* =============================================================================
+   Mobile Drawer
+   ============================================================================= */
+
+.mobile-drawer-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.6);
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
+  z-index: 1100;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.3s ease;
+}
+
+.mobile-drawer-backdrop.open {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.mobile-drawer {
+  position: fixed;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  width: 300px;
+  max-width: 85vw;
+  background: var(--background);
+  border-left: 1px solid var(--border);
+  z-index: 1200;
+  display: flex;
+  flex-direction: column;
+  transform: translateX(100%);
+  transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+  will-change: transform;
+}
+
+.mobile-drawer.open {
+  transform: translateX(0);
+}
+
+.mobile-drawer-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  height: var(--navbar-height);
+  padding: 0 var(--space-4);
+  border-bottom: 1px solid var(--border);
+  flex-shrink: 0;
+}
+
+.mobile-drawer-nav {
+  flex: 1;
+  overflow-y: auto;
+  padding: var(--space-3) var(--space-2);
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.mobile-drawer-link {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  padding: var(--space-3) var(--space-3);
+  border-radius: var(--radius-md);
+  font-size: var(--font-size-base);
+  font-weight: 500;
+  color: var(--muted-foreground);
+  text-decoration: none;
+  transition: all var(--transition-fast);
+}
+
+.mobile-drawer-link:hover {
+  color: var(--foreground);
+  background: var(--accent);
+}
+
+.mobile-drawer-link.active {
+  color: var(--foreground);
+  background: var(--accent);
+}
+
+.mobile-drawer-footer {
+  padding: var(--space-4);
+  border-top: 1px solid var(--border);
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+.mobile-drawer-user {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+}
+
+.mobile-drawer-user-info {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.mobile-drawer-user-name {
+  font-size: var(--font-size-sm);
+  font-weight: 600;
+  color: var(--foreground);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.mobile-drawer-user-email {
+  font-size: var(--font-size-xs);
+  color: var(--muted-foreground);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.mobile-drawer-footer-actions {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
 }
 
 /* --- Post Card --- */
@@ -2294,8 +2459,31 @@ a.navbar-user:hover {
 /* --- Responsive --- */
 
 @media (max-width: 768px) {
+  .navbar-inner {
+    padding: 0 var(--space-3);
+  }
+
   .navbar-links {
     display: none;
+  }
+
+  .navbar-hamburger {
+    display: inline-flex !important;
+  }
+
+  .navbar-desktop-only {
+    display: none !important;
+  }
+
+  .navbar-breadcrumb {
+    display: flex;
+  }
+
+  .navbar-brand-text {
+    max-width: 100px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
   }
 
   .kanban-board {
@@ -3287,8 +3475,12 @@ a.navbar-user:hover {
 /* Mobile responsive */
 @media (max-width: 768px) {
   .notif-panel {
-    width: calc(100vw - 32px);
-    right: -60px;
+    position: fixed;
+    top: calc(var(--navbar-height) + 4px);
+    left: 16px;
+    right: 16px;
+    width: auto;
+    max-height: calc(100vh - var(--navbar-height) - 24px);
   }
 
   .my-feedback-page-tabs {
