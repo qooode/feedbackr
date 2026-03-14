@@ -825,12 +825,16 @@ onRecordAfterUpdateSuccess(function(e) {
 
 onRecordCreateRequest(function(e) {
     if (!e.auth) return e.json(401, { code: 401, message: "Not authenticated." })
-    e.record.set("user", e.auth.id)
+    // Superusers can set any user; regular users get forced to self
+    if (!e.hasSuperuserAuth()) {
+        e.record.set("user", e.auth.id)
+    }
     return e.next()
 }, "favorites")
 
 onRecordDeleteRequest(function(e) {
     if (!e.auth) return e.json(401, { code: 401, message: "Not authenticated." })
+    if (e.hasSuperuserAuth()) return e.next()
     if (e.record.get("user") !== e.auth.id) return e.json(403, { code: 403, message: "You can only remove your own favorites." })
     return e.next()
 }, "favorites")
@@ -841,6 +845,7 @@ onRecordDeleteRequest(function(e) {
 
 onRecordUpdateRequest(function(e) {
     if (!e.auth) return e.json(401, { code: 401, message: "Not authenticated." })
+    if (e.hasSuperuserAuth()) return e.next()
     if (e.record.get("user") !== e.auth.id) return e.json(403, { code: 403, message: "Not your notification." })
     // Lock everything except "read"
     e.record.set("user", e.record.original().get("user"))
@@ -853,6 +858,7 @@ onRecordUpdateRequest(function(e) {
 
 onRecordDeleteRequest(function(e) {
     if (!e.auth) return e.json(401, { code: 401, message: "Not authenticated." })
+    if (e.hasSuperuserAuth()) return e.next()
     if (e.record.get("user") !== e.auth.id) return e.json(403, { code: 403, message: "You can only delete your own notifications." })
     return e.next()
 }, "notifications")
