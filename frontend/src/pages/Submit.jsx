@@ -417,6 +417,56 @@ export default function Submit() {
           )}
 
           {/* Step 3: Preview & Publish */}
+          {preview && similarPosts.length > 0 && !similarDismissed && (
+            <div className="duplicate-recommendation">
+              <div className="duplicate-recommendation-header">
+                <div className="duplicate-recommendation-icon">
+                  <Sparkles size={16} />
+                </div>
+                <div className="duplicate-recommendation-text">
+                  <div className="duplicate-recommendation-title">
+                    This feedback already exists!
+                  </div>
+                  <div className="duplicate-recommendation-subtitle">
+                    I found {similarPosts.length === 1 ? 'a post' : 'posts'} that {similarPosts.length === 1 ? 'describes' : 'describe'} the same thing.
+                    Adding your voice as a comment helps developers see demand without creating duplicates.
+                  </div>
+                </div>
+                <button className="duplicate-recommendation-dismiss" onClick={() => setSimilarDismissed(true)}>
+                  <X size={14} />
+                </button>
+              </div>
+              <div className="duplicate-recommendation-list">
+                {similarPosts.slice(0, 3).map((p) => (
+                  <div key={p.id} className="duplicate-recommendation-item">
+                    <div className="duplicate-recommendation-item-info">
+                      <div className="duplicate-recommendation-item-title">{p.title}</div>
+                      <div className="duplicate-recommendation-item-meta">
+                        <span className={`badge badge-${p.category}`}>{p.category}</span>
+                        {p.status && <span className={`badge badge-${p.status}`}>{p.status}</span>}
+                        <span className="duplicate-recommendation-item-votes">{p.votes_count || 0} votes</span>
+                      </div>
+                    </div>
+                    <div className="duplicate-recommendation-item-actions">
+                      <button className="btn btn-ghost btn-sm" onClick={() => navigate(`/post/${p.id}`)}>
+                        <Eye size={12} />
+                        View
+                      </button>
+                      <button
+                        className="btn btn-primary btn-sm"
+                        onClick={() => handleAddToExisting(p.id)}
+                        disabled={publishing}
+                      >
+                        <MessageCircle size={12} />
+                        Add as Comment
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
           {preview && (
             <div className="card" style={{ overflow: 'hidden' }}>
               <div className="publish-card-header">
@@ -507,32 +557,12 @@ export default function Submit() {
                 </div>
               )}
 
-              {similarPosts.length > 0 && (
-                <div className="publish-similar-notice">
-                  <AlertTriangle size={13} />
-                  <span>Similar posts exist — consider adding to an existing one:</span>
-                  <div className="publish-similar-links">
-                    {similarPosts.slice(0, 3).map((p) => (
-                      <button
-                        key={p.id}
-                        className="btn btn-ghost btn-sm"
-                        onClick={() => handleAddToExisting(p.id)}
-                        disabled={publishing}
-                      >
-                        <MessageCircle size={11} />
-                        {p.title}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-              )}
-
               <div className="publish-actions">
                 <button className="btn btn-ghost btn-sm" onClick={handleReset}>
                   Start Over
                 </button>
                 <button
-                  className="btn btn-primary btn-sm"
+                  className={`btn btn-sm ${similarPosts.length > 0 && !similarDismissed ? 'btn-ghost' : 'btn-primary'}`}
                   onClick={handlePublish}
                   disabled={publishing}
                 >
@@ -540,6 +570,11 @@ export default function Submit() {
                     <>
                       <Loader2 size={13} className="animate-spin" />
                       Publishing...
+                    </>
+                  ) : similarPosts.length > 0 && !similarDismissed ? (
+                    <>
+                      <Check size={14} />
+                      Publish Anyway
                     </>
                   ) : (
                     <>
@@ -571,7 +606,7 @@ export default function Submit() {
                       <div className="similar-inline-item-title">{p.title}</div>
                       <div className="similar-inline-item-meta">
                         <span className={`badge badge-${p.category}`}>{p.category}</span>
-                        <span className="similar-inline-item-votes">▲ {p.votes_count || 0}</span>
+                        <span className="similar-inline-item-votes">{p.votes_count || 0} votes</span>
                       </div>
                     </div>
                     <div className="similar-inline-item-actions">

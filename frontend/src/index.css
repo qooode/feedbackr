@@ -1236,6 +1236,142 @@ details[open] .refine-history-toggle::before {
   color: var(--foreground);
 }
 
+/* --- Duplicate Recommendation (Step 3) --- */
+
+.duplicate-recommendation {
+  border: 1px solid rgba(234, 179, 8, 0.2);
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+  animation: cardFadeIn 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+  background: rgba(234, 179, 8, 0.02);
+}
+
+.duplicate-recommendation-header {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-3);
+  padding: var(--space-4) var(--space-5);
+  background: rgba(234, 179, 8, 0.06);
+  border-bottom: 1px solid rgba(234, 179, 8, 0.1);
+}
+
+.duplicate-recommendation-icon {
+  width: 32px;
+  height: 32px;
+  border-radius: var(--radius-md);
+  background: rgba(234, 179, 8, 0.12);
+  color: rgba(234, 179, 8, 0.9);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  margin-top: 1px;
+}
+
+.duplicate-recommendation-text {
+  flex: 1;
+  min-width: 0;
+}
+
+.duplicate-recommendation-title {
+  font-size: var(--font-size-sm);
+  font-weight: 600;
+  color: rgba(234, 179, 8, 0.95);
+  margin-bottom: 2px;
+}
+
+.duplicate-recommendation-subtitle {
+  font-size: var(--font-size-xs);
+  color: rgba(234, 179, 8, 0.65);
+  line-height: 1.5;
+}
+
+.duplicate-recommendation-dismiss {
+  background: none;
+  border: none;
+  color: rgba(234, 179, 8, 0.4);
+  padding: 4px;
+  cursor: pointer;
+  border-radius: var(--radius-sm);
+  transition: all var(--transition-fast);
+  flex-shrink: 0;
+}
+
+.duplicate-recommendation-dismiss:hover {
+  color: rgba(234, 179, 8, 0.9);
+  background: rgba(234, 179, 8, 0.08);
+}
+
+.duplicate-recommendation-list {
+  display: flex;
+  flex-direction: column;
+}
+
+.duplicate-recommendation-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+  padding: var(--space-3) var(--space-5);
+  transition: background var(--transition-fast);
+}
+
+.duplicate-recommendation-item:not(:last-child) {
+  border-bottom: 1px solid rgba(234, 179, 8, 0.06);
+}
+
+.duplicate-recommendation-item:hover {
+  background: rgba(234, 179, 8, 0.04);
+}
+
+.duplicate-recommendation-item-info {
+  min-width: 0;
+  flex: 1;
+}
+
+.duplicate-recommendation-item-title {
+  font-size: var(--font-size-sm);
+  font-weight: 500;
+  color: var(--foreground);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  margin-bottom: 3px;
+}
+
+.duplicate-recommendation-item-meta {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.duplicate-recommendation-item-votes {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--muted-foreground);
+}
+
+.duplicate-recommendation-item-actions {
+  display: flex;
+  gap: var(--space-2);
+  flex-shrink: 0;
+}
+
+@media (max-width: 600px) {
+  .duplicate-recommendation-item {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: var(--space-2);
+  }
+  .duplicate-recommendation-item-actions {
+    width: 100%;
+  }
+  .duplicate-recommendation-item-actions .btn {
+    flex: 1;
+    justify-content: center;
+  }
+}
+
 .publish-actions {
   display: flex;
   align-items: center;
