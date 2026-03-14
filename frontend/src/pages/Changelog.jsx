@@ -7,6 +7,7 @@ import pb from '../lib/pocketbase';
 export default function Changelog() {
   const [changelogs, setChangelogs] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
 
   useEffect(() => {
     fetchChangelogs();
@@ -14,14 +15,17 @@ export default function Changelog() {
 
   const fetchChangelogs = async () => {
     setLoading(true);
+    setError(null);
     try {
       const result = await pb.collection('changelogs').getList(1, 50, {
         sort: '-created',
         expand: 'posts,author',
       });
+      console.log('[Changelog] Fetched:', result.items.length, 'entries', result.items);
       setChangelogs(result.items);
     } catch (err) {
-      console.error('Failed to fetch changelogs:', err);
+      console.error('[Changelog] Failed to fetch:', err);
+      setError(err?.message || err?.response?.message || 'Failed to load changelogs');
     } finally {
       setLoading(false);
     }
@@ -53,7 +57,13 @@ export default function Changelog() {
           </p>
         </div>
 
-        {changelogs.length === 0 ? (
+        {error && (
+          <div className="error-message" style={{ marginBottom: 'var(--space-4)' }}>
+            Error loading changelogs: {error}
+          </div>
+        )}
+
+        {!error && changelogs.length === 0 ? (
           <div className="empty-state">
             <div className="empty-state-icon">
               <Inbox size={40} strokeWidth={1.5} />
