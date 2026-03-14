@@ -375,7 +375,6 @@ export default function Submit() {
                     value={followupInput}
                     onChange={(e) => setFollowupInput(e.target.value)}
                     onKeyDown={handleFollowupKeyDown}
-                    style={{ flex: 1, border: 'none', borderRadius: 0 }}
                   />
                   <div className="refine-reply-actions">
                     <button className="btn btn-ghost btn-sm" onClick={handleReset}>
