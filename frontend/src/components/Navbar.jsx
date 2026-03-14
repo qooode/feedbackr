@@ -1,6 +1,6 @@
 import { Link, useLocation } from 'react-router-dom';
 import { useAuth } from '../hooks/useAuth';
-import { LayoutDashboard, LogOut, LogIn, Plus, Megaphone } from 'lucide-react';
+import { LayoutDashboard, LayoutGrid, LogOut, LogIn, PenLine, Plus, Megaphone } from 'lucide-react';
 import AuthModal from './AuthModal';
 import UserAvatar from './UserAvatar';
 import NotificationBell from './NotificationBell';
@@ -32,8 +32,18 @@ export default function Navbar() {
           </Link>
 
           <div className="navbar-links">
-            <Link to="/" className={isActive('/')}>Board</Link>
-            <Link to="/submit" className={isActive('/submit')}>Submit</Link>
+            <Link to="/" className={isActive('/')}>
+              <span style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                <LayoutGrid size={12} />
+                Board
+              </span>
+            </Link>
+            <Link to="/submit" className={isActive('/submit')}>
+              <span style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                <PenLine size={12} />
+                Submit
+              </span>
+            </Link>
             <Link to="/changelog" className={isActive('/changelog')}>
               <span style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
                 <Megaphone size={12} />
