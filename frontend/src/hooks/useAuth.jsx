@@ -22,6 +22,16 @@ export function AuthProvider({ children }) {
       oauthAttempted.current = true;
       setOauthStatus('processing');
       completeOAuthRedirect(code, state);
+    } else if (pb.authStore.isValid) {
+      // Validate the stored token against the server — catches stale
+      // tokens after a server restart or deploy.
+      pb.collection('users').authRefresh()
+        .catch(() => {
+          pb.authStore.clear();
+        })
+        .finally(() => {
+          setLoading(false);
+        });
     } else {
       setLoading(false);
     }
