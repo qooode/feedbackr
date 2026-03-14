@@ -613,6 +613,7 @@ onRecordUpdateRequest(function(e) {
         e.record.set("author", e.record.original().get("author"))
         e.record.set("post", e.record.original().get("post"))
         e.record.set("is_ai_merged", e.record.original().get("is_ai_merged"))
+        e.record.set("parent", e.record.original().get("parent"))
 
         var body = String(e.record.get("body") || "")
         if (body.length < 2) return e.json(400, { code: 400, message: "Comment too short." })
@@ -677,6 +678,19 @@ onRecordCreateRequest(function(e) {
     var body = String(e.record.get("body") || "")
     if (body.length < 2) return e.json(400, { code: 400, message: "Comment too short." })
     if (body.length > 5000) return e.json(400, { code: 400, message: "Comment too long (max 5,000 chars)." })
+
+    // Enforce 1-level threading: replies can't have replies
+    var parentId = e.record.get("parent") || ""
+    if (parentId) {
+        try {
+            var parentComment = $app.findRecordById("comments", parentId)
+            if (parentComment.get("parent")) {
+                return e.json(400, { code: 400, message: "You can only reply to top-level comments." })
+            }
+        } catch(ex) {
+            return e.json(400, { code: 400, message: "Parent comment not found." })
+        }
+    }
     return e.next()
 }, "comments")
 
@@ -803,6 +817,7 @@ onRecordAfterCreateSuccess(function(e) {
     try {
         var commentAuthorId = e.record.get("author")
         var postId = e.record.get("post")
+        var parentId = e.record.get("parent") || ""
         if (!commentAuthorId || !postId) return
 
         var post = $app.findRecordById("posts", postId)
@@ -820,9 +835,23 @@ onRecordAfterCreateSuccess(function(e) {
         // Collect all recipient user IDs (deduplicated, excluding commenter)
         var recipientSet = {}
 
+        // 0. If this is a reply, notify the parent comment author specifically
+        var parentCommentAuthor = ""
+        if (parentId) {
+            try {
+                var parentComment = $app.findRecordById("comments", parentId)
+                parentCommentAuthor = parentComment.get("author") || ""
+                if (parentCommentAuthor && parentCommentAuthor !== commentAuthorId) {
+                    recipientSet[parentCommentAuthor] = "reply"
+                }
+            } catch(ex) {
+                console.log("[comment-notify] parent comment lookup error:", String(ex))
+            }
+        }
+
         // 1. Post author
         var postAuthor = post.get("author")
-        if (postAuthor && postAuthor !== commentAuthorId) {
+        if (postAuthor && postAuthor !== commentAuthorId && !recipientSet[postAuthor]) {
             recipientSet[postAuthor] = "author"
         }
 
@@ -867,12 +896,16 @@ onRecordAfterCreateSuccess(function(e) {
 
         for (var i = 0; i < recipientIds.length; i++) {
             try {
+                // Use "reply" type for the parent comment author, "new_comment" for everyone else
+                var isReplyRecipient = recipientSet[recipientIds[i]] === "reply"
                 var notif = new Record(notifCollection)
                 notif.set("user", recipientIds[i])
                 notif.set("post", postId)
-                notif.set("type", "new_comment")
+                notif.set("type", isReplyRecipient ? "comment_reply" : "new_comment")
                 notif.set("actor", commentAuthorId)
-                notif.set("message", commenterName + " commented on \"" + postTitle.slice(0, 60) + "\"")
+                notif.set("message", isReplyRecipient
+                    ? commenterName + " replied to your comment on \"" + postTitle.slice(0, 60) + "\""
+                    : commenterName + " commented on \"" + postTitle.slice(0, 60) + "\"")
                 notif.set("read", false)
                 $app.save(notif)
                 created++

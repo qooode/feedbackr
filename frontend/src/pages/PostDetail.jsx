@@ -1,6 +1,6 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
-import { ArrowLeft, Clock, Send, Pencil, Trash2, X, Check } from 'lucide-react';
+import { ArrowLeft, Clock, Send, Pencil, Trash2, X, Check, Reply, CornerDownRight } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
 import pb from '../lib/pocketbase';
 import VoteButton from '../components/VoteButton';
@@ -18,6 +18,12 @@ export default function PostDetail() {
   const [loading, setLoading] = useState(true);
   const [commentBody, setCommentBody] = useState('');
   const [submitting, setSubmitting] = useState(false);
+
+  // Reply state
+  const [replyingTo, setReplyingTo] = useState(null); // comment id being replied to
+  const [replyBody, setReplyBody] = useState('');
+  const [submittingReply, setSubmittingReply] = useState(false);
+  const replyInputRef = useRef(null);
 
   // Edit post state
   const [editingPost, setEditingPost] = useState(false);
@@ -43,6 +49,13 @@ export default function PostDetail() {
     fetchComments();
   }, [id]);
 
+  // Focus reply input when replyingTo changes
+  useEffect(() => {
+    if (replyingTo && replyInputRef.current) {
+      replyInputRef.current.focus();
+    }
+  }, [replyingTo]);
+
   const fetchPost = async () => {
     try {
       const record = await pb.collection('posts').getOne(id, {
@@ -58,14 +71,33 @@ export default function PostDetail() {
 
   const fetchComments = async () => {
     try {
-      const result = await pb.collection('comments').getList(1, 100, {
+      const result = await pb.collection('comments').getList(1, 200, {
         filter: `post = '${id.replace(/[^a-z0-9]/gi, '')}'`,
         expand: 'author',
+        sort: 'created',
       });
       setComments(result.items);
     } catch {
       // Comments collection might not exist yet
     }
+  };
+
+  // Organize comments into threads
+  const organizeComments = () => {
+    const topLevel = [];
+    const repliesByParent = {};
+
+    for (const comment of comments) {
+      const parentId = comment.parent;
+      if (parentId) {
+        if (!repliesByParent[parentId]) repliesByParent[parentId] = [];
+        repliesByParent[parentId].push(comment);
+      } else {
+        topLevel.push(comment);
+      }
+    }
+
+    return { topLevel, repliesByParent };
   };
 
   const handleComment = async (e) => {
@@ -85,6 +117,39 @@ export default function PostDetail() {
     } finally {
       setSubmitting(false);
     }
+  };
+
+  const handleReply = async (e) => {
+    e.preventDefault();
+    if (!replyBody.trim() || submittingReply || !replyingTo) return;
+
+    setSubmittingReply(true);
+    try {
+      await pb.collection('comments').create({
+        post: id,
+        body: replyBody.trim(),
+        parent: replyingTo,
+      });
+      setReplyBody('');
+      setReplyingTo(null);
+      fetchComments();
+    } catch (err) {
+      console.error('Reply error:', err);
+    } finally {
+      setSubmittingReply(false);
+    }
+  };
+
+  const startReply = (commentId) => {
+    setReplyingTo(commentId);
+    setReplyBody('');
+    // Cancel any edit in progress
+    setEditingCommentId(null);
+  };
+
+  const cancelReply = () => {
+    setReplyingTo(null);
+    setReplyBody('');
   };
 
   // --- Post edit/delete ---
@@ -138,6 +203,8 @@ export default function PostDetail() {
   const startEditComment = (comment) => {
     setEditingCommentId(comment.id);
     setEditCommentBody(comment.body);
+    // Cancel any reply in progress
+    setReplyingTo(null);
   };
 
   const cancelEditComment = () => {
@@ -199,6 +266,159 @@ export default function PostDetail() {
     });
   };
 
+  // Total count of all comments (top-level + replies)
+  const totalComments = comments.length;
+
+  // Render a single comment (used for both top-level and replies)
+  const renderComment = (comment, isReply = false) => (
+    <div key={comment.id} className={`comment ${isReply ? 'comment-reply' : ''}`}>
+      <div className="comment-header">
+        {isReply && (
+          <CornerDownRight size={12} style={{ color: 'var(--muted-foreground)', flexShrink: 0 }} />
+        )}
+        <UserAvatar user={comment.expand?.author} size="22px" />
+        <span className="comment-author">
+          {comment.expand?.author?.name || comment.expand?.author?.username || 'Anonymous'}
+        </span>
+        {comment.is_ai_merged && (
+          <span className="comment-ai-badge">AI Merged</span>
+        )}
+        <span className="comment-date">{timeAgo(comment.created)}</span>
+        {comment.updated !== comment.created && (
+          <span className="comment-edited-label">edited</span>
+        )}
+
+        {canEditComment(comment) && editingCommentId !== comment.id && (
+          <div className="comment-actions">
+            <button
+              className="comment-action-btn"
+              onClick={() => startEditComment(comment)}
+              title="Edit"
+            >
+              <Pencil size={12} />
+            </button>
+            {confirmDeleteCommentId !== comment.id ? (
+              <button
+                className="comment-action-btn"
+                onClick={() => setConfirmDeleteCommentId(comment.id)}
+                title="Delete"
+              >
+                <Trash2 size={12} />
+              </button>
+            ) : (
+              <div className="confirm-delete-inline">
+                <button
+                  className="btn btn-destructive btn-sm"
+                  onClick={() => deleteComment(comment.id)}
+                  disabled={deletingComment}
+                  style={{ padding: '2px 8px', height: '24px', fontSize: '11px' }}
+                >
+                  {deletingComment ? '...' : 'Delete'}
+                </button>
+                <button
+                  className="comment-action-btn"
+                  onClick={() => setConfirmDeleteCommentId(null)}
+                >
+                  <X size={12} />
+                </button>
+              </div>
+            )}
+          </div>
+        )}
+      </div>
+
+      {editingCommentId === comment.id ? (
+        <div className="comment-edit-form">
+          <input
+            className="input"
+            value={editCommentBody}
+            onChange={(e) => setEditCommentBody(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter' && !e.shiftKey) {
+                e.preventDefault();
+                saveEditComment();
+              }
+              if (e.key === 'Escape') cancelEditComment();
+            }}
+            autoFocus
+          />
+          <div className="comment-edit-actions">
+            <button
+              className="btn btn-primary btn-sm"
+              onClick={saveEditComment}
+              disabled={savingComment || !editCommentBody.trim()}
+              style={{ height: '28px', fontSize: '12px' }}
+            >
+              <Check size={12} />
+              {savingComment ? 'Saving...' : 'Save'}
+            </button>
+            <button
+              className="btn btn-ghost btn-sm"
+              onClick={cancelEditComment}
+              style={{ height: '28px', fontSize: '12px' }}
+            >
+              Cancel
+            </button>
+          </div>
+        </div>
+      ) : (
+        <>
+          <div className={`comment-body ${isReply ? 'comment-body-reply' : ''}`}>
+            {comment.body}
+          </div>
+          {/* Reply button — only on top-level comments (1 level max) */}
+          {!isReply && isLoggedIn && editingCommentId !== comment.id && (
+            <div className={`comment-body ${isReply ? 'comment-body-reply' : ''}`} style={{ paddingTop: 0 }}>
+              <button
+                className="comment-reply-btn"
+                onClick={() => startReply(comment.id)}
+              >
+                <Reply size={12} />
+                Reply
+              </button>
+            </div>
+          )}
+        </>
+      )}
+
+      {/* Inline reply input */}
+      {!isReply && replyingTo === comment.id && (
+        <div className="comment-reply-form">
+          <CornerDownRight size={12} style={{ color: 'var(--muted-foreground)', flexShrink: 0, marginTop: '10px' }} />
+          <form onSubmit={handleReply} style={{ flex: 1, display: 'flex', gap: 'var(--space-2)' }}>
+            <input
+              ref={replyInputRef}
+              className="input"
+              type="text"
+              placeholder={`Reply to ${comment.expand?.author?.name || comment.expand?.author?.username || 'this comment'}...`}
+              value={replyBody}
+              onChange={(e) => setReplyBody(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === 'Escape') cancelReply();
+              }}
+              style={{ flex: 1 }}
+            />
+            <button
+              className="btn btn-primary btn-sm"
+              type="submit"
+              disabled={!replyBody.trim() || submittingReply}
+            >
+              <Send size={12} />
+              {submittingReply ? '...' : 'Reply'}
+            </button>
+            <button
+              className="btn btn-ghost btn-sm"
+              type="button"
+              onClick={cancelReply}
+            >
+              <X size={12} />
+            </button>
+          </form>
+        </div>
+      )}
+    </div>
+  );
+
   if (loading) {
     return (
       <div className="page">
@@ -219,6 +439,8 @@ export default function PostDetail() {
       </div>
     );
   }
+
+  const { topLevel, repliesByParent } = organizeComments();
 
   return (
     <div className="page">
@@ -357,104 +579,21 @@ export default function PostDetail() {
           {/* Comments */}
           <div className="comments-section">
             <h2 className="comments-title">
-              Comments ({comments.length})
+              Comments ({totalComments})
             </h2>
 
-            {comments.map((comment) => (
-              <div key={comment.id} className="comment">
-                <div className="comment-header">
-                  <UserAvatar user={comment.expand?.author} size="22px" />
-                  <span className="comment-author">
-                    {comment.expand?.author?.name || comment.expand?.author?.username || 'Anonymous'}
-                  </span>
-                  {comment.is_ai_merged && (
-                    <span className="comment-ai-badge">AI Merged</span>
-                  )}
-                  <span className="comment-date">{timeAgo(comment.created)}</span>
-                  {comment.updated !== comment.created && (
-                    <span className="comment-edited-label">edited</span>
-                  )}
+            {topLevel.map((comment) => (
+              <div key={comment.id} className="comment-thread">
+                {renderComment(comment, false)}
 
-                  {canEditComment(comment) && editingCommentId !== comment.id && (
-                    <div className="comment-actions">
-                      <button
-                        className="comment-action-btn"
-                        onClick={() => startEditComment(comment)}
-                        title="Edit"
-                      >
-                        <Pencil size={12} />
-                      </button>
-                      {confirmDeleteCommentId !== comment.id ? (
-                        <button
-                          className="comment-action-btn"
-                          onClick={() => setConfirmDeleteCommentId(comment.id)}
-                          title="Delete"
-                        >
-                          <Trash2 size={12} />
-                        </button>
-                      ) : (
-                        <div className="confirm-delete-inline">
-                          <button
-                            className="btn btn-destructive btn-sm"
-                            onClick={() => deleteComment(comment.id)}
-                            disabled={deletingComment}
-                            style={{ padding: '2px 8px', height: '24px', fontSize: '11px' }}
-                          >
-                            {deletingComment ? '...' : 'Delete'}
-                          </button>
-                          <button
-                            className="comment-action-btn"
-                            onClick={() => setConfirmDeleteCommentId(null)}
-                          >
-                            <X size={12} />
-                          </button>
-                        </div>
-                      )}
-                    </div>
-                  )}
-                </div>
-
-                {editingCommentId === comment.id ? (
-                  <div className="comment-edit-form">
-                    <input
-                      className="input"
-                      value={editCommentBody}
-                      onChange={(e) => setEditCommentBody(e.target.value)}
-                      onKeyDown={(e) => {
-                        if (e.key === 'Enter' && !e.shiftKey) {
-                          e.preventDefault();
-                          saveEditComment();
-                        }
-                        if (e.key === 'Escape') cancelEditComment();
-                      }}
-                      autoFocus
-                    />
-                    <div className="comment-edit-actions">
-                      <button
-                        className="btn btn-primary btn-sm"
-                        onClick={saveEditComment}
-                        disabled={savingComment || !editCommentBody.trim()}
-                        style={{ height: '28px', fontSize: '12px' }}
-                      >
-                        <Check size={12} />
-                        {savingComment ? 'Saving...' : 'Save'}
-                      </button>
-                      <button
-                        className="btn btn-ghost btn-sm"
-                        onClick={cancelEditComment}
-                        style={{ height: '28px', fontSize: '12px' }}
-                      >
-                        Cancel
-                      </button>
-                    </div>
-                  </div>
-                ) : (
-                  <div className="comment-body">{comment.body}</div>
+                {/* Replies */}
+                {repliesByParent[comment.id]?.map((reply) =>
+                  renderComment(reply, true)
                 )}
               </div>
             ))}
 
-            {comments.length === 0 && (
+            {totalComments === 0 && (
               <p style={{
                 color: 'var(--muted-foreground)',
                 fontSize: 'var(--font-size-sm)',

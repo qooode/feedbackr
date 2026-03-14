@@ -307,10 +307,10 @@ export default function MyFeedback() {
                     to={`/post/${notif.post}`}
                     className="activity-item"
                   >
-                    <div className={`activity-item-dot ${notif.type === 'new_comment' ? 'comment' : ''}`} />
+                    <div className={`activity-item-dot ${(notif.type === 'new_comment' || notif.type === 'comment_reply') ? 'comment' : ''}`} />
                     <div className="activity-item-content">
-                      {notif.type === 'new_comment' ? (
-                        /* Comment notification */
+                      {(notif.type === 'new_comment' || notif.type === 'comment_reply') ? (
+                        /* Comment / Reply notification */
                         <>
                           <span className="activity-item-comment">
                             <MessageCircle size={12} style={{ flexShrink: 0, marginTop: '2px' }} />
@@ -318,7 +318,7 @@ export default function MyFeedback() {
                               <strong>
                                 {notif.expand?.actor?.name || notif.expand?.actor?.username || 'Someone'}
                               </strong>
-                              {' commented on '}
+                              {notif.type === 'comment_reply' ? ' replied to your comment on ' : ' commented on '}
                               <span className="activity-item-title">
                                 {notif.expand?.post?.title || 'a post'}
                               </span>

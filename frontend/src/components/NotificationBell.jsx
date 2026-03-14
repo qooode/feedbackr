@@ -160,8 +160,8 @@ export default function NotificationBell() {
                     {!notif.read && <span className="notif-unread-dot" />}
                   </div>
                   <div className="notif-item-content">
-                    {notif.type === 'new_comment' ? (
-                      /* ---- Comment notification ---- */
+                    {(notif.type === 'new_comment' || notif.type === 'comment_reply') ? (
+                      /* ---- Comment / Reply notification ---- */
                       <div className="notif-item-text">
                         <span className="notif-item-comment-icon">
                           <MessageCircle size={12} />
@@ -170,7 +170,7 @@ export default function NotificationBell() {
                           <strong>
                             {notif.expand?.actor?.name || notif.expand?.actor?.username || 'Someone'}
                           </strong>
-                          {' commented on '}
+                          {notif.type === 'comment_reply' ? ' replied to your comment on ' : ' commented on '}
                           <span className="notif-item-post-title">
                             {notif.expand?.post?.title || 'a post'}
                           </span>

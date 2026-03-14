@@ -2229,6 +2229,88 @@ details[open] .refine-history-toggle::before {
   margin-top: var(--space-2);
 }
 
+/* --- Comment Threading --- */
+
+.comment-thread {
+  border-bottom: 1px solid var(--border);
+}
+
+.comment-thread:last-of-type {
+  border-bottom: none;
+}
+
+.comment-thread .comment {
+  border-bottom: none;
+}
+
+.comment-reply {
+  margin-left: var(--space-6);
+  padding-left: var(--space-4);
+  border-left: 2px solid var(--border);
+  padding-top: var(--space-3);
+  padding-bottom: var(--space-3);
+}
+
+.comment-reply .comment-header {
+  gap: var(--space-2);
+}
+
+.comment-body-reply {
+  padding-left: calc(22px + var(--space-2) + 12px + var(--space-2)) !important;
+}
+
+.comment-reply-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 0;
+  border: none;
+  background: transparent;
+  color: var(--muted-foreground);
+  font-size: var(--font-size-xs);
+  cursor: pointer;
+  transition: color var(--transition-fast);
+  font-weight: 500;
+}
+
+.comment-reply-btn:hover {
+  color: var(--foreground);
+}
+
+.comment-reply-form {
+  display: flex;
+  gap: var(--space-2);
+  padding-left: var(--space-6);
+  padding-top: var(--space-2);
+  padding-bottom: var(--space-3);
+  align-items: flex-start;
+}
+
+.comment-reply-form .input {
+  flex: 1;
+}
+
+@media (max-width: 768px) {
+  .comment-reply {
+    margin-left: var(--space-3);
+    padding-left: var(--space-3);
+  }
+
+  .comment-reply-form {
+    padding-left: var(--space-3);
+  }
+
+  .comment-body-reply {
+    padding-left: calc(22px + var(--space-2)) !important;
+  }
+
+  /* Make reply actions visible on mobile (no hover) */
+  .comment-actions {
+    opacity: 1;
+  }
+}
+
+
 /* --- Auth Modal --- */
 
 .modal-overlay {
