@@ -2577,7 +2577,6 @@ a.navbar-user:hover {
 
   .segmented-option {
     padding: 5px 10px;
-    font-size: 11px;
   }
 
   .publish-actions {
@@ -2592,6 +2591,38 @@ a.navbar-user:hover {
 
   .publish-btn {
     min-width: auto;
+  }
+
+  /* --- Submit flow mobile readability bumps --- */
+
+  /* Buttons: 13px → 14px */
+  .btn {
+    font-size: var(--font-size-base);
+  }
+
+  .btn-lg {
+    font-size: var(--font-size-lg);
+  }
+
+  /* AI suggestion chips: 12px → 13px */
+  .refine-option-chip {
+    font-size: var(--font-size-sm);
+    padding: 9px 16px;
+  }
+
+  /* AI response text: 14px → 15px */
+  .refine-response-text {
+    font-size: 15px;
+  }
+
+  /* User quote text: 13px → 14px */
+  .refine-quote-text {
+    font-size: var(--font-size-base);
+  }
+
+  /* Segmented picker: 11px → 12px */
+  .segmented-option {
+    font-size: var(--font-size-xs);
   }
 }
 
