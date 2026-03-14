@@ -26,7 +26,8 @@ $app.store().set("checkRateLimit", function(userId, bucket, fallbackMax) {
         var m = $os.getenv("RATE_MAX_" + bucket.toUpperCase())
         if (m) max = +m || fallbackMax
     } catch(ex) {}
-    var limits = $app.store().get("rateLimits") || {}
+    var limits = $app.store().get("rateLimits")
+    if (!limits || typeof limits !== "object") limits = {}
     var now = Math.floor(Date.now() / 1000)
     var key = bucket + ":" + userId
     if (!limits[key]) limits[key] = []
@@ -346,8 +347,14 @@ routerAdd("POST", "/api/feedbackr/similar", function(e) {
             if (safe) parts.push("(title ~ '" + safe + "' || body ~ '" + safe + "')")
         }
 
-        var records = $app.findRecordsByFilter("posts", parts.join(" || "), "-votes_count", 10, 0)
-        if (records.length === 0) return e.json(200, { similar: [] })
+        var records
+        try {
+            records = $app.findRecordsByFilter("posts", parts.join(" || "), "-votes_count", 10, 0)
+        } catch(filterErr) {
+            console.log("[similar] filter error:", String(filterErr))
+            return e.json(200, { similar: [] })
+        }
+        if (!records || !records.length) return e.json(200, { similar: [] })
 
         // Build candidate list for AI
         var candidates = []
