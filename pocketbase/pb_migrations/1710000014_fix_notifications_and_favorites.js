@@ -35,6 +35,20 @@ migrate((app) => {
     // --- Fix favorites ---
     const favorites = app.findCollectionByNameOrId("favorites")
 
+    // Delete any broken records created while the collection was an empty shell
+    // (they have no user/post data and would block the unique index)
+    try {
+        var brokenFavs = app.findRecordsByFilter("favorites", "1=1", "", 0, 0)
+        for (var i = 0; i < brokenFavs.length; i++) {
+            app.delete(brokenFavs[i])
+        }
+        if (brokenFavs.length > 0) {
+            console.log("Feedbackr: deleted " + brokenFavs.length + " broken favorite records")
+        }
+    } catch(err) {
+        console.log("Feedbackr: no broken favorites to clean (" + String(err) + ")")
+    }
+
     favorites.fields.add(new RelationField({ name: "user", required: true, maxSelect: 1, collectionId: users.id }))
     favorites.fields.add(new RelationField({ name: "post", required: true, maxSelect: 1, collectionId: posts.id, cascadeDelete: true }))
 
