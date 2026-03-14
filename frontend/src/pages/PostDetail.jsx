@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { ArrowLeft, Clock, Send } from 'lucide-react';
+import ReactMarkdown from 'react-markdown';
 import pb from '../lib/pocketbase';
 import VoteButton from '../components/VoteButton';
 import UserAvatar from '../components/UserAvatar';
@@ -141,7 +142,7 @@ export default function PostDetail() {
             </span>
           </div>
 
-          <div className="post-detail-body">{post.body}</div>
+          <div className="post-detail-body"><ReactMarkdown>{post.body}</ReactMarkdown></div>
 
           {/* Comments */}
           <div className="comments-section">

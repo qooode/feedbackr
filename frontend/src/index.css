@@ -1609,8 +1609,63 @@ details[open] .refine-history-toggle::before {
   line-height: 1.7;
   font-size: var(--font-size-base);
   margin-bottom: var(--space-12);
-  white-space: pre-wrap;
 }
+
+.post-detail-body p {
+  margin-bottom: var(--space-4);
+}
+
+.post-detail-body p:last-child {
+  margin-bottom: 0;
+}
+
+.post-detail-body strong {
+  color: var(--foreground);
+  font-weight: 600;
+}
+
+.post-detail-body ol,
+.post-detail-body ul {
+  padding-left: var(--space-6);
+  margin-bottom: var(--space-4);
+}
+
+.post-detail-body li {
+  margin-bottom: var(--space-1);
+}
+
+.post-detail-body code {
+  background: var(--muted);
+  padding: 1px 5px;
+  border-radius: var(--radius-sm);
+  font-size: 0.9em;
+}
+
+.post-detail-body blockquote {
+  border-left: 2px solid var(--border);
+  padding-left: var(--space-4);
+  color: var(--muted-foreground);
+  margin-bottom: var(--space-4);
+}
+
+.post-detail-body hr {
+  border: none;
+  border-top: 1px solid var(--border);
+  margin: var(--space-6) 0;
+}
+
+.post-detail-body h1,
+.post-detail-body h2,
+.post-detail-body h3 {
+  color: var(--foreground);
+  font-weight: 600;
+  margin-bottom: var(--space-2);
+  margin-top: var(--space-5);
+}
+
+.post-detail-body h1 { font-size: var(--font-size-lg); }
+.post-detail-body h2 { font-size: var(--font-size-base); }
+.post-detail-body h3 { font-size: var(--font-size-sm); }
 
 .post-detail-author {
   display: flex;
