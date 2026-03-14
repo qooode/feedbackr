@@ -8,6 +8,10 @@ migrate((app) => {
     // Backfill existing posts with their actual comment counts
     const allPosts = app.findRecordsByFilter("posts", "1=1", "", 0, 0)
     for (let i = 0; i < allPosts.length; i++) {
+        // Ensure platform is set (older posts may have blank values)
+        if (!allPosts[i].get("platform")) {
+            allPosts[i].set("platform", "all")
+        }
         try {
             const comments = app.findRecordsByFilter("comments", "post = '" + allPosts[i].id + "'", "", 0, 0)
             allPosts[i].set("comments_count", comments ? comments.length : 0)
