@@ -3053,6 +3053,31 @@ a.navbar-user:hover {
   gap: 6px;
 }
 
+/* Comment notification styles */
+.notif-item-comment-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  color: var(--muted-foreground);
+  margin-top: 1px;
+}
+
+.notif-item-message {
+  font-size: var(--font-size-sm);
+  color: var(--muted-foreground);
+  line-height: 1.4;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.notif-item-message strong {
+  color: var(--foreground);
+  font-weight: 600;
+}
+
 .notif-item-time {
   font-size: 10px;
   color: var(--muted-foreground);
@@ -3233,6 +3258,23 @@ a.navbar-user:hover {
   display: flex;
   align-items: center;
   gap: 6px;
+}
+
+.activity-item-dot.comment {
+  background: #60a5fa;
+}
+
+.activity-item-comment {
+  display: flex;
+  align-items: flex-start;
+  gap: 6px;
+  font-size: var(--font-size-sm);
+  color: var(--muted-foreground);
+  line-height: 1.4;
+}
+
+.activity-item-comment strong {
+  color: var(--foreground);
 }
 
 .activity-item-time {

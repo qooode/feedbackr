@@ -790,6 +790,106 @@ onRecordAfterDeleteSuccess(function(e) {
 }, "comments")
 
 // =============================================================================
+// COMMENT NOTIFICATIONS
+// =============================================================================
+// When someone comments on a post, notify:
+//   1. The post author
+//   2. Users who favorited the post
+//   3. Users who previously commented on the post
+// Never notify the commenter themselves. Deduplicate recipients.
+// =============================================================================
+
+onRecordAfterCreateSuccess(function(e) {
+    try {
+        var commentAuthorId = e.record.get("author")
+        var postId = e.record.get("post")
+        if (!commentAuthorId || !postId) return
+
+        var post = $app.findRecordById("posts", postId)
+        if (!post) return
+
+        var postTitle = post.get("title") || "Untitled Post"
+
+        // Get commenter name for the notification message
+        var commenterName = "Someone"
+        try {
+            var commenter = $app.findRecordById("users", commentAuthorId)
+            commenterName = commenter.get("name") || commenter.get("username") || "Someone"
+        } catch(ex) {}
+
+        // Collect all recipient user IDs (deduplicated, excluding commenter)
+        var recipientSet = {}
+
+        // 1. Post author
+        var postAuthor = post.get("author")
+        if (postAuthor && postAuthor !== commentAuthorId) {
+            recipientSet[postAuthor] = "author"
+        }
+
+        // 2. Users who favorited this post
+        try {
+            var favRecords = $app.findRecordsByFilter(
+                "favorites",
+                "post = '" + postId + "'",
+                "", 0, 0
+            )
+            for (var f = 0; f < favRecords.length; f++) {
+                var favUserId = favRecords[f].get("user")
+                if (favUserId && favUserId !== commentAuthorId && !recipientSet[favUserId]) {
+                    recipientSet[favUserId] = "favorite"
+                }
+            }
+        } catch(ex) {
+            console.log("[comment-notify] favorites lookup error:", String(ex))
+        }
+
+        // 3. Users who previously commented on this post
+        try {
+            var prevComments = $app.findRecordsByFilter(
+                "comments",
+                "post = '" + postId + "' && id != '" + e.record.id + "'",
+                "", 0, 0
+            )
+            for (var c = 0; c < prevComments.length; c++) {
+                var prevAuthor = prevComments[c].get("author")
+                if (prevAuthor && prevAuthor !== commentAuthorId && !recipientSet[prevAuthor]) {
+                    recipientSet[prevAuthor] = "commenter"
+                }
+            }
+        } catch(ex) {
+            console.log("[comment-notify] comments lookup error:", String(ex))
+        }
+
+        // Create notifications for each unique recipient
+        var notifCollection = $app.findCollectionByNameOrId("notifications")
+        var recipientIds = Object.keys(recipientSet)
+        var created = 0
+
+        for (var i = 0; i < recipientIds.length; i++) {
+            try {
+                var notif = new Record(notifCollection)
+                notif.set("user", recipientIds[i])
+                notif.set("post", postId)
+                notif.set("type", "new_comment")
+                notif.set("actor", commentAuthorId)
+                notif.set("message", commenterName + " commented on \"" + postTitle.slice(0, 60) + "\"")
+                notif.set("read", false)
+                $app.save(notif)
+                created++
+            } catch(ex) {
+                console.log("[comment-notify] failed to notify user", recipientIds[i], ":", String(ex))
+            }
+        }
+
+        if (created > 0) {
+            console.log("[comment-notify] post", postId, "— notified", created, "users (" + recipientIds.length + " unique)")
+        }
+    } catch(err) {
+        console.log("[comment-notify] error:", String(err))
+    }
+}, "comments")
+
+// =============================================================================
 // STATUS CHANGE NOTIFICATIONS
 // =============================================================================
 
@@ -853,6 +953,8 @@ onRecordUpdateRequest(function(e) {
     e.record.set("type", e.record.original().get("type"))
     e.record.set("old_status", e.record.original().get("old_status"))
     e.record.set("new_status", e.record.original().get("new_status"))
+    e.record.set("actor", e.record.original().get("actor"))
+    e.record.set("message", e.record.original().get("message"))
     return e.next()
 }, "notifications")
 

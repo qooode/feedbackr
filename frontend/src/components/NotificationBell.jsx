@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Bell, Check, CheckCheck, ArrowRight } from 'lucide-react';
+import { Bell, Check, CheckCheck, ArrowRight, MessageCircle } from 'lucide-react';
 import { useAuth } from '../hooks/useAuth';
 import pb from '../lib/pocketbase';
 
@@ -30,7 +30,7 @@ export default function NotificationBell() {
       const result = await pb.collection('notifications').getList(1, 30, {
         filter: `user = "${user.id}"`,
         sort: '-created',
-        expand: 'post',
+        expand: 'post,actor',
       });
       setNotifications(result.items);
       setUnreadCount(result.items.filter(n => !n.read).length);
@@ -160,20 +160,39 @@ export default function NotificationBell() {
                     {!notif.read && <span className="notif-unread-dot" />}
                   </div>
                   <div className="notif-item-content">
-                    <div className="notif-item-text">
-                      <span className="notif-item-post-title">
-                        {notif.expand?.post?.title || 'Untitled Post'}
-                      </span>
-                      <span className="notif-item-status-change">
-                        <span className={`badge badge-${notif.old_status}`} style={{ fontSize: '10px', padding: '1px 6px' }}>
-                          {STATUS_LABELS[notif.old_status] || notif.old_status}
+                    {notif.type === 'new_comment' ? (
+                      /* ---- Comment notification ---- */
+                      <div className="notif-item-text">
+                        <span className="notif-item-comment-icon">
+                          <MessageCircle size={12} />
                         </span>
-                        <ArrowRight size={10} style={{ color: 'var(--muted-foreground)', flexShrink: 0 }} />
-                        <span className={`badge badge-${notif.new_status}`} style={{ fontSize: '10px', padding: '1px 6px' }}>
-                          {STATUS_LABELS[notif.new_status] || notif.new_status}
+                        <span className="notif-item-message">
+                          <strong>
+                            {notif.expand?.actor?.name || notif.expand?.actor?.username || 'Someone'}
+                          </strong>
+                          {' commented on '}
+                          <span className="notif-item-post-title">
+                            {notif.expand?.post?.title || 'a post'}
+                          </span>
                         </span>
-                      </span>
-                    </div>
+                      </div>
+                    ) : (
+                      /* ---- Status change notification ---- */
+                      <div className="notif-item-text">
+                        <span className="notif-item-post-title">
+                          {notif.expand?.post?.title || 'Untitled Post'}
+                        </span>
+                        <span className="notif-item-status-change">
+                          <span className={`badge badge-${notif.old_status}`} style={{ fontSize: '10px', padding: '1px 6px' }}>
+                            {STATUS_LABELS[notif.old_status] || notif.old_status}
+                          </span>
+                          <ArrowRight size={10} style={{ color: 'var(--muted-foreground)', flexShrink: 0 }} />
+                          <span className={`badge badge-${notif.new_status}`} style={{ fontSize: '10px', padding: '1px 6px' }}>
+                            {STATUS_LABELS[notif.new_status] || notif.new_status}
+                          </span>
+                        </span>
+                      </div>
+                    )}
                     <span className="notif-item-time">{timeAgo(notif.created)}</span>
                   </div>
                   {!notif.read && (
