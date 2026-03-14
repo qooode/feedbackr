@@ -232,32 +232,49 @@ routerAdd("POST", "/api/feedbackr/generate", function(e) {
             "Respond with ONLY the JSON object."
         })
 
-        var res = $http.send({
-            url: "https://openrouter.ai/api/v1/chat/completions",
-            method: "POST",
-            headers: {
-                "Authorization": "Bearer " + OPENROUTER_API_KEY,
-                "Content-Type": "application/json",
-                "HTTP-Referer": $os.getenv("APP_URL") || "https://feedbackr.app",
-                "X-Title": "Feedbackr",
-            },
-            body: JSON.stringify({
-                model: AI_MODEL,
-                messages: apiMessages,
-                max_tokens: 5000,
-                temperature: 0.3,
-                response_format: { type: "json_object" },
-            }),
-            timeout: 30,
-        })
-
-        if (res.statusCode !== 200) {
-            try { console.log("[generate] AI error:", res.statusCode, JSON.stringify(res.json)) } catch(ex) {}
-            return e.json(502, { code: 502, message: "AI service temporarily unavailable." })
-        }
-
+        // Retry logic — Grok models occasionally return empty content on first try
         var content = ""
-        try { content = res.json.choices[0].message.content } catch(ex) {}
+        var maxAttempts = 2
+        for (var attempt = 1; attempt <= maxAttempts; attempt++) {
+            var res = $http.send({
+                url: "https://openrouter.ai/api/v1/chat/completions",
+                method: "POST",
+                headers: {
+                    "Authorization": "Bearer " + OPENROUTER_API_KEY,
+                    "Content-Type": "application/json",
+                    "HTTP-Referer": $os.getenv("APP_URL") || "https://feedbackr.app",
+                    "X-Title": "Feedbackr",
+                },
+                body: JSON.stringify({
+                    model: AI_MODEL,
+                    messages: apiMessages,
+                    max_tokens: 2000,
+                    temperature: 0.3,
+                    response_format: { type: "json_object" },
+                }),
+                timeout: 60,
+            })
+
+            if (res.statusCode !== 200) {
+                try { console.log("[generate] AI error (attempt " + attempt + "):", res.statusCode, JSON.stringify(res.json)) } catch(ex) {}
+                if (attempt < maxAttempts) continue
+                return e.json(502, { code: 502, message: "AI service temporarily unavailable." })
+            }
+
+            try { content = res.json.choices[0].message.content } catch(ex) {}
+
+            if (content && content.trim().length > 0) {
+                console.log("[generate] got content on attempt " + attempt + ", length: " + content.length)
+                break
+            }
+
+            console.log("[generate] empty content on attempt " + attempt + ", finish_reason:",
+                res.json && res.json.choices && res.json.choices[0] ? res.json.choices[0].finish_reason : "unknown")
+
+            if (attempt >= maxAttempts) {
+                return e.json(502, { code: 502, message: "AI returned an empty response. Please try again." })
+            }
+        }
 
         console.log("[generate] raw AI content:", content.slice(0, 500))
 

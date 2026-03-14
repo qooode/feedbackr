@@ -156,14 +156,13 @@ export default function Submit() {
       setPreview(postData);
       setPreviewMode('preview');
 
-      // Re-check similar
-      try {
-        const r = await searchSimilar(`${postData.title} ${postData.body}`);
+      // Re-check similar in background (don't block the preview)
+      searchSimilar(`${postData.title} ${postData.body}`).then(r => {
         if (r.similar?.length > 0) {
           setSimilarPosts(r.similar);
           setSimilarDismissed(false);
         }
-      } catch {}
+      }).catch(() => {});
     } catch (err) {
       console.error('Generate error:', err);
       setError('Failed to generate post. Please try again.');
