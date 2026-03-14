@@ -74,8 +74,8 @@ routerAdd("POST", "/api/feedbackr/chat", function(e) {
         if (!message) {
             return e.json(400, { code: 400, message: "Message cannot be empty." })
         }
-        if (message.length > 2000) {
-            return e.json(400, { code: 400, message: "Your message is too long (max 2000 characters). Try shortening it." })
+        if (message.length > 25000) {
+            return e.json(400, { code: 400, message: "Your message is too long (max 25,000 characters). Try shortening it." })
         }
         if (history.length >= 40) {
             return e.json(400, { code: 400, message: "This conversation is getting long. Please click 'Generate Post' to create your feedback, or start a new submission." })
@@ -148,7 +148,7 @@ routerAdd("POST", "/api/feedbackr/chat", function(e) {
         for (var i = 0; i < history.length; i++) {
             var r = String(history[i].role)
             if (r !== "user" && r !== "assistant") continue
-            apiMessages.push({ role: r, content: String(history[i].content).slice(0, 2000) })
+            apiMessages.push({ role: r, content: String(history[i].content).slice(0, 10000) })
         }
         apiMessages.push({ role: "user", content: message })
 
@@ -242,7 +242,7 @@ routerAdd("POST", "/api/feedbackr/generate", function(e) {
         for (var i = 0; i < history.length; i++) {
             var r = String(history[i].role)
             if (r !== "user" && r !== "assistant") continue
-            apiMessages.push({ role: r, content: String(history[i].content).slice(0, 2000) })
+            apiMessages.push({ role: r, content: String(history[i].content).slice(0, 10000) })
         }
 
         // Final user message with the actual task — keeps instructions close to output
