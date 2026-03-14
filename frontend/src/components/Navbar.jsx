@@ -56,10 +56,10 @@ export default function Navbar() {
                   <Plus size={14} />
                   New Post
                 </Link>
-                <div className="navbar-user">
+                <Link to="/my-feedback" className="navbar-user" title="My Feedback">
                   <UserAvatar user={user} size="28px" />
                   <span>{user?.name || user?.username}</span>
-                </div>
+                </Link>
                 <button className="btn btn-ghost btn-icon-sm" onClick={logout} title="Log out">
                   <LogOut size={15} />
                 </button>

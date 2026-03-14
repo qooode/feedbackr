@@ -2173,6 +2173,38 @@ details[open] .refine-history-toggle::before {
   border-color: var(--foreground);
 }
 
+/* --- My Feedback --- */
+
+.my-feedback-tabs {
+  display: flex;
+  gap: 2px;
+  background: var(--muted);
+  border-radius: var(--radius-md);
+  padding: 3px;
+  margin-bottom: var(--space-4);
+  width: fit-content;
+}
+
+.my-feedback-stats {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  font-size: var(--font-size-xs);
+  color: var(--muted-foreground);
+  margin-bottom: var(--space-4);
+}
+
+a.navbar-user {
+  text-decoration: none;
+  border-radius: var(--radius-md);
+  transition: background var(--transition-fast);
+  cursor: pointer;
+}
+
+a.navbar-user:hover {
+  background: var(--accent);
+}
+
 /* --- Responsive --- */
 
 @media (max-width: 768px) {

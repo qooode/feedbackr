@@ -6,6 +6,7 @@ import Submit from './pages/Submit';
 import PostDetail from './pages/PostDetail';
 import AdminKanban from './pages/AdminKanban';
 import Changelog from './pages/Changelog';
+import MyFeedback from './pages/MyFeedback';
 
 function OAuthStatusBanner() {
   const { oauthStatus, clearOauthStatus } = useAuth();
@@ -77,6 +78,7 @@ function AppContent() {
         <Route path="/" element={<Board />} />
         <Route path="/submit" element={<Submit />} />
         <Route path="/post/:id" element={<PostDetail />} />
+        <Route path="/my-feedback" element={<MyFeedback />} />
         <Route path="/admin" element={<AdminKanban />} />
         <Route path="/changelog" element={<Changelog />} />
       </Routes>
