@@ -685,6 +685,161 @@ select.input {
   margin: 0 auto;
 }
 
+/* --- Refine (AI Follow-up) --- */
+
+.refine-quote {
+  padding: var(--space-4) var(--space-5);
+  border-bottom: 1px solid var(--border);
+  background: rgba(39, 39, 42, 0.1);
+}
+
+.refine-quote-label {
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--muted-foreground);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  margin-bottom: var(--space-2);
+}
+
+.refine-quote-text {
+  font-size: var(--font-size-sm);
+  color: var(--foreground);
+  line-height: 1.6;
+  margin: 0;
+}
+
+.refine-response {
+  border-bottom: 1px solid var(--border);
+}
+
+.refine-response-header {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: var(--space-3) var(--space-5);
+  border-bottom: 1px solid var(--border);
+  font-size: var(--font-size-xs);
+  font-weight: 500;
+  color: var(--muted-foreground);
+}
+
+.refine-response-body {
+  padding: var(--space-4) var(--space-5);
+  font-size: var(--font-size-sm);
+  color: var(--muted-foreground);
+  line-height: 1.75;
+  white-space: pre-wrap;
+}
+
+.refine-loading-inline {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: var(--space-4) var(--space-5);
+  border-bottom: 1px solid var(--border);
+  font-size: var(--font-size-xs);
+  color: var(--muted-foreground);
+}
+
+.refine-history {
+  border-bottom: 1px solid var(--border);
+}
+
+.refine-history-toggle {
+  display: block;
+  width: 100%;
+  padding: var(--space-3) var(--space-5);
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--muted-foreground);
+  cursor: pointer;
+  user-select: none;
+  transition: color var(--transition-fast);
+  list-style: none;
+}
+
+.refine-history-toggle::-webkit-details-marker {
+  display: none;
+}
+
+.refine-history-toggle::before {
+  content: '›';
+  display: inline-block;
+  margin-right: var(--space-2);
+  transition: transform var(--transition-fast);
+}
+
+details[open] .refine-history-toggle::before {
+  transform: rotate(90deg);
+}
+
+.refine-history-toggle:hover {
+  color: var(--foreground);
+}
+
+.refine-history-list {
+  padding: 0 var(--space-5) var(--space-4);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.refine-history-item {
+  padding: var(--space-3);
+  border-radius: var(--radius-md);
+  background: rgba(39, 39, 42, 0.25);
+}
+
+.refine-history-item.is-ai {
+  background: rgba(39, 39, 42, 0.1);
+  border-left: 2px solid var(--border);
+}
+
+.refine-history-role {
+  font-size: 10px;
+  font-weight: 600;
+  color: var(--muted-foreground);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  display: block;
+  margin-bottom: 3px;
+}
+
+.refine-history-item p {
+  font-size: var(--font-size-xs);
+  color: var(--muted-foreground);
+  line-height: 1.5;
+  margin: 0;
+}
+
+.refine-reply {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: var(--space-2) var(--space-3);
+  border-top: 1px solid var(--border);
+}
+
+.refine-reply .input {
+  flex: 1;
+  background: transparent;
+}
+
+.refine-reply-actions {
+  display: flex;
+  gap: var(--space-2);
+  flex-shrink: 0;
+}
+
+.refine-ready {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-3);
+  padding: var(--space-4) var(--space-5);
+}
+
 /* --- Compose (Submit Page) --- */
 
 .compose-textarea {

@@ -1,9 +1,9 @@
 import { useState, useRef, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import ReactMarkdown from 'react-markdown';
-import { Sparkles, Check, RotateCcw, Eye, MessageSquare, X, AlertTriangle, MessageCircle, Edit3, AlertCircle, Loader2 } from 'lucide-react';
+import { Sparkles, Check, RotateCcw, Eye, MessageSquare, X, AlertTriangle, MessageCircle, Edit3, AlertCircle, Loader2, ArrowRight, Send } from 'lucide-react';
 import { useAuth } from '../hooks/useAuth';
-import { generatePost, searchSimilar } from '../lib/api';
+import { sendChatMessage, generatePost, searchSimilar } from '../lib/api';
 import AuthModal from '../components/AuthModal';
 import pb from '../lib/pocketbase';
 
@@ -24,10 +24,18 @@ export default function Submit() {
   const { user, isLoggedIn } = useAuth();
   const navigate = useNavigate();
   const textareaRef = useRef(null);
+  const followupRef = useRef(null);
 
   const [input, setInput] = useState('');
   const [showAuth, setShowAuth] = useState(false);
   const [error, setError] = useState('');
+
+  // AI conversation
+  const [messages, setMessages] = useState([]);
+  const [aiActive, setAiActive] = useState(false);
+  const [aiLoading, setAiLoading] = useState(false);
+  const [followupInput, setFollowupInput] = useState('');
+  const [showGenerate, setShowGenerate] = useState(false);
 
   // Generated post
   const [preview, setPreview] = useState(null);
@@ -49,38 +57,106 @@ export default function Submit() {
     }
   }, [error]);
 
-  // Debounced similar post check
+  // Focus followup input when AI responds
   useEffect(() => {
-    if (input.length < 20) { setSimilarPosts([]); return; }
-    const timer = setTimeout(() => {
-      searchSimilar(input).then(r => {
-        setSimilarPosts(r.similar?.length > 0 ? r.similar : []);
-      }).catch(() => {});
-    }, 1200);
-    return () => clearTimeout(timer);
-  }, [input]);
+    if (aiActive && !aiLoading && !showGenerate && followupRef.current) {
+      followupRef.current.focus();
+    }
+  }, [aiActive, aiLoading, showGenerate, messages]);
 
   const charCount = input.length;
-  const isReady = charCount >= 30;
+  const isReady = charCount >= 15;
 
-  const handleGenerate = async () => {
-    if (!input.trim() || input.length < 20) return;
+  // Get latest AI message
+  const latestAiMessage = [...messages].reverse().find(m => m.role === 'assistant');
+
+  const checkForReadiness = (reply) => {
+    const lower = reply.toLowerCase();
+    if (
+      lower.includes('enough details') ||
+      lower.includes('generate your feedback') ||
+      lower.includes('let me generate') ||
+      lower.includes('ready to generate')
+    ) {
+      setShowGenerate(true);
+    }
+  };
+
+  // Step 1 → Step 2: Send initial feedback to AI
+  const handleInitialSubmit = async () => {
+    if (!input.trim()) return;
     if (!isLoggedIn) { setShowAuth(true); return; }
 
+    const userMessage = input.trim();
     setError('');
-    setGenerating(true);
+    setSimilarDismissed(false);
+    setSimilarPosts([]);
+    setAiActive(true);
 
-    const history = [
-      { role: 'user', content: input.trim() },
-      { role: 'assistant', content: `User submitted feedback: "${input.trim()}"` },
-    ];
+    const initialMessages = [{ role: 'user', content: userMessage }];
+    setMessages(initialMessages);
+    setInput('');
+
+    // Check similar in parallel
+    searchSimilar(userMessage).then(r => {
+      if (r.similar?.length > 0) setSimilarPosts(r.similar);
+    }).catch(() => {});
+
+    // Send to AI
+    setAiLoading(true);
+    try {
+      const response = await sendChatMessage(userMessage, [
+        { role: 'user', content: userMessage },
+      ]);
+      setMessages([...initialMessages, { role: 'assistant', content: response.reply }]);
+      checkForReadiness(response.reply);
+    } catch (err) {
+      console.error('Chat error:', err);
+      setError(err?.message || 'Failed to get AI response.');
+    } finally {
+      setAiLoading(false);
+    }
+  };
+
+  // Follow-up reply
+  const handleFollowup = async () => {
+    if (!followupInput.trim() || aiLoading) return;
+
+    const userMessage = followupInput.trim();
+    setFollowupInput('');
+    setError('');
+
+    const newMessages = [...messages, { role: 'user', content: userMessage }];
+    setMessages(newMessages);
+
+    const history = newMessages.map(m => ({ role: m.role, content: m.content }));
+
+    setAiLoading(true);
+    try {
+      const response = await sendChatMessage(userMessage, history);
+      setMessages(prev => [...prev, { role: 'assistant', content: response.reply }]);
+      checkForReadiness(response.reply);
+    } catch (err) {
+      console.error('Chat error:', err);
+      setError(err?.message || 'Failed to send message.');
+    } finally {
+      setAiLoading(false);
+    }
+  };
+
+  // Generate post from conversation
+  const handleGenerate = async () => {
+    setGenerating(true);
+    setError('');
+
+    const history = messages.map(m => ({ role: m.role, content: m.content }));
 
     try {
       const postData = await generatePost(history);
       setPreview(postData);
       setPreviewMode('preview');
 
-      // Re-check similar with structured content
+      // Re-check similar
       try {
         const r = await searchSimilar(`${postData.title} ${postData.body}`);
         if (r.similar?.length > 0) {
@@ -107,9 +183,8 @@ export default function Submit() {
         body: preview.body,
         category: preview.category,
         priority: preview.priority,
-        ai_transcript: [{ role: 'user', content: input }],
+        ai_transcript: messages.map(m => ({ role: m.role, content: m.content })),
       });
-
       setShowSuccess(true);
       setTimeout(() => navigate(`/post/${record.id}`), 1800);
     } catch (err) {
@@ -123,7 +198,8 @@ export default function Submit() {
     setPublishing(true);
     setError('');
     try {
-      await pb.collection('comments').create({ post: postId, body: input });
+      const userText = messages.filter(m => m.role === 'user').map(m => m.content).join('\n\n');
+      await pb.collection('comments').create({ post: postId, body: userText });
       navigate(`/post/${postId}`);
     } catch (err) {
       console.error('Merge error:', err);
@@ -133,18 +209,29 @@ export default function Submit() {
   };
 
   const handleReset = () => {
+    setMessages([]);
     setPreview(null);
+    setShowGenerate(false);
     setSimilarPosts([]);
     setSimilarDismissed(false);
+    setAiActive(false);
+    setFollowupInput('');
+    setInput('');
     setError('');
     setPreviewMode('preview');
-    textareaRef.current?.focus();
   };
 
   const handleKeyDown = (e) => {
-    if (e.key === 'Enter' && (e.metaKey || e.ctrlKey) && isReady && !generating) {
+    if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault();
-      handleGenerate();
+      handleInitialSubmit();
+    }
+  };
+
+  const handleFollowupKeyDown = (e) => {
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault();
+      handleFollowup();
     }
   };
 
@@ -185,12 +272,12 @@ export default function Submit() {
           <div className="submit-hero">
             <h1 className="submit-hero-title">Submit Feedback</h1>
             <p className="submit-hero-subtitle">
-              Describe what's on your mind. AI will structure it into a clear, actionable post.
+              Describe what's on your mind. AI will ask follow-up questions to get the full picture, then structure it into a clear post.
             </p>
           </div>
 
-          {/* COMPOSE */}
-          {!preview ? (
+          {/* Step 1: Initial input */}
+          {!aiActive && !preview && (
             <div className="card" style={{ overflow: 'hidden' }}>
               <textarea
                 ref={textareaRef}
@@ -199,8 +286,7 @@ export default function Submit() {
                 value={input}
                 onChange={(e) => setInput(e.target.value)}
                 onKeyDown={handleKeyDown}
-                rows={6}
-                disabled={generating}
+                rows={5}
                 autoFocus
               />
               <div className="compose-footer">
@@ -213,37 +299,126 @@ export default function Submit() {
                   ) : (
                     <span className="compose-hint">
                       <Sparkles size={12} />
-                      AI will categorize and structure your feedback
+                      AI will ask follow-ups to get details for your dev team
                     </span>
                   )}
                 </div>
                 <button
                   className="btn btn-primary btn-sm"
-                  onClick={handleGenerate}
-                  disabled={!isReady || generating}
+                  onClick={handleInitialSubmit}
+                  disabled={!input.trim()}
                 >
-                  {generating ? (
-                    <>
-                      <Loader2 size={13} className="animate-spin" />
-                      Generating...
-                    </>
-                  ) : (
-                    <>
-                      <Sparkles size={13} />
-                      Generate Post
-                    </>
-                  )}
+                  Continue
+                  <ArrowRight size={13} />
                 </button>
               </div>
+            </div>
+          )}
+
+          {/* Step 2: AI Refine */}
+          {aiActive && !preview && (
+            <div className="card" style={{ overflow: 'hidden' }}>
+              {/* Original feedback */}
+              <div className="refine-quote">
+                <div className="refine-quote-label">Your feedback</div>
+                <p className="refine-quote-text">
+                  {messages.find(m => m.role === 'user')?.content}
+                </p>
+              </div>
+
+              {/* AI response */}
+              {latestAiMessage && (
+                <div className="refine-response">
+                  <div className="refine-response-header">
+                    <Sparkles size={12} />
+                    <span>AI Assistant</span>
+                  </div>
+                  <div className="refine-response-body">
+                    {latestAiMessage.content}
+                  </div>
+                </div>
+              )}
+
+              {/* Loading */}
+              {aiLoading && (
+                <div className="refine-loading-inline">
+                  <Loader2 size={14} className="animate-spin" />
+                  <span>Analyzing your feedback...</span>
+                </div>
+              )}
+
+              {/* Previous exchanges */}
+              {messages.filter(m => m.role === 'user').length > 1 && (
+                <details className="refine-history">
+                  <summary className="refine-history-toggle">
+                    View full conversation ({messages.length} messages)
+                  </summary>
+                  <div className="refine-history-list">
+                    {messages.slice(0, -1).map((msg, i) => (
+                      <div key={i} className={`refine-history-item ${msg.role === 'assistant' ? 'is-ai' : ''}`}>
+                        <span className="refine-history-role">{msg.role === 'assistant' ? 'AI' : 'You'}</span>
+                        <p>{msg.content}</p>
+                      </div>
+                    ))}
+                  </div>
+                </details>
+              )}
+
+              {/* Follow-up input OR Generate button */}
+              {!aiLoading && !showGenerate && (
+                <div className="refine-reply">
+                  <input
+                    ref={followupRef}
+                    className="input"
+                    type="text"
+                    placeholder="Answer the AI's questions..."
+                    value={followupInput}
+                    onChange={(e) => setFollowupInput(e.target.value)}
+                    onKeyDown={handleFollowupKeyDown}
+                    style={{ flex: 1, border: 'none', borderRadius: 0 }}
+                  />
+                  <div className="refine-reply-actions">
+                    <button className="btn btn-ghost btn-sm" onClick={handleReset}>
+                      <RotateCcw size={12} />
+                      Reset
+                    </button>
+                    <button
+                      className="btn btn-primary btn-sm"
+                      onClick={handleFollowup}
+                      disabled={!followupInput.trim()}
+                    >
+                      <Send size={12} />
+                      Reply
+                    </button>
+                  </div>
+                </div>
+              )}
+
+              {showGenerate && !generating && (
+                <div className="refine-ready">
+                  <button className="btn btn-primary btn-sm" onClick={handleGenerate}>
+                    <Sparkles size={13} />
+                    Generate Post
+                  </button>
+                  <button className="btn btn-ghost btn-sm" onClick={handleReset}>
+                    Start Over
+                  </button>
+                </div>
+              )}
 
               {generating && (
-                <div className="compose-progress-bar">
-                  <div className="compose-progress-fill" />
+                <div className="refine-ready">
+                  <button className="btn btn-primary btn-sm" disabled>
+                    <Loader2 size={13} className="animate-spin" />
+                    Generating...
+                  </button>
                 </div>
               )}
             </div>
-          ) : (
-            /* PREVIEW & PUBLISH */
+          )}
+
+          {/* Step 3: Preview & Publish */}
+          {preview && (
             <div className="card" style={{ overflow: 'hidden' }}>
               <div className="publish-card-header">
                 <div className="publish-card-tag">
@@ -267,7 +442,7 @@ export default function Submit() {
                       Edit
                     </button>
                   </div>
-                  <button className="btn btn-ghost btn-sm" onClick={handleReset}>
+                  <button className="btn btn-ghost btn-sm" onClick={() => { setPreview(null); setShowGenerate(true); }}>
                     <RotateCcw size={12} />
                     Back
                   </button>
@@ -370,7 +545,7 @@ export default function Submit() {
                   ) : (
                     <>
                       <Check size={14} />
-                      Publish Post
+                      Publish
                     </>
                   )}
                 </button>
@@ -378,8 +553,8 @@ export default function Submit() {
             </div>
           )}
 
-          {/* Similar posts while typing */}
-          {!preview && similarPosts.length > 0 && !similarDismissed && (
+          {/* Similar posts inline (during step 1) */}
+          {!preview && !aiActive && similarPosts.length > 0 && !similarDismissed && (
             <div className="similar-inline">
               <div className="similar-inline-header">
                 <AlertTriangle size={14} className="similar-inline-icon" />
@@ -401,16 +576,9 @@ export default function Submit() {
                       </div>
                     </div>
                     <div className="similar-inline-item-actions">
-                      <button className="btn btn-ghost btn-sm" onClick={() => navigate(`/post/${p.id}`)}>
-                        View
-                      </button>
-                      <button
-                        className="btn btn-primary btn-sm"
-                        onClick={() => handleAddToExisting(p.id)}
-                        disabled={publishing}
-                      >
-                        <MessageCircle size={12} />
-                        +1 this
+                      <button className="btn btn-ghost btn-sm" onClick={() => navigate(`/post/${p.id}`)}>View</button>
+                      <button className="btn btn-primary btn-sm" onClick={() => handleAddToExisting(p.id)} disabled={publishing}>
+                        <MessageCircle size={12} /> +1 this
                       </button>
                     </div>
                   </div>
@@ -419,9 +587,29 @@ export default function Submit() {
             </div>
           )}
 
-          {!preview && isReady && !generating && (
-            <div className="compose-shortcut-hint">
-              <kbd>⌘</kbd> + <kbd>Enter</kbd> to generate
+          {/* Similar posts banner during AI refine */}
+          {aiActive && !preview && similarPosts.length > 0 && !similarDismissed && (
+            <div className="similar-inline">
+              <div className="similar-inline-header">
+                <AlertTriangle size={14} className="similar-inline-icon" />
+                <span><strong>{similarPosts.length} similar</strong> — consider adding to existing</span>
+                <button className="similar-inline-dismiss" onClick={() => setSimilarDismissed(true)}><X size={14} /></button>
+              </div>
+              <div className="similar-inline-list">
+                {similarPosts.map((p) => (
+                  <div key={p.id} className="similar-inline-item">
+                    <div className="similar-inline-item-info">
+                      <div className="similar-inline-item-title">{p.title}</div>
+                    </div>
+                    <div className="similar-inline-item-actions">
+                      <button className="btn btn-ghost btn-sm" onClick={() => navigate(`/post/${p.id}`)}>View</button>
+                      <button className="btn btn-primary btn-sm" onClick={() => handleAddToExisting(p.id)} disabled={publishing}>
+                        <MessageCircle size={12} /> +1
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
             </div>
           )}
 
