@@ -7,7 +7,7 @@ import pb from '../lib/pocketbase';
 export default function Changelog() {
   const [changelogs, setChangelogs] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
+
 
   useEffect(() => {
     fetchChangelogs();
@@ -15,27 +15,17 @@ export default function Changelog() {
 
   const fetchChangelogs = async () => {
     setLoading(true);
-    setError(null);
+
     try {
-      // Try with expand first
-      let result;
-      try {
-        result = await pb.collection('changelogs').getList(1, 50, {
-          sort: '-created',
-          expand: 'posts,author',
-        });
-      } catch (expandErr) {
-        console.warn('[Changelog] Expand failed, retrying without expand:', expandErr);
-        // Fallback: fetch without expand (corrupted relation data from old records)
-        result = await pb.collection('changelogs').getList(1, 50, {
-          sort: '-created',
-        });
-      }
-      console.log('[Changelog] Fetched:', result.items.length, 'entries', result.items);
+      const result = await pb.collection('changelogs').getList(1, 50, {
+        sort: '-created',
+        expand: 'posts',
+      });
       setChangelogs(result.items);
     } catch (err) {
-      console.error('[Changelog] Failed to fetch:', err);
-      setError(err?.message || err?.response?.message || 'Failed to load changelogs');
+      // Collection doesn't exist yet or rules are broken — just show empty state
+      console.warn('[Changelog] fetch failed (collection may not exist yet):', err?.message);
+      setChangelogs([]);
     } finally {
       setLoading(false);
     }
@@ -67,13 +57,7 @@ export default function Changelog() {
           </p>
         </div>
 
-        {error && (
-          <div className="error-message" style={{ marginBottom: 'var(--space-4)' }}>
-            Error loading changelogs: {error}
-          </div>
-        )}
-
-        {!error && changelogs.length === 0 ? (
+        {changelogs.length === 0 ? (
           <div className="empty-state">
             <div className="empty-state-icon">
               <Inbox size={40} strokeWidth={1.5} />

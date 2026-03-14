@@ -62,7 +62,7 @@ export default function AdminKanban() {
     try {
       const result = await pb.collection('changelogs').getList(1, 50, {
         sort: '-created',
-        expand: 'posts,author',
+        expand: 'posts',
       });
       setChangelogs(result.items);
     } catch (err) {
