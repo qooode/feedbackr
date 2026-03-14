@@ -58,7 +58,7 @@ export default function Navbar() {
                 </Link>
                 <div className="navbar-user">
                   <UserAvatar user={user} size="28px" />
-                  <span>{user?.name || user?.email}</span>
+                  <span>{user?.name || user?.username}</span>
                 </div>
                 <button className="btn btn-ghost btn-icon-sm" onClick={logout} title="Log out">
                   <LogOut size={15} />

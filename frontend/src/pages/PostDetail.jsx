@@ -132,7 +132,7 @@ export default function PostDetail() {
 
             <div className="post-detail-author">
               <UserAvatar user={post.expand?.author} size="22px" />
-              <span>{post.expand?.author?.name || post.expand?.author?.email || 'Anonymous'}</span>
+              <span>{post.expand?.author?.name || post.expand?.author?.username || 'Anonymous'}</span>
               <span style={{ color: 'var(--muted-foreground)' }}>·</span>
               <span style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
                 <Clock size={12} /> {timeAgo(post.created)}
@@ -160,7 +160,7 @@ export default function PostDetail() {
                 <div className="comment-header">
                   <UserAvatar user={comment.expand?.author} size="22px" />
                   <span className="comment-author">
-                    {comment.expand?.author?.name || comment.expand?.author?.email || 'Anonymous'}
+                    {comment.expand?.author?.name || comment.expand?.author?.username || 'Anonymous'}
                   </span>
                   {comment.is_ai_merged && (
                     <span className="comment-ai-badge">AI Merged</span>

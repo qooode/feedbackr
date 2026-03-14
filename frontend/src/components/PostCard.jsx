@@ -48,7 +48,7 @@ export default function PostCard({ post }) {
           {post.expand?.author && (
             <span className="post-card-author">
               <UserAvatar user={post.expand.author} size="18px" />
-              {post.expand.author.name || post.expand.author.email}
+              {post.expand.author.name || post.expand.author.username || 'Anonymous'}
             </span>
           )}
         </div>

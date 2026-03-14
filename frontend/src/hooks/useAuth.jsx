@@ -60,8 +60,20 @@ export function AuthProvider({ children }) {
         code,
         provider.codeVerifier,
         provider.redirectUrl,
-        { name: '' },
       );
+
+      // If the user record has no name, try to populate it from the OAuth provider meta
+      if (result?.record && !result.record.name && result?.meta?.name) {
+        try {
+          await pb.collection('users').update(result.record.id, {
+            name: result.meta.name,
+          });
+          // Refresh the auth store so the UI reflects the updated name
+          await pb.collection('users').authRefresh();
+        } catch (nameErr) {
+          console.warn('Could not update name from OAuth:', nameErr);
+        }
+      }
 
       localStorage.removeItem('oauth_provider');
       window.history.replaceState({}, '', window.location.pathname);

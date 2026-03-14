@@ -643,6 +643,29 @@ onRecordCreateRequest(function(e) {
 // =============================================================================
 
 onRecordAuthRequest(function(e) {
+    // Backfill name from OAuth2 if currently empty
+    var currentName = e.record.get("name") || ""
+    if (!currentName.trim()) {
+        try {
+            var externalAuths = $app.findAllExternalAuthsByRecord(e.record)
+            if (externalAuths && externalAuths.length > 0) {
+                // PocketBase stores the OAuth provider's username/display name
+                // in the external auth record. We can also check the record's
+                // username field which PocketBase auto-populates from OAuth.
+                var username = e.record.get("username") || ""
+                // PocketBase sets username from OAuth (e.g. "users12345" or the Discord username)
+                // Only use it if it doesn't look auto-generated
+                if (username && !username.match(/^users\d+$/)) {
+                    e.record.set("name", username)
+                    $app.save(e.record)
+                    console.log("Backfilled name from username for user:", e.record.id, "->", username)
+                }
+            }
+        } catch(ex) {
+            console.log("Name backfill error:", String(ex))
+        }
+    }
+
     var adminEmailsRaw = $os.getenv("ADMIN_EMAILS") || ""
     if (!adminEmailsRaw) return e.next()
 
