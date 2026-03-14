@@ -5,6 +5,18 @@ import UserAvatar from './UserAvatar';
 export default function PostCard({ post }) {
   const navigate = useNavigate();
 
+  const stripMarkdown = (text) => {
+    if (!text) return '';
+    return text
+      .replace(/\*\*(.*?)\*\*/g, '$1')
+      .replace(/\*(.*?)\*/g, '$1')
+      .replace(/#{1,6}\s?/g, '')
+      .replace(/`([^`]*)`/g, '$1')
+      .replace(/\n/g, ' ')
+      .replace(/\s+/g, ' ')
+      .trim();
+  };
+
   return (
     <div
       className="card card-clickable post-card"
@@ -16,7 +28,7 @@ export default function PostCard({ post }) {
 
       <div className="post-card-content">
         <h3 className="post-card-title">{post.title}</h3>
-        <p className="post-card-body">{post.body}</p>
+        <p className="post-card-body">{stripMarkdown(post.body)}</p>
 
         <div className="post-card-meta">
           <span className={`badge badge-${post.category}`}>
