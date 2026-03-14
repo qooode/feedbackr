@@ -213,7 +213,7 @@ routerAdd("POST", "/api/feedbackr/generate", function(e) {
             "- body: written in FIRST PERSON ('I', 'my', 'me').\n" +
             "FORMATTING RULES — this is critical for readability:\n" +
             "- Do NOT use ## headers. They're too heavy. Use **bold labels** instead (e.g. **Steps to Reproduce**).\n" +
-            "- Keep it concise. Never repeat the same info in different sections.\n" +
+            "- Do NOT repeat the same info in different sections. But include EVERY unique detail from the conversation — do not summarize away or skip anything the user mentioned.\n" +
             "- Combine related info: instead of separate 'Expected' and 'Actual' sections, write '**Expected:** X / **Instead:** Y' on one or two lines.\n" +
             "- Use numbered lists only for steps to reproduce. Use regular paragraphs for everything else.\n" +
             "- Environment info (device, OS, version) goes on a single line: '**Environment:** iOS 17, app v1.0.0'\n" +
@@ -222,7 +222,7 @@ routerAdd("POST", "/api/feedbackr/generate", function(e) {
             "  BUGS: description paragraph, **Steps to Reproduce** (numbered), **Expected/Instead**, **Environment** if known\n" +
             "  FEATURES: **Problem**, **Proposed Solution**, **References** if other apps mentioned\n" +
             "  IMPROVEMENTS: **Current Experience**, **Ideal Experience**\n" +
-            "Infer and fill in from context — even brief user input should produce a clear, complete post.\n" +
+            "Preserve all workarounds, edge cases, and specific examples the user mentioned. These details matter.\n" +
             "The post should look good and be easy to scan. Think GitHub issue, not government form.\n" +
             "- category: exactly one of: bug, feature, improvement\n" +
             "- priority: exactly one of: low, medium, high, critical\n\n" +
@@ -241,7 +241,7 @@ routerAdd("POST", "/api/feedbackr/generate", function(e) {
             body: JSON.stringify({
                 model: AI_MODEL,
                 messages: apiMessages,
-                max_tokens: 1500,
+                max_tokens: 5000,
                 temperature: 0.3,
                 response_format: { type: "json_object" },
             }),
