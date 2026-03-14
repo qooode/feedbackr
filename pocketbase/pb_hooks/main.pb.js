@@ -857,29 +857,6 @@ onRecordDeleteRequest(function(e) {
     return e.next()
 }, "notifications")
 
-// =============================================================================
-// LIST/VIEW OWNERSHIP — since API rules use simple auth checks,
-// enforce user-scoping here so nobody can see others' data
-// =============================================================================
-
-onRecordEnrich(function(e) {
-    if (!e.requestInfo.auth || e.record.get("user") !== e.requestInfo.auth.id) {
-        e.record.set("type", "")
-        e.record.set("old_status", "")
-        e.record.set("new_status", "")
-        e.record.set("post", "")
-        e.record.set("user", "")
-    }
-    return e.next()
-}, "notifications")
-
-onRecordEnrich(function(e) {
-    if (!e.requestInfo.auth || e.record.get("user") !== e.requestInfo.auth.id) {
-        e.record.set("post", "")
-        e.record.set("user", "")
-    }
-    return e.next()
-}, "favorites")
 
 // =============================================================================
 // STRIP SENSITIVE FIELDS FROM PUBLIC API
