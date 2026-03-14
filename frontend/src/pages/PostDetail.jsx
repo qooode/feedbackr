@@ -5,6 +5,7 @@ import ReactMarkdown from 'react-markdown';
 import pb from '../lib/pocketbase';
 import VoteButton from '../components/VoteButton';
 import UserAvatar from '../components/UserAvatar';
+import FavoriteButton from '../components/FavoriteButton';
 import { useAuth } from '../hooks/useAuth';
 
 export default function PostDetail() {
@@ -344,6 +345,9 @@ export default function PostDetail() {
                 <span style={{ color: 'var(--muted-foreground)', fontSize: 'var(--font-size-sm)' }}>
                   {post.votes_count || 0} {(post.votes_count === 1) ? 'vote' : 'votes'}
                 </span>
+                <div style={{ marginLeft: 'auto' }}>
+                  <FavoriteButton postId={post.id} />
+                </div>
               </div>
 
               <div className="post-detail-body"><ReactMarkdown>{post.body}</ReactMarkdown></div>

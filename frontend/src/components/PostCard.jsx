@@ -2,6 +2,7 @@ import { useNavigate } from 'react-router-dom';
 import { MessageCircle } from 'lucide-react';
 import VoteButton from './VoteButton';
 import UserAvatar from './UserAvatar';
+import FavoriteButton from './FavoriteButton';
 
 export default function PostCard({ post }) {
   const navigate = useNavigate();
@@ -59,6 +60,10 @@ export default function PostCard({ post }) {
             </span>
           )}
         </div>
+      </div>
+
+      <div className="post-card-fav">
+        <FavoriteButton postId={post.id} size="sm" />
       </div>
     </div>
   );

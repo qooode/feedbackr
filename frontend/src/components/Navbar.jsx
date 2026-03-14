@@ -3,6 +3,7 @@ import { useAuth } from '../hooks/useAuth';
 import { LayoutDashboard, LogOut, LogIn, Plus, Megaphone } from 'lucide-react';
 import AuthModal from './AuthModal';
 import UserAvatar from './UserAvatar';
+import NotificationBell from './NotificationBell';
 import { APP_NAME, LOGO_URL } from '../lib/config';
 import { useState } from 'react';
 
@@ -56,6 +57,7 @@ export default function Navbar() {
                   <Plus size={14} />
                   New Post
                 </Link>
+                <NotificationBell />
                 <Link to="/my-feedback" className="navbar-user" title="My Feedback">
                   <UserAvatar user={user} size="28px" />
                   <span>{user?.name || user?.username}</span>

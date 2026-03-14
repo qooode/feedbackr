@@ -790,6 +790,68 @@ onRecordAfterDeleteSuccess(function(e) {
 }, "comments")
 
 // =============================================================================
+// STATUS CHANGE NOTIFICATIONS
+// =============================================================================
+
+onRecordAfterUpdateSuccess(function(e) {
+    try {
+        var oldStatus = e.record.original().get("status")
+        var newStatus = e.record.get("status")
+        if (oldStatus === newStatus) return
+
+        var authorId = e.record.get("author")
+        if (!authorId) return
+
+        // Don't notify if the author themselves changed the status
+        // (this hook runs after admin kanban drag-drop — the auth is admin)
+        var notifCollection = $app.findCollectionByNameOrId("notifications")
+        var notif = new Record(notifCollection)
+        notif.set("user", authorId)
+        notif.set("post", e.record.id)
+        notif.set("type", "status_change")
+        notif.set("old_status", oldStatus)
+        notif.set("new_status", newStatus)
+        notif.set("read", false)
+        $app.save(notif)
+        console.log("[notify] status change for post", e.record.id, ":", oldStatus, "->", newStatus, "-> notified user", authorId)
+    } catch(err) {
+        console.log("[notify] error:", String(err))
+    }
+}, "posts")
+
+// =============================================================================
+// FAVORITES OWNERSHIP ENFORCEMENT
+// =============================================================================
+
+onRecordCreateRequest(function(e) {
+    if (!e.auth) return e.json(401, { code: 401, message: "Not authenticated." })
+    e.record.set("user", e.auth.id)
+    return e.next()
+}, "favorites")
+
+onRecordDeleteRequest(function(e) {
+    if (!e.auth) return e.json(401, { code: 401, message: "Not authenticated." })
+    if (e.record.get("user") !== e.auth.id) return e.json(403, { code: 403, message: "You can only remove your own favorites." })
+    return e.next()
+}, "favorites")
+
+// =============================================================================
+// NOTIFICATION GUARDS — users can only toggle "read"
+// =============================================================================
+
+onRecordUpdateRequest(function(e) {
+    if (!e.auth) return e.json(401, { code: 401, message: "Not authenticated." })
+    if (e.record.get("user") !== e.auth.id) return e.json(403, { code: 403, message: "Not your notification." })
+    // Lock everything except "read"
+    e.record.set("user", e.record.original().get("user"))
+    e.record.set("post", e.record.original().get("post"))
+    e.record.set("type", e.record.original().get("type"))
+    e.record.set("old_status", e.record.original().get("old_status"))
+    e.record.set("new_status", e.record.original().get("new_status"))
+    return e.next()
+}, "notifications")
+
+// =============================================================================
 // STRIP SENSITIVE FIELDS FROM PUBLIC API
 // =============================================================================
 
