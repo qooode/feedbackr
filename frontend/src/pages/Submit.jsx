@@ -36,6 +36,7 @@ export default function Submit() {
   const [aiLoading, setAiLoading] = useState(false);
   const [followupInput, setFollowupInput] = useState('');
   const [showGenerate, setShowGenerate] = useState(false);
+  const [aiOptions, setAiOptions] = useState([]);
 
   // Generated post
   const [preview, setPreview] = useState(null);
@@ -104,11 +105,13 @@ export default function Submit() {
 
     // Send to AI
     setAiLoading(true);
+    setAiOptions([]);
     try {
       const response = await sendChatMessage(userMessage, [
         { role: 'user', content: userMessage },
       ]);
       setMessages([...initialMessages, { role: 'assistant', content: response.reply }]);
+      if (response.options?.length > 0) setAiOptions(response.options);
       checkForReadiness(response.reply);
     } catch (err) {
       console.error('Chat error:', err);
@@ -132,9 +135,11 @@ export default function Submit() {
     const history = newMessages.map(m => ({ role: m.role, content: m.content }));
 
     setAiLoading(true);
+    setAiOptions([]);
     try {
       const response = await sendChatMessage(userMessage, history);
       setMessages(prev => [...prev, { role: 'assistant', content: response.reply }]);
+      if (response.options?.length > 0) setAiOptions(response.options);
       checkForReadiness(response.reply);
     } catch (err) {
       console.error('Chat error:', err);
@@ -218,6 +223,7 @@ export default function Submit() {
     setInput('');
     setError('');
     setPreviewMode('preview');
+    setAiOptions([]);
   };
 
   const handleKeyDown = (e) => {
@@ -334,6 +340,44 @@ export default function Submit() {
                   </div>
                   <div className="refine-response-body">
                     {latestAiMessage.content}
+                  </div>
+                </div>
+              )}
+
+              {/* AI quick-reply options */}
+              {!aiLoading && aiOptions.length > 0 && !showGenerate && (
+                <div className="refine-options">
+                  <div className="refine-options-label">Quick reply</div>
+                  <div className="refine-options-chips">
+                    {aiOptions.map((option, i) => (
+                      <button
+                        key={i}
+                        className="refine-option-chip"
+                        onClick={() => {
+                          setFollowupInput(option);
+                          // Auto-send after a tiny delay so user sees it fill
+                          setTimeout(() => {
+                            setFollowupInput('');
+                            setAiOptions([]);
+                            const newMessages = [...messages, { role: 'user', content: option }];
+                            setMessages(newMessages);
+                            const history = newMessages.map(m => ({ role: m.role, content: m.content }));
+                            setAiLoading(true);
+                            sendChatMessage(option, history).then(response => {
+                              setMessages(prev => [...prev, { role: 'assistant', content: response.reply }]);
+                              if (response.options?.length > 0) setAiOptions(response.options);
+                              checkForReadiness(response.reply);
+                            }).catch(err => {
+                              setError(err?.message || 'Failed to send message.');
+                            }).finally(() => {
+                              setAiLoading(false);
+                            });
+                          }, 100);
+                        }}
+                      >
+                        {option}
+                      </button>
+                    ))}
                   </div>
                 </div>
               )}
