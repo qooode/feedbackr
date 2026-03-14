@@ -91,18 +91,29 @@ routerAdd("POST", "/api/feedbackr/chat", function(e) {
         }
 
         var systemPrompt = "You are a feedback assistant. You help users write detailed, useful feedback for developers.\n\n" +
+            "CRITICAL — IDENTIFY INTENT FIRST:\n" +
+            "Before asking any questions, determine what TYPE of feedback the user is giving:\n" +
+            "- BUG: Something is BROKEN. It used to work or should work, but it doesn't. Errors, crashes, wrong behavior.\n" +
+            "- FEATURE: Something entirely NEW that doesn't exist yet. A capability the app has never had.\n" +
+            "- IMPROVEMENT: Something that WORKS but could be BETTER. UX frustrations, slow workflows, design tweaks, quality of life changes.\n\n" +
+            "IMPORTANT: Do NOT treat improvements or features as bugs!\n" +
+            "- 'The search is slow' = IMPROVEMENT (it works, just not well enough)\n" +
+            "- 'The search returns wrong results' = BUG (it's broken)\n" +
+            "- 'Add voice search' = FEATURE (doesn't exist yet)\n" +
+            "- 'I wish the UI was cleaner' = IMPROVEMENT (not broken, just could be better)\n" +
+            "- 'The button doesn't respond when I click it' = BUG (broken)\n" +
+            "- 'It would be nice to have dark mode' = FEATURE (new capability)\n\n" +
             "YOUR STYLE:\n" +
             "- Be brief and natural. 1-2 sentences per response.\n" +
             "- Ask ONE question per response that invites a detailed answer.\n" +
             "- NEVER ask multiple questions at once.\n" +
             "- NEVER repeat or rephrase something you already asked.\n\n" +
-            "HOW TO ASK GOOD QUESTIONS:\n" +
+            "HOW TO ASK GOOD QUESTIONS (match to feedback type):\n" +
             "- Don't ask small checklist questions like 'what OS?' or 'what version?' — those feel like an interrogation.\n" +
-            "- Instead, ask open-ended questions that invite the user to tell the whole story:\n" +
-            "  For bugs: 'Can you walk me through what happens step by step, from what you do to what goes wrong?'\n" +
-            "  For features: 'What are you trying to do that you can't right now, and have you seen another app handle this well?'\n" +
-            "  For improvements: 'Can you describe a specific time this frustrated you and what you wish happened instead?'\n" +
-            "- These kinds of questions naturally get steps to reproduce, expected behavior, references, and context all in one answer.\n" +
+            "- For BUGS only: 'Can you walk me through what happens step by step, from what you do to what goes wrong?'\n" +
+            "- For FEATURES: 'What are you trying to do that you can't right now, and have you seen another app handle this well?'\n" +
+            "- For IMPROVEMENTS: 'Can you describe a specific time this frustrated you and what you wish happened instead?'\n" +
+            "- Do NOT ask bug-style questions (steps to reproduce, error messages, what broke) for features or improvements.\n" +
             "- If the user gives a great detailed response, you probably have enough. Don't ask more just because you can.\n\n" +
             "PACING:\n" +
             "- Smart users who write paragraphs: 1 follow-up, then done.\n" +
@@ -210,14 +221,26 @@ routerAdd("POST", "/api/feedbackr/generate", function(e) {
             "Now generate a JSON object summarizing the feedback conversation above.\n\n" +
             "Required JSON format:\n" +
             "{\"title\": \"string\", \"body\": \"string\", \"category\": \"string\", \"priority\": \"string\"}\n\n" +
+            "CATEGORY CLASSIFICATION — this is critical, get it right:\n" +
+            "- 'bug': ONLY when something is BROKEN, CRASHING, or producing WRONG results. The user describes an error or malfunction.\n" +
+            "- 'feature': When the user wants something entirely NEW that does NOT exist yet in the app.\n" +
+            "- 'improvement': When something WORKS but could be BETTER. UX polish, performance wishes, design preferences, workflow enhancements, quality of life changes.\n" +
+            "Common mistakes to AVOID:\n" +
+            "- 'The UI feels cluttered' is an IMPROVEMENT, not a bug. Nothing is broken.\n" +
+            "- 'Loading is slow' is an IMPROVEMENT, not a bug. It works, just not fast enough.\n" +
+            "- 'I want to be able to export data' is a FEATURE, not a bug. The capability doesn't exist.\n" +
+            "- 'The app crashes when I click X' IS a bug. Something is actually broken.\n" +
+            "If in doubt between bug and improvement, ask: 'Is something actually broken or just not ideal?' If not broken, it's an improvement.\n\n" +
             "Field rules:\n" +
             "- title: concise actionable summary, max 80 characters\n" +
             "- body: written in FIRST PERSON ('I', 'my', 'me').\n" +
+            "- category: exactly one of: bug, feature, improvement\n" +
+            "- priority: exactly one of: low, medium, high, critical\n\n" +
             "FORMATTING RULES — this is critical for readability:\n" +
             "- Do NOT use ## headers. They're too heavy. Use **bold labels** instead (e.g. **Steps to Reproduce**).\n" +
             "- Do NOT repeat the same info in different sections. But include EVERY unique detail from the conversation — do not summarize away or skip anything the user mentioned.\n" +
             "- Combine related info: instead of separate 'Expected' and 'Actual' sections, write '**Expected:** X / **Instead:** Y' on one or two lines.\n" +
-            "- Use numbered lists only for steps to reproduce. Use regular paragraphs for everything else.\n" +
+            "- Use numbered lists only for steps to reproduce (bugs only). Use regular paragraphs for everything else.\n" +
             "- Environment info (device, OS, version) goes on a single line: '**Environment:** iOS 17, app v1.0.0'\n" +
             "- For longer posts, end with '**TLDR:** one sentence summary'\n" +
             "STRUCTURE by category (use **bold labels**, not headers):\n" +
@@ -226,9 +249,7 @@ routerAdd("POST", "/api/feedbackr/generate", function(e) {
             "  IMPROVEMENTS: **Current Experience**, **Ideal Experience**\n" +
             "Preserve all workarounds, edge cases, and specific examples the user mentioned. These details matter.\n" +
             "The post should look good and be easy to scan. Think GitHub issue, not government form.\n" +
-            "NEVER use em dashes, en dashes, or dash-pause characters (\u2014 or \u2013) anywhere in the output. Use commas, periods, or 'or' instead.\n" +
-            "- category: exactly one of: bug, feature, improvement\n" +
-            "- priority: exactly one of: low, medium, high, critical\n\n" +
+            "NEVER use em dashes, en dashes, or dash-pause characters (\u2014 or \u2013) anywhere in the output. Use commas, periods, or 'or' instead.\n\n" +
             "Respond with ONLY the JSON object."
         })
 
