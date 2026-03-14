@@ -1,6 +1,6 @@
 import { Link, useLocation } from 'react-router-dom';
 import { useAuth } from '../hooks/useAuth';
-import { LayoutDashboard, LogOut, LogIn, Plus } from 'lucide-react';
+import { LayoutDashboard, LogOut, LogIn, Plus, Megaphone } from 'lucide-react';
 import AuthModal from './AuthModal';
 import UserAvatar from './UserAvatar';
 import { APP_NAME, LOGO_URL } from '../lib/config';
@@ -33,6 +33,12 @@ export default function Navbar() {
           <div className="navbar-links">
             <Link to="/" className={isActive('/')}>Board</Link>
             <Link to="/submit" className={isActive('/submit')}>Submit</Link>
+            <Link to="/changelog" className={isActive('/changelog')}>
+              <span style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                <Megaphone size={12} />
+                Updates
+              </span>
+            </Link>
             {isAdmin && (
               <Link to="/admin" className={isActive('/admin')}>
                 <span style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>

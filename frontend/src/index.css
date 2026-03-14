@@ -2227,3 +2227,415 @@ details[open] .refine-history-toggle::before {
   0% { background-position: 200% 0; }
   100% { background-position: -200% 0; }
 }
+
+/* --- Released badge --- */
+.badge-released {
+  background: rgba(34, 197, 94, 0.08);
+  color: #4ade80;
+  border-color: rgba(34, 197, 94, 0.15);
+}
+
+/* =============================================================================
+   Changelog — Admin Composer
+   ============================================================================= */
+
+.changelog-composer {
+  background: var(--background);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  width: 90%;
+  max-width: 640px;
+  max-height: 90vh;
+  display: flex;
+  flex-direction: column;
+  animation: modalSlideIn 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+  overflow: hidden;
+}
+
+.changelog-composer-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: var(--space-4) var(--space-5);
+  border-bottom: 1px solid var(--border);
+  font-size: var(--font-size-sm);
+  font-weight: 600;
+  color: var(--foreground);
+}
+
+.changelog-composer-body {
+  padding: var(--space-5);
+  overflow-y: auto;
+  flex: 1;
+}
+
+.changelog-composer-footer {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: var(--space-2);
+  padding: var(--space-4) var(--space-5);
+  border-top: 1px solid var(--border);
+  background: rgba(39, 39, 42, 0.15);
+}
+
+.changelog-label {
+  display: block;
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--muted-foreground);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  margin-bottom: var(--space-2);
+}
+
+.changelog-preview-rendered {
+  padding: var(--space-4);
+  background: rgba(39, 39, 42, 0.2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  min-height: 120px;
+  font-size: var(--font-size-sm);
+  color: var(--muted-foreground);
+  line-height: 1.75;
+}
+
+.changelog-preview-rendered p { margin-bottom: var(--space-3); }
+.changelog-preview-rendered p:last-child { margin-bottom: 0; }
+.changelog-preview-rendered strong { color: var(--foreground); }
+.changelog-preview-rendered ul,
+.changelog-preview-rendered ol { padding-left: var(--space-5); margin-bottom: var(--space-3); }
+.changelog-preview-rendered li { margin-bottom: var(--space-1); }
+.changelog-preview-rendered code {
+  background: var(--muted);
+  padding: 1px 5px;
+  border-radius: var(--radius-sm);
+  font-size: 0.85em;
+}
+
+/* Post selection list */
+.changelog-post-list {
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  overflow: hidden;
+  max-height: 260px;
+  overflow-y: auto;
+}
+
+.changelog-post-item {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  padding: var(--space-3) var(--space-4);
+  cursor: pointer;
+  transition: background var(--transition-fast);
+  border-bottom: 1px solid var(--border);
+}
+
+.changelog-post-item:last-child {
+  border-bottom: none;
+}
+
+.changelog-post-item:hover {
+  background: rgba(39, 39, 42, 0.3);
+}
+
+.changelog-post-item.selected {
+  background: rgba(34, 197, 94, 0.04);
+}
+
+.changelog-post-check {
+  flex-shrink: 0;
+}
+
+.changelog-checkbox {
+  width: 18px;
+  height: 18px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all var(--transition-fast);
+  color: transparent;
+}
+
+.changelog-checkbox.checked {
+  background: var(--foreground);
+  border-color: var(--foreground);
+  color: var(--background);
+}
+
+.changelog-post-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.changelog-post-title {
+  font-size: var(--font-size-sm);
+  font-weight: 500;
+  color: var(--foreground);
+  display: block;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* Admin changelog history */
+.changelog-history-toggle {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: var(--space-4) var(--space-4);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  background: rgba(39, 39, 42, 0.2);
+  cursor: pointer;
+  font-size: var(--font-size-sm);
+  font-weight: 500;
+  color: var(--muted-foreground);
+  transition: all var(--transition-fast);
+}
+
+.changelog-history-toggle:hover {
+  color: var(--foreground);
+  border-color: #3f3f46;
+}
+
+.changelog-history-list {
+  border: 1px solid var(--border);
+  border-top: none;
+  border-radius: 0 0 var(--radius-lg) var(--radius-lg);
+  overflow: hidden;
+  animation: cardFadeIn 0.2s ease;
+}
+
+.changelog-history-item {
+  border-bottom: 1px solid var(--border);
+}
+
+.changelog-history-item:last-child {
+  border-bottom: none;
+}
+
+.changelog-history-item-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: var(--space-3) var(--space-4);
+  gap: var(--space-3);
+}
+
+/* =============================================================================
+   Changelog — Public Timeline Page
+   ============================================================================= */
+
+.changelog-timeline {
+  max-width: 740px;
+  margin: 0 auto;
+  display: flex;
+  flex-direction: column;
+}
+
+.changelog-entry {
+  display: flex;
+  gap: var(--space-5);
+  padding-bottom: var(--space-8);
+  animation: cardFadeIn 0.4s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+.changelog-timeline-dot {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  flex-shrink: 0;
+  padding-top: 4px;
+}
+
+.changelog-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: var(--foreground);
+  border: 2px solid var(--background);
+  box-shadow: 0 0 0 2px var(--border);
+  flex-shrink: 0;
+  z-index: 1;
+}
+
+.changelog-line {
+  width: 2px;
+  flex: 1;
+  background: var(--border);
+  margin-top: var(--space-2);
+}
+
+.changelog-entry-content {
+  flex: 1;
+  min-width: 0;
+}
+
+.changelog-entry-header {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  margin-bottom: var(--space-3);
+}
+
+.changelog-version-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 3px 10px;
+  border-radius: var(--radius-sm);
+  background: rgba(34, 197, 94, 0.08);
+  color: #4ade80;
+  border: 1px solid rgba(34, 197, 94, 0.15);
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+}
+
+.changelog-date {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: var(--font-size-xs);
+  color: var(--muted-foreground);
+}
+
+.changelog-entry-title {
+  font-size: var(--font-size-xl);
+  font-weight: 600;
+  color: var(--foreground);
+  letter-spacing: -0.02em;
+  margin-bottom: var(--space-3);
+  line-height: 1.3;
+}
+
+.changelog-entry-body {
+  font-size: var(--font-size-sm);
+  color: var(--muted-foreground);
+  line-height: 1.75;
+  margin-bottom: var(--space-5);
+}
+
+.changelog-entry-body p { margin-bottom: var(--space-3); }
+.changelog-entry-body p:last-child { margin-bottom: 0; }
+.changelog-entry-body strong { color: var(--foreground); }
+.changelog-entry-body ul,
+.changelog-entry-body ol { padding-left: var(--space-5); margin-bottom: var(--space-3); }
+.changelog-entry-body li { margin-bottom: var(--space-1); }
+.changelog-entry-body code {
+  background: var(--muted);
+  padding: 1px 5px;
+  border-radius: var(--radius-sm);
+  font-size: 0.85em;
+}
+
+/* Linked items */
+.changelog-items {
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  overflow: hidden;
+}
+
+.changelog-items-header {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: var(--space-2) var(--space-4);
+  background: rgba(39, 39, 42, 0.3);
+  border-bottom: 1px solid var(--border);
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--muted-foreground);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.changelog-item {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  padding: var(--space-3) var(--space-4);
+  border-bottom: 1px solid var(--border);
+  font-size: var(--font-size-sm);
+  transition: background var(--transition-fast);
+  text-decoration: none;
+  color: inherit;
+}
+
+.changelog-item:last-child {
+  border-bottom: none;
+}
+
+.changelog-item:hover {
+  background: rgba(39, 39, 42, 0.3);
+  color: inherit;
+}
+
+.changelog-item-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.changelog-item-dot-bug { background: var(--cat-bug); }
+.changelog-item-dot-feature { background: var(--cat-feature); }
+.changelog-item-dot-improvement { background: var(--cat-improvement); }
+
+.changelog-item-title {
+  flex: 1;
+  min-width: 0;
+  font-weight: 500;
+  color: var(--foreground);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.changelog-item-arrow {
+  color: var(--muted-foreground);
+  flex-shrink: 0;
+  opacity: 0;
+  transition: opacity var(--transition-fast);
+}
+
+.changelog-item:hover .changelog-item-arrow {
+  opacity: 1;
+}
+
+/* Mobile responsive */
+@media (max-width: 768px) {
+  .changelog-entry {
+    gap: var(--space-3);
+  }
+
+  .changelog-timeline-dot {
+    display: none;
+  }
+
+  .changelog-entry-content {
+    border-left: 2px solid var(--border);
+    padding-left: var(--space-4);
+  }
+
+  .changelog-composer {
+    width: 95%;
+    max-height: 95vh;
+  }
+
+  .changelog-composer-body {
+    padding: var(--space-4);
+  }
+
+  .changelog-history-item-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: var(--space-2);
+  }
+}
+

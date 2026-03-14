@@ -6,7 +6,7 @@ import PostCard from '../components/PostCard';
 import { useAuth } from '../hooks/useAuth';
 
 const CATEGORIES = ['all', 'bug', 'feature', 'improvement'];
-const STATUSES = ['all', 'new', 'in_review', 'processing', 'done', 'dropped', 'later'];
+const STATUSES = ['all', 'new', 'in_review', 'processing', 'done', 'dropped', 'later', 'released'];
 const SORT_OPTIONS = [
   { value: '-votes_count', label: 'Most Voted' },
   { value: '-created', label: 'Newest' },
