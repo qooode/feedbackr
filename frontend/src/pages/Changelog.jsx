@@ -16,7 +16,6 @@ export default function Changelog() {
     setLoading(true);
     try {
       const result = await pb.collection('changelogs').getList(1, 50, {
-        filter: 'published = true',
         sort: '-created',
         expand: 'posts,author',
       });
