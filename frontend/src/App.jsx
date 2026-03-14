@@ -1,5 +1,6 @@
 import { BrowserRouter, Routes, Route } from 'react-router-dom';
 import { AuthProvider, useAuth } from './hooks/useAuth';
+import { FavoritesProvider } from './hooks/useFavorites';
 import Navbar from './components/Navbar';
 import Board from './pages/Board';
 import Submit from './pages/Submit';
@@ -89,9 +90,11 @@ function AppContent() {
 export default function App() {
   return (
     <AuthProvider>
-      <BrowserRouter>
-        <AppContent />
-      </BrowserRouter>
+      <FavoritesProvider>
+        <BrowserRouter>
+          <AppContent />
+        </BrowserRouter>
+      </FavoritesProvider>
     </AuthProvider>
   );
 }
