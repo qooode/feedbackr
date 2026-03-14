@@ -123,6 +123,11 @@ export default function PostDetail() {
               <span className={`badge badge-${post.category}`}>{post.category}</span>
               <span className={`badge badge-${post.status}`}>{post.status?.replace('_', ' ')}</span>
               <span className={`badge badge-priority-${post.priority}`}>{post.priority}</span>
+              {post.platform && (
+                <span className="badge badge-platform">
+                  {post.platform === 'all' ? 'All Platforms' : post.platform}
+                </span>
+              )}
             </div>
 
             <div className="post-detail-author">

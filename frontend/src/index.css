@@ -407,6 +407,7 @@ select.input {
 .badge-priority-high { background: rgba(161, 161, 170, 0.08); color: #a1a1aa; border-color: rgba(161, 161, 170, 0.15); }
 .badge-priority-medium { background: rgba(113, 113, 122, 0.08); color: #93939e; border-color: rgba(113, 113, 122, 0.15); }
 .badge-priority-low { background: rgba(113, 113, 122, 0.08); color: #8a8a95; border-color: rgba(113, 113, 122, 0.15); }
+.badge-platform { background: rgba(99, 102, 241, 0.08); color: #818cf8; border-color: rgba(99, 102, 241, 0.15); }
 
 /* --- Separator --- */
 

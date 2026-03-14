@@ -466,6 +466,11 @@ export default function AdminKanban() {
                                   <span className={`badge badge-priority-${post.priority}`} style={{ fontSize: '10px' }}>
                                     {post.priority}
                                   </span>
+                                  {post.platform && (
+                                    <span className="badge badge-platform" style={{ fontSize: '10px' }}>
+                                      {post.platform === 'all' ? 'All' : post.platform}
+                                    </span>
+                                  )}
                                   <span style={{ fontSize: '10px', color: 'var(--muted-foreground)' }}>
                                     ▲ {post.votes_count || 0}
                                   </span>

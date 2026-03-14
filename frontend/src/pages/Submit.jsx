@@ -20,6 +20,14 @@ const PRIORITIES = [
   { value: 'critical', label: 'Critical' },
 ];
 
+const PLATFORMS = [
+  { value: 'all', label: 'All' },
+  { value: 'iOS', label: 'iOS' },
+  { value: 'iPadOS', label: 'iPadOS' },
+  { value: 'macOS', label: 'macOS' },
+  { value: 'tvOS', label: 'tvOS' },
+];
+
 export default function Submit() {
   const { user, isLoggedIn } = useAuth();
   const navigate = useNavigate();
@@ -187,6 +195,7 @@ export default function Submit() {
         body: preview.body,
         category: preview.category,
         priority: preview.priority,
+        platform: preview.platform || 'all',
         ai_transcript: messages.map(m => ({ role: m.role, content: m.content })),
       });
       setShowSuccess(true);
@@ -550,6 +559,7 @@ export default function Submit() {
                   <div className="publish-preview-meta">
                     <span className={`badge badge-${preview.category}`}>{preview.category}</span>
                     <span className={`badge badge-priority-${preview.priority}`}>{preview.priority}</span>
+                    <span className="badge badge-platform">{preview.platform === 'all' ? 'All Platforms' : preview.platform}</span>
                   </div>
                 </div>
               ) : (
@@ -592,6 +602,20 @@ export default function Submit() {
                             onClick={() => setPreview({ ...preview, priority: pri.value })}
                           >
                             {pri.label}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                    <div className="publish-meta-item">
+                      <label className="publish-meta-label">Platform</label>
+                      <div className="segmented-picker">
+                        {PLATFORMS.map((plat) => (
+                          <button
+                            key={plat.value}
+                            className={`segmented-option ${preview.platform === plat.value ? 'selected' : ''}`}
+                            onClick={() => setPreview({ ...preview, platform: plat.value })}
+                          >
+                            {plat.label}
                           </button>
                         ))}
                       </div>

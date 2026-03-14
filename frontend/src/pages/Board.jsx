@@ -6,6 +6,7 @@ import PostCard from '../components/PostCard';
 import { useAuth } from '../hooks/useAuth';
 
 const CATEGORIES = ['all', 'bug', 'feature', 'improvement'];
+const PLATFORMS = ['all', 'iOS', 'iPadOS', 'macOS', 'tvOS'];
 const STATUSES = ['all', 'new', 'in_review', 'processing', 'done', 'dropped', 'later', 'released'];
 const SORT_OPTIONS = [
   { value: '-votes_count', label: 'Most Voted' },
@@ -18,19 +19,21 @@ export default function Board() {
   const [posts, setPosts] = useState([]);
   const [loading, setLoading] = useState(true);
   const [category, setCategory] = useState('all');
+  const [platform, setPlatform] = useState('all');
   const [status, setStatus] = useState('all');
   const [sort, setSort] = useState('-votes_count');
   const [search, setSearch] = useState('');
 
   useEffect(() => {
     fetchPosts();
-  }, [category, status, sort, search]);
+  }, [category, platform, status, sort, search]);
 
   const fetchPosts = async () => {
     setLoading(true);
     try {
       const filters = [];
       if (category !== 'all') filters.push(`category = "${category}"`);
+      if (platform !== 'all') filters.push(`platform = "${platform}"`);
       if (status !== 'all') filters.push(`status = "${status}"`);
       if (search.trim()) {
         const sanitized = search.trim().replace(/[^\w\s]/g, '').slice(0, 100);
@@ -94,6 +97,19 @@ export default function Board() {
                 onClick={() => setCategory(cat)}
               >
                 {cat === 'all' ? 'All' : cat.charAt(0).toUpperCase() + cat.slice(1)}
+              </button>
+            ))}
+          </div>
+
+          {/* Platform filter */}
+          <div className="filter-group">
+            {PLATFORMS.map((plat) => (
+              <button
+                key={plat}
+                className={`filter-btn ${platform === plat ? 'active' : ''}`}
+                onClick={() => setPlatform(plat)}
+              >
+                {plat === 'all' ? 'All' : plat}
               </button>
             ))}
           </div>

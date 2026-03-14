@@ -40,6 +40,11 @@ export default function PostCard({ post }) {
           <span className={`badge badge-priority-${post.priority}`}>
             {post.priority}
           </span>
+          {post.platform && (
+            <span className="badge badge-platform">
+              {post.platform === 'all' ? 'All Platforms' : post.platform}
+            </span>
+          )}
           {post.expand?.author && (
             <span className="post-card-author">
               <UserAvatar user={post.expand.author} size="18px" />
