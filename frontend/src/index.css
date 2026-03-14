@@ -685,87 +685,11 @@ select.input {
   margin: 0 auto;
 }
 
-/* --- Compose Card --- */
-
-.compose-card {
-  position: relative;
-  border: 1px solid var(--border);
-  border-radius: var(--radius-lg);
-  overflow: hidden;
-  background: var(--card);
-  transition: border-color var(--transition-base);
-  animation: cardFadeIn 0.4s cubic-bezier(0.16, 1, 0.3, 1);
-}
-
-.compose-card:focus-within {
-  border-color: #3f3f46;
-}
-
-.compose-generating {
-  pointer-events: none;
-}
-
-.compose-generating .compose-footer {
-  pointer-events: all;
-}
-
-/* Category tabs */
-.compose-type-bar {
-  display: flex;
-  gap: 0;
-  border-bottom: 1px solid var(--border);
-  background: rgba(39, 39, 42, 0.15);
-}
-
-.compose-type-btn {
-  flex: 1;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: var(--space-2);
-  padding: var(--space-3) var(--space-4);
-  border: none;
-  background: transparent;
-  color: var(--muted-foreground);
-  font-size: var(--font-size-sm);
-  font-weight: 500;
-  cursor: pointer;
-  transition: all var(--transition-fast);
-  position: relative;
-}
-
-.compose-type-btn:hover {
-  color: var(--foreground);
-  background: rgba(39, 39, 42, 0.3);
-}
-
-.compose-type-btn.active {
-  color: var(--foreground);
-}
-
-.compose-type-btn.active::after {
-  content: '';
-  position: absolute;
-  bottom: -1px;
-  left: 0;
-  right: 0;
-  height: 2px;
-  background: var(--foreground);
-}
-
-.compose-type-icon {
-  font-size: 14px;
-  line-height: 1;
-}
-
-/* Textarea body */
-.compose-body {
-  position: relative;
-}
+/* --- Compose (Submit Page) --- */
 
 .compose-textarea {
   width: 100%;
-  min-height: 200px;
+  min-height: 180px;
   padding: var(--space-5);
   background: transparent;
   border: none;
@@ -785,14 +709,12 @@ select.input {
   opacity: 0.5;
 }
 
-/* Footer bar */
 .compose-footer {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: var(--space-3) var(--space-5);
+  padding: var(--space-3) var(--space-4);
   border-top: 1px solid var(--border);
-  background: rgba(39, 39, 42, 0.2);
   gap: var(--space-3);
 }
 
@@ -820,62 +742,36 @@ select.input {
 }
 
 .compose-counter.ready {
-  color: #71717a;
+  color: var(--muted-foreground);
 }
 
 .compose-counter-hint {
   color: #3f3f46;
 }
 
-.compose-submit-btn {
-  flex-shrink: 0;
-}
-
-.compose-generating-inner {
-  display: flex;
-  align-items: center;
-  gap: var(--space-2);
-}
-
-.spinner-small {
-  width: 14px;
-  height: 14px;
-  border: 2px solid rgba(24, 24, 27, 0.3);
-  border-top-color: var(--primary-foreground);
-  border-radius: 50%;
-  animation: spin 0.6s linear infinite;
-}
-
-/* Generating shimmer overlay */
-.compose-overlay {
-  position: absolute;
-  inset: 0;
-  pointer-events: none;
-  z-index: 2;
-}
-
-.compose-overlay-shimmer {
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
+.compose-progress-bar {
   height: 2px;
-  background: linear-gradient(90deg, transparent, rgba(250, 250, 250, 0.4), transparent);
-  animation: shimmerSlide 1.5s ease-in-out infinite;
+  background: var(--border);
+  overflow: hidden;
 }
 
-@keyframes shimmerSlide {
+.compose-progress-fill {
+  height: 100%;
+  width: 40%;
+  background: var(--muted-foreground);
+  animation: progressSlide 1.2s ease-in-out infinite;
+}
+
+@keyframes progressSlide {
   0% { transform: translateX(-100%); }
-  100% { transform: translateX(100%); }
+  100% { transform: translateX(350%); }
 }
 
-/* Keyboard shortcut hint */
 .compose-shortcut-hint {
   text-align: center;
-  margin-top: var(--space-4);
+  margin-top: var(--space-3);
   font-size: 11px;
   color: #3f3f46;
-  animation: fadeInSoft 0.3s ease;
 }
 
 .compose-shortcut-hint kbd {
@@ -883,14 +779,18 @@ select.input {
   padding: 1px 5px;
   font-size: 10px;
   font-family: var(--font-family);
-  background: rgba(39, 39, 42, 0.5);
+  background: var(--muted);
   border: 1px solid var(--border);
   border-radius: 4px;
-  color: #71717a;
+  color: var(--muted-foreground);
   margin: 0 1px;
 }
 
-/* --- Inline Similar Posts (below compose card) --- */
+.animate-spin {
+  animation: spin 1s linear infinite;
+}
+
+/* --- Inline Similar Posts --- */
 
 .similar-inline {
   border: 1px solid rgba(234, 179, 8, 0.12);
@@ -1882,13 +1782,8 @@ select.input {
     font-size: var(--font-size-2xl);
   }
 
-  .compose-type-btn {
-    font-size: var(--font-size-xs);
-    padding: var(--space-2) var(--space-3);
-  }
-
   .compose-textarea {
-    min-height: 160px;
+    min-height: 140px;
     padding: var(--space-4);
   }
 
@@ -1896,11 +1791,6 @@ select.input {
     flex-direction: column;
     align-items: stretch;
     gap: var(--space-2);
-  }
-
-  .compose-submit-btn {
-    width: 100%;
-    justify-content: center;
   }
 
   .similar-inline-item {
