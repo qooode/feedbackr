@@ -17,10 +17,16 @@ export default function Changelog() {
     setLoading(true);
 
     try {
-      const result = await pb.collection('changelogs').getList(1, 50, {
-        sort: '-created',
-        expand: 'posts',
-      });
+      let result;
+      try {
+        result = await pb.collection('changelogs').getList(1, 50, {
+          sort: '-created',
+          expand: 'posts',
+        });
+      } catch {
+        // created field or expand may not exist yet — fetch raw
+        result = await pb.collection('changelogs').getList(1, 50);
+      }
       setChangelogs(result.items);
     } catch (err) {
       // Collection doesn't exist yet or rules are broken — just show empty state

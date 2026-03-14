@@ -60,14 +60,18 @@ export default function AdminKanban() {
 
   const fetchChangelogs = async () => {
     try {
-      const result = await pb.collection('changelogs').getList(1, 50, {
-        sort: '-created',
-        expand: 'posts',
-      });
+      let result;
+      try {
+        result = await pb.collection('changelogs').getList(1, 50, {
+          sort: '-created',
+          expand: 'posts',
+        });
+      } catch {
+        result = await pb.collection('changelogs').getList(1, 50);
+      }
       setChangelogs(result.items);
     } catch (err) {
-      // Collection might not exist yet
-      console.error('Failed to fetch changelogs:', err);
+      console.warn('changelogs collection not available yet:', err?.message);
     }
   };
 
