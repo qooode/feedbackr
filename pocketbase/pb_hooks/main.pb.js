@@ -58,8 +58,8 @@ routerAdd("POST", "/api/feedbackr/chat", function(e) {
             return e.json(401, { code: 401, message: "You must be logged in." })
         }
         var checkRateLimit = $app.store().get("checkRateLimit")
-        if (!checkRateLimit(e.auth.id, "ai", 15)) {
-            return e.json(429, { code: 429, message: "Too many requests. Please wait a moment." })
+        if (!checkRateLimit(e.auth.id, "ai", 30)) {
+            return e.json(429, { code: 429, message: "You're sending messages too quickly. Please wait a few seconds and try again." })
         }
         if (!OPENROUTER_API_KEY) {
             return e.json(400, { code: 400, message: "AI service not configured. Set OPENROUTER_API_KEY." })
@@ -74,10 +74,10 @@ routerAdd("POST", "/api/feedbackr/chat", function(e) {
             return e.json(400, { code: 400, message: "Message cannot be empty." })
         }
         if (message.length > 2000) {
-            return e.json(400, { code: 400, message: "Message too long." })
+            return e.json(400, { code: 400, message: "Your message is too long (max 2000 characters). Try shortening it." })
         }
-        if (history.length >= 20) {
-            return e.json(400, { code: 400, message: "Conversation limit reached." })
+        if (history.length >= 40) {
+            return e.json(400, { code: 400, message: "This conversation is getting long. Please click 'Generate Post' to create your feedback, or start a new submission." })
         }
 
         // Cap total payload size to prevent cost abuse
@@ -85,8 +85,8 @@ routerAdd("POST", "/api/feedbackr/chat", function(e) {
         for (var h = 0; h < history.length; h++) {
             totalChars += String(history[h].content || "").length
         }
-        if (totalChars > 16000) {
-            return e.json(400, { code: 400, message: "Total conversation too large." })
+        if (totalChars > 32000) {
+            return e.json(400, { code: 400, message: "This conversation has a lot of detail — please click 'Generate Post' to create your feedback now." })
         }
 
         var systemPrompt = "You are a feedback extraction assistant. Your ONLY job is to get thorough, developer-ready details from users submitting feedback about a software product.\n\n" +
@@ -173,8 +173,8 @@ routerAdd("POST", "/api/feedbackr/generate", function(e) {
             return e.json(401, { code: 401, message: "You must be logged in." })
         }
         var checkRateLimit = $app.store().get("checkRateLimit")
-        if (!checkRateLimit(e.auth.id, "ai", 15)) {
-            return e.json(429, { code: 429, message: "Too many requests. Please wait a moment." })
+        if (!checkRateLimit(e.auth.id, "ai", 30)) {
+            return e.json(429, { code: 429, message: "You're sending requests too quickly. Please wait a few seconds and try again." })
         }
         if (!OPENROUTER_API_KEY) {
             return e.json(400, { code: 400, message: "AI service not configured." })
@@ -185,10 +185,10 @@ routerAdd("POST", "/api/feedbackr/generate", function(e) {
         var history = body.history || []
 
         if (history.length < 2) {
-            return e.json(400, { code: 400, message: "Not enough conversation." })
+            return e.json(400, { code: 400, message: "Please have at least one exchange with the AI before generating a post." })
         }
-        if (history.length >= 20) {
-            return e.json(400, { code: 400, message: "Conversation limit reached." })
+        if (history.length >= 40) {
+            return e.json(400, { code: 400, message: "Conversation is too long to process. Please start a new submission." })
         }
 
         // Cap total payload size to prevent cost abuse
@@ -196,8 +196,8 @@ routerAdd("POST", "/api/feedbackr/generate", function(e) {
         for (var h = 0; h < history.length; h++) {
             totalChars += String(history[h].content || "").length
         }
-        if (totalChars > 16000) {
-            return e.json(400, { code: 400, message: "Total conversation too large." })
+        if (totalChars > 32000) {
+            return e.json(400, { code: 400, message: "Conversation is too long to process. Please start a new submission with a shorter description." })
         }
 
         // Short, role-based system prompt — Grok models follow these better
@@ -304,8 +304,8 @@ routerAdd("POST", "/api/feedbackr/similar", function(e) {
             return e.json(401, { code: 401, message: "You must be logged in." })
         }
         var checkRateLimit = $app.store().get("checkRateLimit")
-        if (!checkRateLimit(e.auth.id, "ai", 15)) {
-            return e.json(429, { code: 429, message: "Too many requests. Please wait a moment." })
+        if (!checkRateLimit(e.auth.id, "ai", 30)) {
+            return e.json(429, { code: 429, message: "You're sending requests too quickly. Please wait a few seconds and try again." })
         }
 
         var OPENROUTER_API_KEY = $os.getenv("OPENROUTER_API_KEY")
@@ -483,8 +483,8 @@ onRecordDeleteRequest(function(e) {
 onRecordCreateRequest(function(e) {
     if (!e.auth) return e.json(401, { code: 401, message: "Not authenticated." })
     var checkRateLimit = $app.store().get("checkRateLimit")
-    if (!checkRateLimit(e.auth.id, "create", 20)) {
-        return e.json(429, { code: 429, message: "Too many requests. Slow down." })
+    if (!checkRateLimit(e.auth.id, "create", 40)) {
+        return e.json(429, { code: 429, message: "You're creating posts too quickly. Please wait a minute and try again." })
     }
     e.record.set("author", e.auth.id)
     e.record.set("status", "new")
@@ -505,8 +505,8 @@ onRecordCreateRequest(function(e) {
 onRecordCreateRequest(function(e) {
     if (!e.auth) return e.json(401, { code: 401, message: "Not authenticated." })
     var checkRateLimit = $app.store().get("checkRateLimit")
-    if (!checkRateLimit(e.auth.id, "create", 20)) {
-        return e.json(429, { code: 429, message: "Too many requests. Slow down." })
+    if (!checkRateLimit(e.auth.id, "create", 40)) {
+        return e.json(429, { code: 429, message: "You're posting comments too quickly. Please wait a moment and try again." })
     }
     e.record.set("author", e.auth.id)
     e.record.set("is_ai_merged", false)
@@ -519,8 +519,8 @@ onRecordCreateRequest(function(e) {
 onRecordCreateRequest(function(e) {
     if (!e.auth) return e.json(401, { code: 401, message: "Not authenticated." })
     var checkRateLimit = $app.store().get("checkRateLimit")
-    if (!checkRateLimit(e.auth.id, "vote", 20)) {
-        return e.json(429, { code: 429, message: "Too many vote requests. Slow down." })
+    if (!checkRateLimit(e.auth.id, "vote", 40)) {
+        return e.json(429, { code: 429, message: "You're voting too quickly. Please wait a moment." })
     }
     e.record.set("user", e.auth.id)
     return e.next()
