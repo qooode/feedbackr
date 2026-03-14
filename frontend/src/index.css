@@ -1978,6 +1978,92 @@ details[open] .refine-history-toggle::before {
   flex: 1;
 }
 
+/* --- Post / Comment Edit & Delete --- */
+
+.post-detail-title-row {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-3);
+  justify-content: space-between;
+}
+
+.post-detail-title-row .post-detail-title {
+  flex: 1;
+  min-width: 0;
+}
+
+.post-owner-actions {
+  display: flex;
+  align-items: center;
+  gap: var(--space-1);
+  flex-shrink: 0;
+  margin-top: 4px;
+}
+
+.post-edit-actions {
+  display: flex;
+  gap: var(--space-2);
+  margin-top: var(--space-3);
+}
+
+.confirm-delete-inline {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  font-size: var(--font-size-xs);
+  color: var(--muted-foreground);
+}
+
+.post-edited-label,
+.comment-edited-label {
+  font-size: 11px;
+  color: var(--muted-foreground);
+  font-style: italic;
+}
+
+.comment-actions {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  margin-left: auto;
+  opacity: 0;
+  transition: opacity var(--transition-fast);
+}
+
+.comment:hover .comment-actions {
+  opacity: 1;
+}
+
+.comment-action-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 26px;
+  height: 26px;
+  border-radius: var(--radius-sm);
+  border: none;
+  background: transparent;
+  color: var(--muted-foreground);
+  cursor: pointer;
+  transition: all var(--transition-fast);
+}
+
+.comment-action-btn:hover {
+  background: var(--accent);
+  color: var(--foreground);
+}
+
+.comment-edit-form {
+  padding-left: 38px;
+  margin-top: var(--space-2);
+}
+
+.comment-edit-actions {
+  display: flex;
+  gap: var(--space-2);
+  margin-top: var(--space-2);
+}
+
 /* --- Auth Modal --- */
 
 .modal-overlay {

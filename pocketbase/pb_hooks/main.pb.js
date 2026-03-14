@@ -568,9 +568,56 @@ routerAdd("POST", "/api/feedbackr/similar", function(e) {
 
 onRecordUpdateRequest(function(e) {
     if (!e.auth) return e.json(401, { code: 401, message: "Not authenticated." })
+    var isAdmin = e.auth.get("is_admin") === true
+    var isOwner = e.record.get("author") === e.auth.id
+
+    if (!isOwner && !isAdmin) return e.json(403, { code: 403, message: "You can only edit your own posts." })
+
+    // Non-admins can only change title and body — lock everything else
+    if (!isAdmin) {
+        e.record.set("status", e.record.original().get("status"))
+        e.record.set("priority", e.record.original().get("priority"))
+        e.record.set("category", e.record.original().get("category"))
+        e.record.set("platform", e.record.original().get("platform"))
+        e.record.set("votes_count", e.record.original().get("votes_count"))
+        e.record.set("comments_count", e.record.original().get("comments_count"))
+        e.record.set("author", e.record.original().get("author"))
+        e.record.set("ai_transcript", e.record.original().get("ai_transcript"))
+
+        var title = String(e.record.get("title") || "")
+        if (title.length < 5) return e.json(400, { code: 400, message: "Title too short (min 5 chars)." })
+        if (title.length > 300) return e.json(400, { code: 400, message: "Title too long (max 300 chars)." })
+        var body = String(e.record.get("body") || "")
+        if (body.length < 20) return e.json(400, { code: 400, message: "Body too short (min 20 chars)." })
+        if (body.length > 10000) return e.json(400, { code: 400, message: "Body too long (max 10,000 chars)." })
+    }
+    return e.next()
+}, "posts")
+
+onRecordDeleteRequest(function(e) {
+    if (!e.auth) return e.json(401, { code: 401, message: "Not authenticated." })
+    var isOwner = e.record.get("author") === e.auth.id
+    var isAdmin = e.auth.get("is_admin") === true
+    if (!isOwner && !isAdmin) return e.json(403, { code: 403, message: "You can only delete your own posts." })
+    return e.next()
+}, "posts")
+
+onRecordUpdateRequest(function(e) {
+    if (!e.auth) return e.json(401, { code: 401, message: "Not authenticated." })
     var isOwner = e.record.get("author") === e.auth.id
     var isAdmin = e.auth.get("is_admin") === true
     if (!isOwner && !isAdmin) return e.json(403, { code: 403, message: "You can only edit your own comments." })
+
+    // Non-admins can only change body — lock everything else
+    if (!isAdmin) {
+        e.record.set("author", e.record.original().get("author"))
+        e.record.set("post", e.record.original().get("post"))
+        e.record.set("is_ai_merged", e.record.original().get("is_ai_merged"))
+
+        var body = String(e.record.get("body") || "")
+        if (body.length < 2) return e.json(400, { code: 400, message: "Comment too short." })
+        if (body.length > 5000) return e.json(400, { code: 400, message: "Comment too long (max 5,000 chars)." })
+    }
     return e.next()
 }, "comments")
 

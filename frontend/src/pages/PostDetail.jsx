@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
-import { useParams, Link } from 'react-router-dom';
-import { ArrowLeft, Clock, Send } from 'lucide-react';
+import { useParams, Link, useNavigate } from 'react-router-dom';
+import { ArrowLeft, Clock, Send, Pencil, Trash2, X, Check } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
 import pb from '../lib/pocketbase';
 import VoteButton from '../components/VoteButton';
@@ -9,13 +9,33 @@ import { useAuth } from '../hooks/useAuth';
 
 export default function PostDetail() {
   const { id } = useParams();
-  const { user, isLoggedIn } = useAuth();
+  const navigate = useNavigate();
+  const { user, isLoggedIn, isAdmin } = useAuth();
 
   const [post, setPost] = useState(null);
   const [comments, setComments] = useState([]);
   const [loading, setLoading] = useState(true);
   const [commentBody, setCommentBody] = useState('');
   const [submitting, setSubmitting] = useState(false);
+
+  // Edit post state
+  const [editingPost, setEditingPost] = useState(false);
+  const [editTitle, setEditTitle] = useState('');
+  const [editBody, setEditBody] = useState('');
+  const [savingPost, setSavingPost] = useState(false);
+
+  // Delete post state
+  const [confirmDeletePost, setConfirmDeletePost] = useState(false);
+  const [deletingPost, setDeletingPost] = useState(false);
+
+  // Edit comment state
+  const [editingCommentId, setEditingCommentId] = useState(null);
+  const [editCommentBody, setEditCommentBody] = useState('');
+  const [savingComment, setSavingComment] = useState(false);
+
+  // Delete comment state
+  const [confirmDeleteCommentId, setConfirmDeleteCommentId] = useState(null);
+  const [deletingComment, setDeletingComment] = useState(false);
 
   useEffect(() => {
     fetchPost();
@@ -65,6 +85,102 @@ export default function PostDetail() {
       setSubmitting(false);
     }
   };
+
+  // --- Post edit/delete ---
+
+  const startEditPost = () => {
+    setEditTitle(post.title);
+    setEditBody(post.body);
+    setEditingPost(true);
+  };
+
+  const cancelEditPost = () => {
+    setEditingPost(false);
+    setEditTitle('');
+    setEditBody('');
+  };
+
+  const saveEditPost = async () => {
+    if (!editTitle.trim() || !editBody.trim() || savingPost) return;
+    setSavingPost(true);
+    try {
+      await pb.collection('posts').update(id, {
+        title: editTitle.trim(),
+        body: editBody.trim(),
+      });
+      setEditingPost(false);
+      fetchPost();
+    } catch (err) {
+      console.error('Edit post error:', err);
+      alert(err?.response?.message || 'Failed to update post.');
+    } finally {
+      setSavingPost(false);
+    }
+  };
+
+  const deletePost = async () => {
+    if (deletingPost) return;
+    setDeletingPost(true);
+    try {
+      await pb.collection('posts').delete(id);
+      navigate('/', { replace: true });
+    } catch (err) {
+      console.error('Delete post error:', err);
+      alert(err?.response?.message || 'Failed to delete post.');
+      setDeletingPost(false);
+      setConfirmDeletePost(false);
+    }
+  };
+
+  // --- Comment edit/delete ---
+
+  const startEditComment = (comment) => {
+    setEditingCommentId(comment.id);
+    setEditCommentBody(comment.body);
+  };
+
+  const cancelEditComment = () => {
+    setEditingCommentId(null);
+    setEditCommentBody('');
+  };
+
+  const saveEditComment = async () => {
+    if (!editCommentBody.trim() || savingComment) return;
+    setSavingComment(true);
+    try {
+      await pb.collection('comments').update(editingCommentId, {
+        body: editCommentBody.trim(),
+      });
+      setEditingCommentId(null);
+      fetchComments();
+    } catch (err) {
+      console.error('Edit comment error:', err);
+      alert(err?.response?.message || 'Failed to update comment.');
+    } finally {
+      setSavingComment(false);
+    }
+  };
+
+  const deleteComment = async (commentId) => {
+    if (deletingComment) return;
+    setDeletingComment(true);
+    try {
+      await pb.collection('comments').delete(commentId);
+      setConfirmDeleteCommentId(null);
+      fetchComments();
+    } catch (err) {
+      console.error('Delete comment error:', err);
+      alert(err?.response?.message || 'Failed to delete comment.');
+    } finally {
+      setDeletingComment(false);
+    }
+  };
+
+  const isPostOwner = user && post?.author === user.id;
+  const canEditPost = isPostOwner || isAdmin;
+
+  const isCommentOwner = (comment) => user && comment.author === user.id;
+  const canEditComment = (comment) => isCommentOwner(comment) || isAdmin;
 
   const timeAgo = (dateStr) => {
     const seconds = Math.floor((Date.now() - new Date(dateStr)) / 1000);
@@ -117,37 +233,122 @@ export default function PostDetail() {
           </Link>
 
           <div className="post-detail-header">
-            <h1 className="post-detail-title">{post.title}</h1>
+            {editingPost ? (
+              <>
+                <input
+                  className="input"
+                  value={editTitle}
+                  onChange={(e) => setEditTitle(e.target.value)}
+                  placeholder="Post title..."
+                  style={{ marginBottom: 'var(--space-3)', fontSize: 'var(--font-size-lg)', fontWeight: 600 }}
+                />
+                <textarea
+                  className="input"
+                  value={editBody}
+                  onChange={(e) => setEditBody(e.target.value)}
+                  placeholder="Post body..."
+                  rows={10}
+                  style={{ minHeight: '200px', fontFamily: 'var(--font-family)', lineHeight: 1.6 }}
+                />
+                <div className="post-edit-actions">
+                  <button
+                    className="btn btn-primary btn-sm"
+                    onClick={saveEditPost}
+                    disabled={savingPost || !editTitle.trim() || !editBody.trim()}
+                  >
+                    <Check size={13} />
+                    {savingPost ? 'Saving...' : 'Save'}
+                  </button>
+                  <button className="btn btn-ghost btn-sm" onClick={cancelEditPost}>
+                    <X size={13} />
+                    Cancel
+                  </button>
+                </div>
+              </>
+            ) : (
+              <>
+                <div className="post-detail-title-row">
+                  <h1 className="post-detail-title">{post.title}</h1>
+                  {canEditPost && (
+                    <div className="post-owner-actions">
+                      <button
+                        className="btn btn-ghost btn-icon-sm"
+                        onClick={startEditPost}
+                        title="Edit post"
+                      >
+                        <Pencil size={14} />
+                      </button>
+                      {!confirmDeletePost ? (
+                        <button
+                          className="btn btn-ghost btn-icon-sm"
+                          onClick={() => setConfirmDeletePost(true)}
+                          title="Delete post"
+                        >
+                          <Trash2 size={14} />
+                        </button>
+                      ) : (
+                        <div className="confirm-delete-inline">
+                          <span>Delete?</span>
+                          <button
+                            className="btn btn-destructive btn-sm"
+                            onClick={deletePost}
+                            disabled={deletingPost}
+                          >
+                            {deletingPost ? 'Deleting...' : 'Yes'}
+                          </button>
+                          <button
+                            className="btn btn-ghost btn-sm"
+                            onClick={() => setConfirmDeletePost(false)}
+                          >
+                            No
+                          </button>
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </div>
 
-            <div className="post-detail-badges">
-              <span className={`badge badge-${post.category}`}>{post.category}</span>
-              <span className={`badge badge-${post.status}`}>{post.status?.replace('_', ' ')}</span>
-              <span className={`badge badge-priority-${post.priority}`}>{post.priority}</span>
-              {post.platform && (
-                <span className="badge badge-platform">
-                  {post.platform === 'all' ? 'All Platforms' : post.platform}
+                <div className="post-detail-badges">
+                  <span className={`badge badge-${post.category}`}>{post.category}</span>
+                  <span className={`badge badge-${post.status}`}>{post.status?.replace('_', ' ')}</span>
+                  <span className={`badge badge-priority-${post.priority}`}>{post.priority}</span>
+                  {post.platform && (
+                    <span className="badge badge-platform">
+                      {post.platform === 'all' ? 'All Platforms' : post.platform}
+                    </span>
+                  )}
+                </div>
+
+                <div className="post-detail-author">
+                  <UserAvatar user={post.expand?.author} size="22px" />
+                  <span>{post.expand?.author?.name || post.expand?.author?.username || 'Anonymous'}</span>
+                  <span style={{ color: 'var(--muted-foreground)' }}>·</span>
+                  <span style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                    <Clock size={12} /> {timeAgo(post.created)}
+                  </span>
+                  {post.updated !== post.created && (
+                    <>
+                      <span style={{ color: 'var(--muted-foreground)' }}>·</span>
+                      <span className="post-edited-label">edited</span>
+                    </>
+                  )}
+                </div>
+              </>
+            )}
+          </div>
+
+          {!editingPost && (
+            <>
+              <div className="card post-detail-vote-bar">
+                <VoteButton post={post} />
+                <span style={{ color: 'var(--muted-foreground)', fontSize: 'var(--font-size-sm)' }}>
+                  {post.votes_count || 0} {(post.votes_count === 1) ? 'vote' : 'votes'}
                 </span>
-              )}
-            </div>
+              </div>
 
-            <div className="post-detail-author">
-              <UserAvatar user={post.expand?.author} size="22px" />
-              <span>{post.expand?.author?.name || post.expand?.author?.username || 'Anonymous'}</span>
-              <span style={{ color: 'var(--muted-foreground)' }}>·</span>
-              <span style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
-                <Clock size={12} /> {timeAgo(post.created)}
-              </span>
-            </div>
-          </div>
-
-          <div className="card post-detail-vote-bar">
-            <VoteButton post={post} />
-            <span style={{ color: 'var(--muted-foreground)', fontSize: 'var(--font-size-sm)' }}>
-              {post.votes_count || 0} {(post.votes_count === 1) ? 'vote' : 'votes'}
-            </span>
-          </div>
-
-          <div className="post-detail-body"><ReactMarkdown>{post.body}</ReactMarkdown></div>
+              <div className="post-detail-body"><ReactMarkdown>{post.body}</ReactMarkdown></div>
+            </>
+          )}
 
           {/* Comments */}
           <div className="comments-section">
@@ -166,8 +367,86 @@ export default function PostDetail() {
                     <span className="comment-ai-badge">AI Merged</span>
                   )}
                   <span className="comment-date">{timeAgo(comment.created)}</span>
+                  {comment.updated !== comment.created && (
+                    <span className="comment-edited-label">edited</span>
+                  )}
+
+                  {canEditComment(comment) && editingCommentId !== comment.id && (
+                    <div className="comment-actions">
+                      <button
+                        className="comment-action-btn"
+                        onClick={() => startEditComment(comment)}
+                        title="Edit"
+                      >
+                        <Pencil size={12} />
+                      </button>
+                      {confirmDeleteCommentId !== comment.id ? (
+                        <button
+                          className="comment-action-btn"
+                          onClick={() => setConfirmDeleteCommentId(comment.id)}
+                          title="Delete"
+                        >
+                          <Trash2 size={12} />
+                        </button>
+                      ) : (
+                        <div className="confirm-delete-inline">
+                          <button
+                            className="btn btn-destructive btn-sm"
+                            onClick={() => deleteComment(comment.id)}
+                            disabled={deletingComment}
+                            style={{ padding: '2px 8px', height: '24px', fontSize: '11px' }}
+                          >
+                            {deletingComment ? '...' : 'Delete'}
+                          </button>
+                          <button
+                            className="comment-action-btn"
+                            onClick={() => setConfirmDeleteCommentId(null)}
+                          >
+                            <X size={12} />
+                          </button>
+                        </div>
+                      )}
+                    </div>
+                  )}
                 </div>
-                <div className="comment-body">{comment.body}</div>
+
+                {editingCommentId === comment.id ? (
+                  <div className="comment-edit-form">
+                    <input
+                      className="input"
+                      value={editCommentBody}
+                      onChange={(e) => setEditCommentBody(e.target.value)}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter' && !e.shiftKey) {
+                          e.preventDefault();
+                          saveEditComment();
+                        }
+                        if (e.key === 'Escape') cancelEditComment();
+                      }}
+                      autoFocus
+                    />
+                    <div className="comment-edit-actions">
+                      <button
+                        className="btn btn-primary btn-sm"
+                        onClick={saveEditComment}
+                        disabled={savingComment || !editCommentBody.trim()}
+                        style={{ height: '28px', fontSize: '12px' }}
+                      >
+                        <Check size={12} />
+                        {savingComment ? 'Saving...' : 'Save'}
+                      </button>
+                      <button
+                        className="btn btn-ghost btn-sm"
+                        onClick={cancelEditComment}
+                        style={{ height: '28px', fontSize: '12px' }}
+                      >
+                        Cancel
+                      </button>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="comment-body">{comment.body}</div>
+                )}
               </div>
             ))}
 
