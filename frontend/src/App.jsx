@@ -55,19 +55,40 @@ function OAuthStatusBanner() {
   return null;
 }
 
+function AppContent() {
+  const { loading } = useAuth();
+
+  if (loading) {
+    return (
+      <div style={{
+        display: 'flex', alignItems: 'center', justifyContent: 'center',
+        height: '100vh', background: 'var(--background)',
+      }}>
+        <div className="spinner" style={{ width: 20, height: 20 }} />
+      </div>
+    );
+  }
+
+  return (
+    <>
+      <OAuthStatusBanner />
+      <Navbar />
+      <Routes>
+        <Route path="/" element={<Board />} />
+        <Route path="/submit" element={<Submit />} />
+        <Route path="/post/:id" element={<PostDetail />} />
+        <Route path="/admin" element={<AdminKanban />} />
+        <Route path="/changelog" element={<Changelog />} />
+      </Routes>
+    </>
+  );
+}
+
 export default function App() {
   return (
     <AuthProvider>
       <BrowserRouter>
-        <OAuthStatusBanner />
-        <Navbar />
-        <Routes>
-          <Route path="/" element={<Board />} />
-          <Route path="/submit" element={<Submit />} />
-          <Route path="/post/:id" element={<PostDetail />} />
-          <Route path="/admin" element={<AdminKanban />} />
-          <Route path="/changelog" element={<Changelog />} />
-        </Routes>
+        <AppContent />
       </BrowserRouter>
     </AuthProvider>
   );
