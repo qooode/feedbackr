@@ -4,6 +4,7 @@ import { Inbox, Plus, Bookmark, Bell } from 'lucide-react';
 import pb from '../lib/pocketbase';
 import PostCard from '../components/PostCard';
 import { useAuth } from '../hooks/useAuth';
+import { useFavorites } from '../hooks/useFavorites';
 
 const STATUS_TABS = [
   { value: 'all', label: 'All' },
@@ -30,6 +31,7 @@ const STATUS_LABELS = {
 
 export default function MyFeedback() {
   const { user, isLoggedIn, loading: authLoading } = useAuth();
+  const { favoritedPostIds } = useFavorites();
   const [posts, setPosts] = useState([]);
   const [loading, setLoading] = useState(true);
   const [tab, setTab] = useState('all');
@@ -49,7 +51,7 @@ export default function MyFeedback() {
 
   useEffect(() => {
     if (user && pageTab === 'favorites') fetchFavorites();
-  }, [user, pageTab]);
+  }, [user, pageTab, favoritedPostIds]);
 
   useEffect(() => {
     if (user && pageTab === 'activity') fetchActivity();
@@ -83,20 +85,22 @@ export default function MyFeedback() {
   };
 
   const fetchFavorites = async () => {
+    const postIds = Array.from(favoritedPostIds);
+    if (postIds.length === 0) {
+      setFavPosts([]);
+      setFavLoading(false);
+      return;
+    }
     setFavLoading(true);
     try {
-      const result = await pb.collection('favorites').getList(1, 50, {
-        filter: `user = "${user.id}"`,
+      // Fetch posts directly by their IDs — no nested expand needed
+      const filter = postIds.map(id => `id = "${id}"`).join(' || ');
+      const result = await pb.collection('posts').getList(1, 50, {
+        filter,
         sort: '-created',
-        expand: 'post,post.author',
+        expand: 'author',
       });
-
-      // Extract posts from expanded favorites
-      const extracted = result.items
-        .map(fav => fav.expand?.post)
-        .filter(Boolean);
-
-      setFavPosts(extracted);
+      setFavPosts(result.items);
     } catch (err) {
       console.warn('Favorites fetch error:', err?.message);
       setFavPosts([]);
