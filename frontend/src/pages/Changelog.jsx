@@ -17,10 +17,20 @@ export default function Changelog() {
     setLoading(true);
     setError(null);
     try {
-      const result = await pb.collection('changelogs').getList(1, 50, {
-        sort: '-created',
-        expand: 'posts,author',
-      });
+      // Try with expand first
+      let result;
+      try {
+        result = await pb.collection('changelogs').getList(1, 50, {
+          sort: '-created',
+          expand: 'posts,author',
+        });
+      } catch (expandErr) {
+        console.warn('[Changelog] Expand failed, retrying without expand:', expandErr);
+        // Fallback: fetch without expand (corrupted relation data from old records)
+        result = await pb.collection('changelogs').getList(1, 50, {
+          sort: '-created',
+        });
+      }
       console.log('[Changelog] Fetched:', result.items.length, 'entries', result.items);
       setChangelogs(result.items);
     } catch (err) {
