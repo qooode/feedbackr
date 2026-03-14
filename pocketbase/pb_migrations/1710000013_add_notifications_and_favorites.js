@@ -12,14 +12,16 @@ migrate((app) => {
     const posts = app.findCollectionByNameOrId("posts")
 
     // 1. Notifications collection
+    // Simple auth-check rules only — ownership enforced in hooks (main.pb.js)
+    // PocketBase can't resolve field names in rules during migration-time validation
     const notifications = new Collection({
         type: "base",
         name: "notifications",
-        listRule: "@request.auth.id = user",
-        viewRule: "@request.auth.id = user",
+        listRule: "@request.auth.id != ''",
+        viewRule: "@request.auth.id != ''",
         createRule: "@request.auth.is_admin = true",
-        updateRule: "@request.auth.id = user",
-        deleteRule: "@request.auth.id = user",
+        updateRule: "@request.auth.id != ''",
+        deleteRule: "@request.auth.id != ''",
         fields: [
             new RelationField({ name: "user", required: true, maxSelect: 1, collectionId: users.id }),
             new RelationField({ name: "post", required: true, maxSelect: 1, collectionId: posts.id, cascadeDelete: true }),
@@ -33,14 +35,15 @@ migrate((app) => {
     console.log("Feedbackr: notifications collection created")
 
     // 2. Favorites collection
+    // Simple auth-check rules only — ownership enforced in hooks (main.pb.js)
     const favorites = new Collection({
         type: "base",
         name: "favorites",
-        listRule: "@request.auth.id = user",
-        viewRule: "@request.auth.id = user",
+        listRule: "@request.auth.id != ''",
+        viewRule: "@request.auth.id != ''",
         createRule: "@request.auth.id != ''",
         updateRule: null,
-        deleteRule: "@request.auth.id = user",
+        deleteRule: "@request.auth.id != ''",
         fields: [
             new RelationField({ name: "user", required: true, maxSelect: 1, collectionId: users.id }),
             new RelationField({ name: "post", required: true, maxSelect: 1, collectionId: posts.id, cascadeDelete: true }),

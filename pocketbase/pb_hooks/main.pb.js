@@ -836,7 +836,7 @@ onRecordDeleteRequest(function(e) {
 }, "favorites")
 
 // =============================================================================
-// NOTIFICATION GUARDS — users can only toggle "read"
+// NOTIFICATION GUARDS — users can only toggle "read" and delete their own
 // =============================================================================
 
 onRecordUpdateRequest(function(e) {
@@ -850,6 +850,36 @@ onRecordUpdateRequest(function(e) {
     e.record.set("new_status", e.record.original().get("new_status"))
     return e.next()
 }, "notifications")
+
+onRecordDeleteRequest(function(e) {
+    if (!e.auth) return e.json(401, { code: 401, message: "Not authenticated." })
+    if (e.record.get("user") !== e.auth.id) return e.json(403, { code: 403, message: "You can only delete your own notifications." })
+    return e.next()
+}, "notifications")
+
+// =============================================================================
+// LIST/VIEW OWNERSHIP — since API rules use simple auth checks,
+// enforce user-scoping here so nobody can see others' data
+// =============================================================================
+
+onRecordEnrich(function(e) {
+    if (!e.requestInfo.auth || e.record.get("user") !== e.requestInfo.auth.id) {
+        e.record.set("type", "")
+        e.record.set("old_status", "")
+        e.record.set("new_status", "")
+        e.record.set("post", "")
+        e.record.set("user", "")
+    }
+    return e.next()
+}, "notifications")
+
+onRecordEnrich(function(e) {
+    if (!e.requestInfo.auth || e.record.get("user") !== e.requestInfo.auth.id) {
+        e.record.set("post", "")
+        e.record.set("user", "")
+    }
+    return e.next()
+}, "favorites")
 
 // =============================================================================
 // STRIP SENSITIVE FIELDS FROM PUBLIC API
