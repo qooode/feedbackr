@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { DragDropContext, Droppable, Draggable } from '@hello-pangea/dnd';
-import { Shield, RefreshCw, Megaphone, X, Check, Tag, Send, ChevronDown, ChevronUp, Trash2, Eye } from 'lucide-react';
+import { Shield, RefreshCw, Megaphone, X, Check, Tag, Send, ChevronDown, ChevronUp, Trash2, Eye, ImageIcon } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
 import { useAuth } from '../hooks/useAuth';
 import UserAvatar from '../components/UserAvatar';
@@ -29,6 +29,7 @@ export default function AdminKanban() {
   const [changelogVersion, setChangelogVersion] = useState('');
   const [changelogTitle, setChangelogTitle] = useState('');
   const [changelogBody, setChangelogBody] = useState('');
+  const [changelogImage, setChangelogImage] = useState('');
   const [publishing, setPublishing] = useState(false);
   const [previewMode, setPreviewMode] = useState(false);
 
@@ -130,6 +131,7 @@ export default function AdminKanban() {
         version: changelogVersion.trim(),
         title: changelogTitle.trim(),
         body: changelogBody.trim(),
+        image_url: changelogImage.trim(),
         posts: selectedPosts,
         author: user.id,
         published: true,
@@ -148,6 +150,7 @@ export default function AdminKanban() {
       setChangelogVersion('');
       setChangelogTitle('');
       setChangelogBody('');
+      setChangelogImage('');
       setPreviewMode(false);
 
       // 4. Refresh
@@ -318,6 +321,32 @@ export default function AdminKanban() {
                       rows={5}
                       style={{ minHeight: '120px', resize: 'vertical' }}
                     />
+                  )}
+                </div>
+
+                {/* Image URL */}
+                <div style={{ marginBottom: 'var(--space-4)' }}>
+                  <label className="changelog-label">
+                    <span style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                      <ImageIcon size={11} /> Cover Image (optional)
+                    </span>
+                  </label>
+                  <input
+                    className="input"
+                    type="url"
+                    placeholder="https://example.com/screenshot.png"
+                    value={changelogImage}
+                    onChange={(e) => setChangelogImage(e.target.value)}
+                  />
+                  {changelogImage.trim() && (
+                    <div className="changelog-image-preview">
+                      <img
+                        src={changelogImage.trim()}
+                        alt="Preview"
+                        onError={(e) => { e.target.style.display = 'none'; }}
+                        onLoad={(e) => { e.target.style.display = 'block'; }}
+                      />
+                    </div>
                   )}
                 </div>
 

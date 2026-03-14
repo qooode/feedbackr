@@ -90,6 +90,13 @@ export default function Changelog() {
 
                   <h2 className="changelog-entry-title">{log.title}</h2>
 
+                  {/* Cover image */}
+                  {log.image_url && (
+                    <div className="changelog-entry-image">
+                      <img src={log.image_url} alt={log.title} />
+                    </div>
+                  )}
+
                   {/* Body */}
                   {log.body && (
                     <div className="changelog-entry-body">
