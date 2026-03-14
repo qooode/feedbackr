@@ -723,6 +723,26 @@ onRecordAfterDeleteSuccess(function(e) {
 }, "votes")
 
 // =============================================================================
+// COMMENT COUNT SYNC
+// =============================================================================
+
+onRecordAfterCreateSuccess(function(e) {
+    try {
+        var post = $app.findRecordById("posts", e.record.get("post"))
+        post.set("comments_count", (post.get("comments_count") || 0) + 1)
+        $app.save(post)
+    } catch(err) { console.log("Comment count sync error:", err) }
+}, "comments")
+
+onRecordAfterDeleteSuccess(function(e) {
+    try {
+        var post = $app.findRecordById("posts", e.record.get("post"))
+        post.set("comments_count", Math.max(0, (post.get("comments_count") || 0) - 1))
+        $app.save(post)
+    } catch(err) {}
+}, "comments")
+
+// =============================================================================
 // STRIP SENSITIVE FIELDS FROM PUBLIC API
 // =============================================================================
 

@@ -605,6 +605,14 @@ select.input {
   flex-wrap: wrap;
 }
 
+.post-card-comments {
+  font-size: var(--font-size-xs);
+  color: var(--muted-foreground);
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+}
+
 .post-card-author {
   font-size: var(--font-size-xs);
   color: var(--muted-foreground);
