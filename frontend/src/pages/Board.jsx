@@ -97,20 +97,15 @@ export default function Board() {
     <div className="page">
       <div className="container">
         <div className="page-header">
-          <div className="page-header-row">
-            <div>
-              <h1 className="page-title">Feedback Board</h1>
-              <p className="page-subtitle">
-                Browse ideas, report bugs, and vote on what matters most.
-              </p>
-            </div>
-            <div className="board-total-counter" title="Total submissions">
-              <span className="board-total-number">{totalItems.toLocaleString()}</span>
-              <span className="board-total-label">
-                {hasFilters ? 'results' : (totalItems === 1 ? 'submission' : 'submissions')}
+          <h1 className="page-title">Feedback Board</h1>
+          <p className="page-subtitle">
+            Browse ideas, report bugs, and vote on what matters most.
+            {!loading && totalItems > 0 && (
+              <span className="board-total-pill">
+                {totalItems.toLocaleString()} {hasFilters ? 'results' : (totalItems === 1 ? 'submission' : 'submissions')}
               </span>
-            </div>
-          </div>
+            )}
+          </p>
         </div>
 
         {/* Filter Bar */}

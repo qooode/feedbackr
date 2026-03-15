@@ -2584,42 +2584,23 @@ details[open] .refine-history-toggle::before {
   border-color: var(--foreground);
 }
 
-/* --- Page Header Row (Board) --- */
+/* --- Board Total Pill (inline in subtitle) --- */
 
-.page-header-row {
-  display: flex;
-  align-items: flex-start;
-  justify-content: space-between;
-  gap: var(--space-4);
-}
-
-.board-total-counter {
-  display: flex;
-  flex-direction: column;
+.board-total-pill {
+  display: inline-flex;
   align-items: center;
-  flex-shrink: 0;
-  padding: var(--space-3) var(--space-5);
-  border-radius: var(--radius-lg);
-  background: rgba(255, 255, 255, 0.03);
-  border: 1px solid var(--border);
-}
-
-.board-total-number {
-  font-size: var(--font-size-2xl);
-  font-weight: 700;
-  letter-spacing: -0.03em;
-  color: var(--foreground);
-  line-height: 1;
-  font-variant-numeric: tabular-nums;
-}
-
-.board-total-label {
-  font-size: 11px;
+  margin-left: var(--space-2);
+  font-size: var(--font-size-xs);
   font-weight: 500;
   color: var(--muted-foreground);
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
-  margin-top: 2px;
+  font-variant-numeric: tabular-nums;
+  opacity: 0.7;
+}
+
+.board-total-pill::before {
+  content: '·';
+  margin-right: var(--space-2);
+  font-size: var(--font-size-base);
 }
 
 /* --- Pagination --- */
@@ -2796,22 +2777,6 @@ a.navbar-user:hover {
 
   .page-title {
     font-size: var(--font-size-2xl);
-  }
-
-  .page-header-row {
-    flex-direction: column;
-    gap: var(--space-3);
-  }
-
-  .board-total-counter {
-    flex-direction: row;
-    gap: var(--space-2);
-    width: fit-content;
-    padding: var(--space-2) var(--space-4);
-  }
-
-  .board-total-number {
-    font-size: var(--font-size-lg);
   }
 
   .pagination {
