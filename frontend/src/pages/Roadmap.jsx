@@ -6,13 +6,6 @@ import VoteButton from '../components/VoteButton';
 
 const ROADMAP_COLUMNS = [
   {
-    id: 'under_review',
-    label: 'Under Review',
-    statuses: ['in_review'],
-    description: 'Being evaluated by the team',
-    accent: 'var(--muted-foreground)',
-  },
-  {
     id: 'planned',
     label: 'Planned',
     statuses: ['later'],
@@ -50,7 +43,7 @@ export default function Roadmap() {
     try {
       // Fetch all posts that belong on the roadmap (exclude "new" and "dropped")
       const result = await pb.collection('posts').getList(1, 200, {
-        filter: 'status = "in_review" || status = "later" || status = "processing" || status = "done" || status = "released"',
+        filter: 'status = "later" || status = "processing" || status = "done" || status = "released"',
         sort: '-votes_count',
         expand: 'author',
       });
