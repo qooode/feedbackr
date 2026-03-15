@@ -2603,75 +2603,46 @@ details[open] .refine-history-toggle::before {
   font-size: var(--font-size-base);
 }
 
-/* --- Pagination --- */
+/* --- Infinite Scroll --- */
 
-.pagination {
+.infinite-scroll-sentinel {
   display: flex;
   align-items: center;
-  justify-content: space-between;
-  margin-top: var(--space-6);
-  padding: var(--space-3) 0;
-  gap: var(--space-4);
-  flex-wrap: wrap;
+  justify-content: center;
+  padding: var(--space-8) 0 var(--space-4);
+  min-height: 48px;
 }
 
-.pagination-info {
-  font-size: var(--font-size-xs);
-  color: var(--muted-foreground);
-  font-variant-numeric: tabular-nums;
-}
-
-.pagination-controls {
+.infinite-scroll-loader {
   display: flex;
   align-items: center;
-  gap: 2px;
-}
-
-.pagination-btn {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  min-width: 34px;
-  height: 34px;
-  padding: 0 4px;
-  border-radius: var(--radius-md);
-  border: 1px solid var(--border);
-  background: transparent;
+  gap: var(--space-2);
   color: var(--muted-foreground);
-  font-size: var(--font-size-xs);
-  font-weight: 500;
-  cursor: pointer;
-  transition: all var(--transition-fast);
-  font-variant-numeric: tabular-nums;
-}
-
-.pagination-btn:hover:not(:disabled) {
-  color: var(--foreground);
-  border-color: #52525b;
-  background: var(--accent);
-}
-
-.pagination-btn:disabled {
-  opacity: 0.3;
-  cursor: not-allowed;
-}
-
-.pagination-btn.active {
-  background: var(--foreground);
-  color: var(--primary-foreground);
-  border-color: var(--foreground);
-  font-weight: 600;
-}
-
-.pagination-ellipsis {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 28px;
-  height: 34px;
-  color: #52525b;
   font-size: var(--font-size-sm);
-  user-select: none;
+  font-weight: 500;
+  animation: fadeInUp 0.25s ease-out;
+}
+
+.infinite-scroll-spinner {
+  animation: spin 1s linear infinite;
+}
+
+.infinite-scroll-end {
+  font-size: var(--font-size-xs);
+  color: var(--muted-foreground);
+  opacity: 0.6;
+  animation: fadeInUp 0.3s ease-out;
+}
+
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 /* --- My Feedback --- */
@@ -2779,17 +2750,6 @@ a.navbar-user:hover {
     font-size: var(--font-size-2xl);
   }
 
-  .pagination {
-    justify-content: center;
-    flex-direction: column;
-    align-items: center;
-    gap: var(--space-2);
-  }
-
-  .pagination-btn {
-    min-width: 30px;
-    height: 30px;
-  }
 
   .post-detail-title {
     font-size: var(--font-size-2xl);
