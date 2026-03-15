@@ -8,7 +8,7 @@ const ROADMAP_COLUMNS = [
   {
     id: 'planned',
     label: 'Planned',
-    statuses: ['later'],
+    statuses: ['in_review', 'later'],
     description: 'Accepted and on the roadmap',
     accent: '#a78bfa',
   },
@@ -43,7 +43,7 @@ export default function Roadmap() {
     try {
       // Fetch all posts that belong on the roadmap (exclude "new" and "dropped")
       const result = await pb.collection('posts').getList(1, 200, {
-        filter: 'status = "later" || status = "processing" || status = "done" || status = "released"',
+        filter: 'status = "in_review" || status = "later" || status = "processing" || status = "done" || status = "released"',
         sort: '-votes_count',
         expand: 'author',
       });
