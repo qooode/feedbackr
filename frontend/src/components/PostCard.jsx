@@ -30,7 +30,6 @@ export default function PostCard({ post }) {
 
       <div className="post-card-content">
         <h3 className="post-card-title">{post.title}</h3>
-        <p className="post-card-body">{stripMarkdown(post.body)}</p>
 
         <div className="post-card-meta">
           <span className={`badge badge-${post.category}`}>
@@ -39,14 +38,6 @@ export default function PostCard({ post }) {
           <span className={`badge badge-${post.status}`}>
             {post.status?.replace('_', ' ')}
           </span>
-          <span className={`badge badge-priority-${post.priority}`}>
-            {post.priority}
-          </span>
-          {post.platform && (
-            <span className="badge badge-platform">
-              {post.platform === 'all' ? 'All Platforms' : post.platform}
-            </span>
-          )}
           {post.comments_count > 0 && (
             <span className="post-card-comments">
               <MessageCircle size={13} />
@@ -59,7 +50,20 @@ export default function PostCard({ post }) {
               {post.expand.author.name || post.expand.author.username || 'Anonymous'}
             </span>
           )}
+          {/* Secondary badges — shown on hover */}
+          <span className="post-card-secondary-badges">
+            <span className={`badge badge-priority-${post.priority}`}>
+              {post.priority}
+            </span>
+            {post.platform && (
+              <span className="badge badge-platform">
+                {post.platform === 'all' ? 'All Platforms' : post.platform}
+              </span>
+            )}
+          </span>
         </div>
+
+        <p className="post-card-body">{stripMarkdown(post.body)}</p>
       </div>
 
       <div className="post-card-fav">

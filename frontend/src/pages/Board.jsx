@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
-import { Search, Plus, Inbox, Loader } from 'lucide-react';
+import { Search, Plus, Inbox, Loader, SlidersHorizontal, X } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import pb from '../lib/pocketbase';
 import PostCard from '../components/PostCard';
@@ -28,6 +28,7 @@ export default function Board() {
   const [page, setPage] = useState(1);
   const [totalItems, setTotalItems] = useState(0);
   const [totalPages, setTotalPages] = useState(1);
+  const [filtersOpen, setFiltersOpen] = useState(false);
   const sentinelRef = useRef(null);
   const isLoadingRef = useRef(false);
 
@@ -101,25 +102,36 @@ export default function Board() {
   }, [hasMore, totalPages]);
 
   const hasFilters = category !== 'all' || platform !== 'all' || status !== 'all' || search.trim();
+  const activeFilterCount = (category !== 'all' ? 1 : 0) + (platform !== 'all' ? 1 : 0) + (status !== 'all' ? 1 : 0);
+
+  const clearAllFilters = () => {
+    setCategory('all');
+    setPlatform('all');
+    setStatus('all');
+    setSort('-votes_count');
+  };
 
   return (
     <div className="page">
       <div className="container">
-        <div className="page-header">
-          <h1 className="page-title">Feedback Board</h1>
-          <p className="page-subtitle">
-            Browse ideas, report bugs, and vote on what matters most.
+        <div className="page-header board-header">
+          <div className="board-header-top">
+            <div>
+              <h1 className="page-title">Feedback Board</h1>
+              <p className="page-subtitle">
+                Browse ideas, report bugs, and vote on what matters most.
+              </p>
+            </div>
             {!initialLoading && totalItems > 0 && (
               <span className="board-total-pill">
                 {totalItems.toLocaleString()} {hasFilters ? 'results' : (totalItems === 1 ? 'submission' : 'submissions')}
               </span>
             )}
-          </p>
+          </div>
         </div>
 
-        {/* Filter Bar */}
-        <div className="card filter-bar" style={{ marginBottom: 'var(--space-4)' }}>
-          {/* Search */}
+        {/* Compact Toolbar */}
+        <div className="board-toolbar">
           <div className="search-input" style={{ position: 'relative' }}>
             <Search
               size={14}
@@ -141,59 +153,119 @@ export default function Board() {
             />
           </div>
 
-          {/* Category filter */}
-          <div className="filter-group">
-            {CATEGORIES.map((cat) => (
-              <button
-                key={cat}
-                className={`filter-btn ${category === cat ? 'active' : ''}`}
-                onClick={() => setCategory(cat)}
-              >
-                {cat === 'all' ? 'All' : cat.charAt(0).toUpperCase() + cat.slice(1)}
-              </button>
-            ))}
-          </div>
-
-          {/* Platform filter */}
-          <div className="filter-group">
-            {PLATFORMS.map((plat) => (
-              <button
-                key={plat}
-                className={`filter-btn ${platform === plat ? 'active' : ''}`}
-                onClick={() => setPlatform(plat)}
-              >
-                {plat === 'all' ? 'All' : plat}
-              </button>
-            ))}
-          </div>
-
-          {/* Sort */}
-          <select
-            className="input"
-            value={sort}
-            onChange={(e) => setSort(e.target.value)}
-            style={{ width: 'auto', minWidth: '130px' }}
-          >
-            {SORT_OPTIONS.map((opt) => (
-              <option key={opt.value} value={opt.value}>
-                {opt.label}
-              </option>
-            ))}
-          </select>
-        </div>
-
-        {/* Status filter row */}
-        <div className="status-filters">
-          {STATUSES.map((s) => (
-            <button
-              key={s}
-              className={`status-filter-btn ${status === s ? 'active' : ''}`}
-              onClick={() => setStatus(s)}
+          <div className="board-toolbar-right">
+            {/* Sort — always visible */}
+            <select
+              className="input"
+              value={sort}
+              onChange={(e) => setSort(e.target.value)}
+              style={{ width: 'auto', minWidth: '120px' }}
             >
-              {s === 'all' ? 'All Status' : s.replace('_', ' ')}
+              {SORT_OPTIONS.map((opt) => (
+                <option key={opt.value} value={opt.value}>
+                  {opt.label}
+                </option>
+              ))}
+            </select>
+
+            {/* Filters toggle */}
+            <button
+              className={`board-filters-toggle ${filtersOpen ? 'active' : ''}`}
+              onClick={() => setFiltersOpen((prev) => !prev)}
+            >
+              <SlidersHorizontal size={14} />
+              <span>Filters</span>
+              {activeFilterCount > 0 && (
+                <span className="board-filters-count">{activeFilterCount}</span>
+              )}
             </button>
-          ))}
+          </div>
         </div>
+
+        {/* Collapsible Filters Panel */}
+        <div className={`board-filters-panel ${filtersOpen ? 'open' : ''}`}>
+          <div className="board-filters-panel-inner">
+            {/* Category */}
+            <div className="board-filter-section">
+              <span className="board-filter-label">Category</span>
+              <div className="filter-group">
+                {CATEGORIES.map((cat) => (
+                  <button
+                    key={cat}
+                    className={`filter-btn ${category === cat ? 'active' : ''}`}
+                    onClick={() => setCategory(cat)}
+                  >
+                    {cat === 'all' ? 'All' : cat.charAt(0).toUpperCase() + cat.slice(1)}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Platform */}
+            <div className="board-filter-section">
+              <span className="board-filter-label">Platform</span>
+              <div className="filter-group">
+                {PLATFORMS.map((plat) => (
+                  <button
+                    key={plat}
+                    className={`filter-btn ${platform === plat ? 'active' : ''}`}
+                    onClick={() => setPlatform(plat)}
+                  >
+                    {plat === 'all' ? 'All' : plat}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Status */}
+            <div className="board-filter-section">
+              <span className="board-filter-label">Status</span>
+              <div className="board-filter-status-wrap">
+                {STATUSES.map((s) => (
+                  <button
+                    key={s}
+                    className={`status-filter-btn ${status === s ? 'active' : ''}`}
+                    onClick={() => setStatus(s)}
+                  >
+                    {s === 'all' ? 'All' : s.replace('_', ' ')}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Clear all */}
+            {activeFilterCount > 0 && (
+              <button className="board-clear-filters" onClick={clearAllFilters}>
+                <X size={12} />
+                Clear all filters
+              </button>
+            )}
+          </div>
+        </div>
+
+        {/* Active filter chips — visible when panel is closed */}
+        {!filtersOpen && activeFilterCount > 0 && (
+          <div className="board-active-chips">
+            {category !== 'all' && (
+              <span className="board-active-chip">
+                {category.charAt(0).toUpperCase() + category.slice(1)}
+                <button onClick={() => setCategory('all')}><X size={10} /></button>
+              </span>
+            )}
+            {platform !== 'all' && (
+              <span className="board-active-chip">
+                {platform}
+                <button onClick={() => setPlatform('all')}><X size={10} /></button>
+              </span>
+            )}
+            {status !== 'all' && (
+              <span className="board-active-chip">
+                {status.replace('_', ' ')}
+                <button onClick={() => setStatus('all')}><X size={10} /></button>
+              </span>
+            )}
+          </div>
+        )}
 
         {/* Posts */}
         {initialLoading ? (
@@ -216,9 +288,15 @@ export default function Board() {
           </div>
         ) : (
           <>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-2)' }}>
-              {posts.map((post) => (
-                <PostCard key={post.id} post={post} />
+            <div className="board-posts-list">
+              {posts.map((post, index) => (
+                <div
+                  key={post.id}
+                  className="board-post-entrance"
+                  style={{ animationDelay: `${Math.min(index * 0.04, 0.6)}s` }}
+                >
+                  <PostCard post={post} />
+                </div>
               ))}
             </div>
 
