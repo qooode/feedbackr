@@ -814,27 +814,23 @@ select.input {
   -webkit-line-clamp: 1;
   -webkit-box-orient: vertical;
   overflow: hidden;
-  opacity: 0.6;
+  opacity: 0.5;
   transition: opacity var(--transition-fast);
 }
 
 .post-card:hover .post-card-body {
-  opacity: 1;
-  -webkit-line-clamp: 2;
+  opacity: 0.8;
 }
 
-/* Secondary badges — hidden by default, revealed on hover */
+/* Secondary badges — always visible but subdued, brighten on hover */
 .post-card-secondary-badges {
   display: inline-flex;
   gap: var(--space-2);
-  max-width: 0;
-  overflow: hidden;
-  opacity: 0;
-  transition: max-width 0.3s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.2s ease;
+  opacity: 0.4;
+  transition: opacity var(--transition-fast);
 }
 
 .post-card:hover .post-card-secondary-badges {
-  max-width: 300px;
   opacity: 1;
 }
 
@@ -3028,16 +3024,6 @@ details[open] .refine-history-toggle::before {
     flex-direction: column;
     align-items: flex-start;
     gap: var(--space-1);
-  }
-
-  /* Always show secondary badges on mobile (no hover) */
-  .post-card-secondary-badges {
-    max-width: 300px;
-    opacity: 1;
-  }
-
-  .post-card-body {
-    opacity: 1;
   }
 
   .page-title {
