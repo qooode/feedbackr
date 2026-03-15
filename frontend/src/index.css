@@ -425,9 +425,9 @@ select.input {
   left: 0;
   right: 0;
   height: var(--navbar-height);
-  background: rgba(9, 9, 11, 0.80);
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
+  background: rgba(9, 9, 11, 0.85);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
   border-bottom: 1px solid var(--border);
   z-index: 1000;
 }
@@ -439,14 +439,7 @@ select.input {
   height: 100%;
   display: flex;
   align-items: center;
-  justify-content: space-between;
-}
-
-.navbar-left {
-  display: flex;
-  align-items: center;
-  gap: 0;
-  min-width: 0;
+  gap: var(--space-4);
 }
 
 .navbar-brand {
@@ -459,6 +452,7 @@ select.input {
   text-decoration: none;
   letter-spacing: -0.02em;
   flex-shrink: 0;
+  margin-right: var(--space-2);
 }
 
 .navbar-brand:hover {
@@ -470,19 +464,19 @@ select.input {
 }
 
 .navbar-brand-logo {
-  width: 22px;
-  height: 22px;
+  width: 24px;
+  height: 24px;
   object-fit: contain;
   border-radius: var(--radius-sm);
 }
 
-/* Breadcrumb — visible only on mobile via media query below */
+/* Breadcrumb — mobile only */
 .navbar-breadcrumb {
   display: none;
   align-items: center;
   gap: 2px;
   color: var(--muted-foreground);
-  margin-left: 2px;
+  margin-left: -4px;
   min-width: 0;
 }
 
@@ -495,51 +489,94 @@ select.input {
   text-overflow: ellipsis;
 }
 
-.navbar-links {
+/* --- Nav Pill Bar --- */
+
+.navbar-nav-pill {
   display: flex;
   align-items: center;
   gap: 2px;
+  background: var(--muted);
+  border-radius: var(--radius-md);
+  padding: 3px;
 }
 
-.navbar-link {
-  padding: 6px 12px;
-  border-radius: var(--radius-md);
-  font-size: var(--font-size-sm);
+.nav-pill-item {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  padding: 5px 12px;
+  border-radius: calc(var(--radius-md) - 1px);
+  font-size: var(--font-size-xs);
   font-weight: 500;
   color: var(--muted-foreground);
+  text-decoration: none;
   transition: all var(--transition-fast);
+  white-space: nowrap;
+  position: relative;
 }
 
-.navbar-link:hover {
+.nav-pill-item:hover {
   color: var(--foreground);
-  background: var(--accent);
+  background: rgba(255, 255, 255, 0.04);
 }
 
-.navbar-link.active {
+.nav-pill-item.active {
   color: var(--foreground);
-  background: var(--accent);
+  background: var(--background);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3), 0 0 0 1px rgba(255, 255, 255, 0.04);
 }
+
+/* --- Right Actions --- */
 
 .navbar-actions {
   display: flex;
   align-items: center;
-  gap: var(--space-2);
+  gap: var(--space-1);
+  margin-left: auto;
 }
 
-.navbar-user {
-  display: flex;
+.navbar-new-post-btn {
+  display: inline-flex;
   align-items: center;
-  gap: var(--space-2);
-  padding: 4px 8px;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
   border-radius: var(--radius-md);
-  font-size: var(--font-size-sm);
-  color: var(--muted-foreground);
+  background: var(--primary);
+  color: var(--primary-foreground);
+  text-decoration: none;
+  transition: all var(--transition-fast);
+  flex-shrink: 0;
+}
+
+.navbar-new-post-btn:hover {
+  background: var(--primary-hover);
+  transform: scale(1.05);
+}
+
+.navbar-avatar-link {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  transition: all var(--transition-fast);
+  margin-left: 2px;
+  text-decoration: none;
+}
+
+.navbar-avatar-link:hover {
+  opacity: 0.85;
+  transform: scale(1.05);
+}
+
+.navbar-avatar-link .navbar-avatar {
+  border-radius: 50%;
 }
 
 .navbar-avatar {
   width: 28px;
   height: 28px;
-  border-radius: var(--radius-md);
+  border-radius: 50%;
   background: var(--secondary);
   display: flex;
   align-items: center;
@@ -550,12 +587,12 @@ select.input {
   border: 1px solid var(--border);
 }
 
-/* Hamburger — hidden on desktop, shown on mobile */
+/* Hamburger — hidden on desktop */
 .navbar-hamburger {
   display: none;
 }
 
-/* Desktop-only items — hidden on mobile */
+/* Desktop-only items */
 .navbar-desktop-only {
   display: inline-flex;
 }
@@ -2666,17 +2703,6 @@ details[open] .refine-history-toggle::before {
   margin-bottom: var(--space-4);
 }
 
-a.navbar-user {
-  text-decoration: none;
-  border-radius: var(--radius-md);
-  transition: background var(--transition-fast);
-  cursor: pointer;
-}
-
-a.navbar-user:hover {
-  background: var(--accent);
-}
-
 /* --- Responsive --- */
 
 @media (max-width: 768px) {
@@ -2689,7 +2715,7 @@ a.navbar-user:hover {
     padding: 0 var(--space-3);
   }
 
-  .navbar-links {
+  .navbar-nav-pill {
     display: none;
   }
 

@@ -33,7 +33,7 @@ export default function Navbar() {
   });
   const [mobileOpen, setMobileOpen] = useState(false);
 
-  const isActive = (path) => location.pathname === path ? 'navbar-link active' : 'navbar-link';
+  const isActive = (path) => location.pathname === path;
   const currentLabel = getPageLabel(location.pathname);
 
   // Close mobile menu on navigation
@@ -56,88 +56,74 @@ export default function Navbar() {
     logout();
   }, [logout]);
 
+  const NAV_ITEMS = [
+    { path: '/', label: 'Board', icon: LayoutGrid },
+    { path: '/submit', label: 'Submit', icon: PenLine },
+    { path: '/changelog', label: 'Updates', icon: Megaphone },
+    { path: '/roadmap', label: 'Roadmap', icon: Map },
+  ];
+
   return (
     <>
       <nav className="navbar">
         <div className="navbar-inner">
-          {/* Left: Brand + mobile breadcrumb */}
-          <div className="navbar-left">
-            <Link to="/" className="navbar-brand">
-              {LOGO_URL ? (
-                <img src={LOGO_URL} alt={APP_NAME} className="navbar-brand-logo" />
-              ) : (
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                  <path d="M7.9 20A9 9 0 1 0 4 16.1L2 22Z" />
-                </svg>
-              )}
-              <span className="navbar-brand-text">{APP_NAME}</span>
-            </Link>
-
-            {/* Mobile breadcrumb: shows current page */}
-            {currentLabel && location.pathname !== '/' && (
-              <span className="navbar-breadcrumb">
-                <ChevronRight size={14} />
-                <span className="navbar-breadcrumb-label">{currentLabel}</span>
-              </span>
+          {/* Left: Brand */}
+          <Link to="/" className="navbar-brand">
+            {LOGO_URL ? (
+              <img src={LOGO_URL} alt={APP_NAME} className="navbar-brand-logo" />
+            ) : (
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M7.9 20A9 9 0 1 0 4 16.1L2 22Z" />
+              </svg>
             )}
-          </div>
+            <span className="navbar-brand-text">{APP_NAME}</span>
+          </Link>
 
-          {/* Center: Desktop nav links */}
-          <div className="navbar-links">
-            <Link to="/" className={isActive('/')}>
-              <span style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
-                <LayoutGrid size={12} />
-                Board
-              </span>
-            </Link>
-            <Link to="/submit" className={isActive('/submit')}>
-              <span style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
-                <PenLine size={12} />
-                Submit
-              </span>
-            </Link>
-            <Link to="/changelog" className={isActive('/changelog')}>
-              <span style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
-                <Megaphone size={12} />
-                Updates
-              </span>
-            </Link>
-            <Link to="/roadmap" className={isActive('/roadmap')}>
-              <span style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
-                <Map size={12} />
-                Roadmap
-              </span>
-            </Link>
+          {/* Mobile breadcrumb */}
+          {currentLabel && location.pathname !== '/' && (
+            <span className="navbar-breadcrumb">
+              <ChevronRight size={14} />
+              <span className="navbar-breadcrumb-label">{currentLabel}</span>
+            </span>
+          )}
+
+          {/* Center: Nav pill bar */}
+          <div className="navbar-nav-pill">
+            {NAV_ITEMS.map(({ path, label, icon: Icon }) => (
+              <Link
+                key={path}
+                to={path}
+                className={`nav-pill-item ${isActive(path) ? 'active' : ''}`}
+              >
+                <Icon size={13} />
+                {label}
+              </Link>
+            ))}
             {isAdmin && (
-              <Link to="/admin" className={isActive('/admin')}>
-                <span style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
-                  <LayoutDashboard size={13} />
-                  Admin
-                </span>
+              <Link
+                to="/admin"
+                className={`nav-pill-item ${isActive('/admin') ? 'active' : ''}`}
+              >
+                <LayoutDashboard size={13} />
+                Admin
               </Link>
             )}
           </div>
 
-          {/* Right: Actions (desktop) + Hamburger (mobile) */}
+          {/* Right: Compact actions */}
           <div className="navbar-actions">
             {isLoggedIn ? (
               <>
-                <Link to="/submit" className="btn btn-primary btn-sm navbar-desktop-only">
-                  <Plus size={14} />
-                  New Post
+                <Link to="/submit" className="navbar-new-post-btn navbar-desktop-only" title="New Post">
+                  <Plus size={16} strokeWidth={2.5} />
                 </Link>
                 <NotificationBell />
-                <Link to="/my-feedback" className="navbar-user navbar-desktop-only" title="My Feedback">
-                  <UserAvatar user={user} size="28px" />
-                  <span>{user?.name || user?.username}</span>
+                <Link to="/my-feedback" className="navbar-avatar-link navbar-desktop-only" title="My Feedback">
+                  <UserAvatar user={user} size="30px" />
                 </Link>
-                <button className="btn btn-ghost btn-icon-sm navbar-desktop-only" onClick={logout} title="Log out">
-                  <LogOut size={15} />
-                </button>
               </>
             ) : (
               <button className="btn btn-primary btn-sm navbar-desktop-only" onClick={() => setShowAuth(true)}>
-                <LogIn size={14} />
                 Sign In
               </button>
             )}
