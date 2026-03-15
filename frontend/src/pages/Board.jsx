@@ -3,6 +3,7 @@ import { Search, Plus, Inbox, Loader, SlidersHorizontal, X } from 'lucide-react'
 import { Link } from 'react-router-dom';
 import pb from '../lib/pocketbase';
 import PostCard from '../components/PostCard';
+import CommunitySidebar from '../components/CommunitySidebar';
 import { useAuth } from '../hooks/useAuth';
 
 const CATEGORIES = ['all', 'bug', 'feature', 'improvement'];
@@ -130,192 +131,200 @@ export default function Board() {
           </div>
         </div>
 
-        {/* Compact Toolbar */}
-        <div className="board-toolbar">
-          <div className="search-input" style={{ position: 'relative' }}>
-            <Search
-              size={14}
-              style={{
-                position: 'absolute',
-                left: '12px',
-                top: '50%',
-                transform: 'translateY(-50%)',
-                color: 'var(--muted-foreground)',
-              }}
-            />
-            <input
-              className="input"
-              type="text"
-              placeholder="Search feedback..."
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              style={{ paddingLeft: '34px' }}
-            />
-          </div>
-
-          <div className="board-toolbar-right">
-            {/* Sort — always visible */}
-            <select
-              className="input"
-              value={sort}
-              onChange={(e) => setSort(e.target.value)}
-              style={{ width: 'auto', minWidth: '120px' }}
-            >
-              {SORT_OPTIONS.map((opt) => (
-                <option key={opt.value} value={opt.value}>
-                  {opt.label}
-                </option>
-              ))}
-            </select>
-
-            {/* Filters toggle */}
-            <button
-              className={`board-filters-toggle ${filtersOpen ? 'active' : ''}`}
-              onClick={() => setFiltersOpen((prev) => !prev)}
-            >
-              <SlidersHorizontal size={14} />
-              <span>Filters</span>
-              {activeFilterCount > 0 && (
-                <span className="board-filters-count">{activeFilterCount}</span>
-              )}
-            </button>
-          </div>
-        </div>
-
-        {/* Collapsible Filters Panel */}
-        <div className={`board-filters-panel ${filtersOpen ? 'open' : ''}`}>
-          <div className="board-filters-panel-inner">
-            {/* Category */}
-            <div className="board-filter-section">
-              <span className="board-filter-label">Category</span>
-              <div className="filter-group">
-                {CATEGORIES.map((cat) => (
-                  <button
-                    key={cat}
-                    className={`filter-btn ${category === cat ? 'active' : ''}`}
-                    onClick={() => setCategory(cat)}
-                  >
-                    {cat === 'all' ? 'All' : cat.charAt(0).toUpperCase() + cat.slice(1)}
-                  </button>
-                ))}
+        {/* Two-column layout: Feed + Sidebar */}
+        <div className="board-layout">
+          <div className="board-main">
+            {/* Compact Toolbar */}
+            <div className="board-toolbar">
+              <div className="search-input" style={{ position: 'relative' }}>
+                <Search
+                  size={14}
+                  style={{
+                    position: 'absolute',
+                    left: '12px',
+                    top: '50%',
+                    transform: 'translateY(-50%)',
+                    color: 'var(--muted-foreground)',
+                  }}
+                />
+                <input
+                  className="input"
+                  type="text"
+                  placeholder="Search feedback..."
+                  value={search}
+                  onChange={(e) => setSearch(e.target.value)}
+                  style={{ paddingLeft: '34px' }}
+                />
               </div>
-            </div>
 
-            {/* Platform */}
-            <div className="board-filter-section">
-              <span className="board-filter-label">Platform</span>
-              <div className="filter-group">
-                {PLATFORMS.map((plat) => (
-                  <button
-                    key={plat}
-                    className={`filter-btn ${platform === plat ? 'active' : ''}`}
-                    onClick={() => setPlatform(plat)}
-                  >
-                    {plat === 'all' ? 'All' : plat}
-                  </button>
-                ))}
-              </div>
-            </div>
-
-            {/* Status */}
-            <div className="board-filter-section">
-              <span className="board-filter-label">Status</span>
-              <div className="board-filter-status-wrap">
-                {STATUSES.map((s) => (
-                  <button
-                    key={s}
-                    className={`status-filter-btn ${status === s ? 'active' : ''}`}
-                    onClick={() => setStatus(s)}
-                  >
-                    {s === 'all' ? 'All' : s.replace('_', ' ')}
-                  </button>
-                ))}
-              </div>
-            </div>
-
-            {/* Clear all */}
-            {activeFilterCount > 0 && (
-              <button className="board-clear-filters" onClick={clearAllFilters}>
-                <X size={12} />
-                Clear all filters
-              </button>
-            )}
-          </div>
-        </div>
-
-        {/* Active filter chips — visible when panel is closed */}
-        {!filtersOpen && activeFilterCount > 0 && (
-          <div className="board-active-chips">
-            {category !== 'all' && (
-              <span className="board-active-chip">
-                {category.charAt(0).toUpperCase() + category.slice(1)}
-                <button onClick={() => setCategory('all')}><X size={10} /></button>
-              </span>
-            )}
-            {platform !== 'all' && (
-              <span className="board-active-chip">
-                {platform}
-                <button onClick={() => setPlatform('all')}><X size={10} /></button>
-              </span>
-            )}
-            {status !== 'all' && (
-              <span className="board-active-chip">
-                {status.replace('_', ' ')}
-                <button onClick={() => setStatus('all')}><X size={10} /></button>
-              </span>
-            )}
-          </div>
-        )}
-
-        {/* Posts */}
-        {initialLoading ? (
-          <div className="loading-page" style={{ minHeight: '40vh' }}>
-            <div className="spinner" />
-          </div>
-        ) : posts.length === 0 ? (
-          <div className="empty-state">
-            <div className="empty-state-icon">
-              <Inbox size={40} strokeWidth={1.5} />
-            </div>
-            <h3 className="empty-state-title">No feedback yet</h3>
-            <p className="empty-state-text">
-              Be the first to share your thoughts.
-            </p>
-            <Link to="/submit" className="btn btn-primary btn-lg">
-              <Plus size={15} />
-              Submit Feedback
-            </Link>
-          </div>
-        ) : (
-          <>
-            <div className="board-posts-list">
-              {posts.map((post, index) => (
-                <div
-                  key={post.id}
-                  className="board-post-entrance"
-                  style={{ animationDelay: `${Math.min(index * 0.04, 0.6)}s` }}
+              <div className="board-toolbar-right">
+                {/* Sort — always visible */}
+                <select
+                  className="input"
+                  value={sort}
+                  onChange={(e) => setSort(e.target.value)}
+                  style={{ width: 'auto', minWidth: '120px' }}
                 >
-                  <PostCard post={post} />
-                </div>
-              ))}
+                  {SORT_OPTIONS.map((opt) => (
+                    <option key={opt.value} value={opt.value}>
+                      {opt.label}
+                    </option>
+                  ))}
+                </select>
+
+                {/* Filters toggle */}
+                <button
+                  className={`board-filters-toggle ${filtersOpen ? 'active' : ''}`}
+                  onClick={() => setFiltersOpen((prev) => !prev)}
+                >
+                  <SlidersHorizontal size={14} />
+                  <span>Filters</span>
+                  {activeFilterCount > 0 && (
+                    <span className="board-filters-count">{activeFilterCount}</span>
+                  )}
+                </button>
+              </div>
             </div>
 
-            {/* Infinite scroll sentinel + loading indicator */}
-            <div ref={sentinelRef} className="infinite-scroll-sentinel">
-              {loadingMore && (
-                <div className="infinite-scroll-loader">
-                  <Loader size={18} className="infinite-scroll-spinner" />
-                  <span>Loading more…</span>
+            {/* Collapsible Filters Panel */}
+            <div className={`board-filters-panel ${filtersOpen ? 'open' : ''}`}>
+              <div className="board-filters-panel-inner">
+                {/* Category */}
+                <div className="board-filter-section">
+                  <span className="board-filter-label">Category</span>
+                  <div className="filter-group">
+                    {CATEGORIES.map((cat) => (
+                      <button
+                        key={cat}
+                        className={`filter-btn ${category === cat ? 'active' : ''}`}
+                        onClick={() => setCategory(cat)}
+                      >
+                        {cat === 'all' ? 'All' : cat.charAt(0).toUpperCase() + cat.slice(1)}
+                      </button>
+                    ))}
+                  </div>
                 </div>
-              )}
-              {!hasMore && posts.length > PER_PAGE && (
-                <div className="infinite-scroll-end">
-                  You've seen all {totalItems.toLocaleString()} submissions
+
+                {/* Platform */}
+                <div className="board-filter-section">
+                  <span className="board-filter-label">Platform</span>
+                  <div className="filter-group">
+                    {PLATFORMS.map((plat) => (
+                      <button
+                        key={plat}
+                        className={`filter-btn ${platform === plat ? 'active' : ''}`}
+                        onClick={() => setPlatform(plat)}
+                      >
+                        {plat === 'all' ? 'All' : plat}
+                      </button>
+                    ))}
+                  </div>
                 </div>
-              )}
+
+                {/* Status */}
+                <div className="board-filter-section">
+                  <span className="board-filter-label">Status</span>
+                  <div className="board-filter-status-wrap">
+                    {STATUSES.map((s) => (
+                      <button
+                        key={s}
+                        className={`status-filter-btn ${status === s ? 'active' : ''}`}
+                        onClick={() => setStatus(s)}
+                      >
+                        {s === 'all' ? 'All' : s.replace('_', ' ')}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Clear all */}
+                {activeFilterCount > 0 && (
+                  <button className="board-clear-filters" onClick={clearAllFilters}>
+                    <X size={12} />
+                    Clear all filters
+                  </button>
+                )}
+              </div>
             </div>
-          </>
-        )}
+
+            {/* Active filter chips — visible when panel is closed */}
+            {!filtersOpen && activeFilterCount > 0 && (
+              <div className="board-active-chips">
+                {category !== 'all' && (
+                  <span className="board-active-chip">
+                    {category.charAt(0).toUpperCase() + category.slice(1)}
+                    <button onClick={() => setCategory('all')}><X size={10} /></button>
+                  </span>
+                )}
+                {platform !== 'all' && (
+                  <span className="board-active-chip">
+                    {platform}
+                    <button onClick={() => setPlatform('all')}><X size={10} /></button>
+                  </span>
+                )}
+                {status !== 'all' && (
+                  <span className="board-active-chip">
+                    {status.replace('_', ' ')}
+                    <button onClick={() => setStatus('all')}><X size={10} /></button>
+                  </span>
+                )}
+              </div>
+            )}
+
+            {/* Posts */}
+            {initialLoading ? (
+              <div className="loading-page" style={{ minHeight: '40vh' }}>
+                <div className="spinner" />
+              </div>
+            ) : posts.length === 0 ? (
+              <div className="empty-state">
+                <div className="empty-state-icon">
+                  <Inbox size={40} strokeWidth={1.5} />
+                </div>
+                <h3 className="empty-state-title">No feedback yet</h3>
+                <p className="empty-state-text">
+                  Be the first to share your thoughts.
+                </p>
+                <Link to="/submit" className="btn btn-primary btn-lg">
+                  <Plus size={15} />
+                  Submit Feedback
+                </Link>
+              </div>
+            ) : (
+              <>
+                <div className="board-posts-list">
+                  {posts.map((post, index) => (
+                    <div
+                      key={post.id}
+                      className="board-post-entrance"
+                      style={{ animationDelay: `${Math.min(index * 0.04, 0.6)}s` }}
+                    >
+                      <PostCard post={post} />
+                    </div>
+                  ))}
+                </div>
+
+                {/* Infinite scroll sentinel + loading indicator */}
+                <div ref={sentinelRef} className="infinite-scroll-sentinel">
+                  {loadingMore && (
+                    <div className="infinite-scroll-loader">
+                      <Loader size={18} className="infinite-scroll-spinner" />
+                      <span>Loading more…</span>
+                    </div>
+                  )}
+                  {!hasMore && posts.length > PER_PAGE && (
+                    <div className="infinite-scroll-end">
+                      You've seen all {totalItems.toLocaleString()} submissions
+                    </div>
+                  )}
+                </div>
+              </>
+            )}
+          </div>
+
+          {/* Right Sidebar */}
+          <CommunitySidebar />
+        </div>
       </div>
     </div>
   );
