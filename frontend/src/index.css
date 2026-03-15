@@ -4720,18 +4720,16 @@ details[open] .refine-history-toggle::before {
 
 /* Widget card */
 .sidebar-widget {
-  border: none;
-  border-radius: 0;
-  background: transparent;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  background: var(--card);
   overflow: hidden;
   animation: sidebarFadeIn 0.4s cubic-bezier(0.16, 1, 0.3, 1) backwards;
-  padding-bottom: 10px;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+  transition: border-color var(--transition-fast);
 }
 
-.sidebar-widget:last-child {
-  border-bottom: none;
-  padding-bottom: 0;
+.sidebar-widget:hover {
+  border-color: #3f3f46;
 }
 
 .sidebar-widget:nth-child(2) { animation-delay: 0.04s; }
@@ -4754,11 +4752,11 @@ details[open] .refine-history-toggle::before {
   display: flex;
   align-items: center;
   gap: 6px;
-  padding: 6px 0 8px 0;
+  padding: 10px var(--space-4);
   font-size: var(--font-size-xs);
   font-weight: 600;
   color: var(--foreground);
-  border-bottom: none;
+  border-bottom: 1px solid var(--border);
 }
 
 .sidebar-widget-header svg {
@@ -4782,7 +4780,7 @@ details[open] .refine-history-toggle::before {
   display: flex;
   align-items: center;
   gap: 8px;
-  padding: 5px 0;
+  padding: 6px var(--space-4);
   transition: background var(--transition-fast);
 }
 
@@ -4850,7 +4848,7 @@ details[open] .refine-history-toggle::before {
   display: flex;
   align-items: center;
   gap: 8px;
-  padding: 6px 0;
+  padding: 7px var(--space-4);
   cursor: pointer;
   transition: background var(--transition-fast);
 }
@@ -4896,8 +4894,8 @@ details[open] .refine-history-toggle::before {
   align-items: center;
   justify-content: center;
   gap: 4px;
-  padding: 6px 0 0 0;
-  border-top: none;
+  padding: 8px var(--space-4);
+  border-top: 1px solid var(--border);
   font-size: 11px;
   font-weight: 500;
   color: var(--muted-foreground) !important;
@@ -4920,7 +4918,7 @@ details[open] .refine-history-toggle::before {
 
 /* --- At a Glance --- */
 .sidebar-glance {
-  padding: var(--space-2) 0 0 0;
+  padding: var(--space-3) var(--space-4) var(--space-4);
   display: flex;
   flex-direction: column;
   gap: var(--space-3);
