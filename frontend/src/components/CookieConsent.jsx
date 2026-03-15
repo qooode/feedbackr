@@ -67,9 +67,10 @@ export default function CookieConsent() {
           <div>
             <h3 className="cookie-banner-title">Privacy Notice</h3>
             <p className="cookie-banner-subtitle">
-              This site uses browser storage (Local Storage) only for essential functions
-              like keeping you logged in. We do not use tracking cookies, analytics, or
-              advertising. Your AI conversations are processed by{' '}
+              This site uses Cloudflare security cookies and browser Local Storage for
+              essential functions only (keeping you logged in, bot protection). We do not
+              use tracking, analytics, or advertising cookies. AI conversations are
+              processed by{' '}
               <a href="https://openrouter.ai/privacy" target="_blank" rel="noopener noreferrer"
                 className="cookie-banner-link">OpenRouter.ai</a>.
               Read our{' '}

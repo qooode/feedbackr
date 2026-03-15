@@ -208,14 +208,6 @@ export default function TermsOfService() {
             </p>
           </section>
         </div>
-
-        <div className="legal-footer-nav">
-          <Link to="/privacy" className="legal-link">Privacy Policy</Link>
-          <span className="legal-footer-sep">·</span>
-          <Link to="/cookies" className="legal-link">Cookie Policy</Link>
-          <span className="legal-footer-sep">·</span>
-          <Link to="/" className="legal-link">Back to Board</Link>
-        </div>
       </div>
     </div>
   );

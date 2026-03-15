@@ -31,14 +31,18 @@ export default function CookiePolicy() {
           <section className="legal-section">
             <h2>2. Our Approach</h2>
             <p>
-              <strong>{appName} does not use HTTP cookies at all.</strong> We use browser
-              Local Storage and Session Storage exclusively for features that are strictly
-              necessary for the platform to function. Because all stored data falls under
-              the "strictly necessary" exemption of the ePrivacy Directive (2002/58/EC),
-              no consent is required for these items.
+              <strong>{appName} itself does not set HTTP cookies.</strong> However, we use
+              Cloudflare as our CDN and security proxy, and Cloudflare may set strictly
+              necessary cookies for bot detection and security challenges. We also use
+              browser Local Storage and Session Storage for essential platform functions.
+            </p>
+            <p>
+              Because all stored data (both Cloudflare cookies and our browser storage) is
+              strictly necessary, it falls under the exemption of the ePrivacy Directive
+              (2002/58/EC) and no consent is required.
             </p>
             <p className="legal-note">
-              We do not use any analytics, advertising, marketing, or tracking technologies.
+              We do not use any analytics, advertising, marketing, or tracking cookies.
               There is nothing optional to accept or reject.
             </p>
           </section>
@@ -51,13 +55,33 @@ export default function CookiePolicy() {
                 <thead>
                   <tr>
                     <th>Key</th>
-                    <th>Storage Type</th>
+                    <th>Type</th>
                     <th>Purpose</th>
                     <th>Duration</th>
-                    <th>Strictly Necessary?</th>
+                    <th>Set By</th>
                   </tr>
                 </thead>
                 <tbody>
+                  <tr>
+                    <td><code>__cf_bm</code></td>
+                    <td>HTTP Cookie</td>
+                    <td>
+                      Cloudflare Bot Management. Distinguishes humans from bots to
+                      protect the platform from automated abuse.
+                    </td>
+                    <td>30 minutes</td>
+                    <td>Cloudflare</td>
+                  </tr>
+                  <tr>
+                    <td><code>cf_clearance</code></td>
+                    <td>HTTP Cookie</td>
+                    <td>
+                      Set after you pass a Cloudflare security challenge. Proves you
+                      have been verified so you are not challenged again.
+                    </td>
+                    <td>Up to 24 hours</td>
+                    <td>Cloudflare</td>
+                  </tr>
                   <tr>
                     <td><code>pocketbase_auth</code></td>
                     <td>Local Storage</td>
@@ -66,18 +90,17 @@ export default function CookiePolicy() {
                       logged in between page loads and browser sessions.
                     </td>
                     <td>Until logout or token expiry</td>
-                    <td>Yes</td>
+                    <td>Our app</td>
                   </tr>
                   <tr>
                     <td><code>oauth_provider</code></td>
                     <td>Local Storage</td>
                     <td>
                       Temporarily holds OAuth state (provider name, PKCE code verifier,
-                      redirect URL) during the Discord login redirect flow. Required for
-                      secure authentication.
+                      redirect URL) during the Discord login redirect flow.
                     </td>
                     <td>Deleted immediately after login</td>
-                    <td>Yes</td>
+                    <td>Our app</td>
                   </tr>
                   <tr>
                     <td><code>oauth_error</code></td>
@@ -87,29 +110,46 @@ export default function CookiePolicy() {
                       can be displayed to you after the redirect.
                     </td>
                     <td>Cleared when displayed (same session)</td>
-                    <td>Yes</td>
+                    <td>Our app</td>
                   </tr>
                   <tr>
                     <td><code>feedbackr_cookie_consent</code></td>
                     <td>Local Storage</td>
                     <td>
-                      Records your cookie consent banner preferences (version, timestamp,
-                      and category selections).
+                      Records that you have seen the privacy notice.
                     </td>
                     <td>Persistent</td>
-                    <td>Yes</td>
+                    <td>Our app</td>
                   </tr>
                 </tbody>
               </table>
             </div>
+            <p>
+              All items above are strictly necessary for platform operation or security.
+              None are used for tracking, analytics, or advertising.
+            </p>
           </section>
 
           <section className="legal-section">
-            <h2>4. Third-Party Storage</h2>
+            <h2>4. Third-Party Cookies &amp; Storage</h2>
             <p>
-              When you sign in via Discord OAuth, your browser is redirected to Discord's
-              website. Discord may set its own cookies during this redirect. These cookies
-              are governed by{' '}
+              <strong>Cloudflare:</strong> All traffic to our platform passes through Cloudflare's
+              network. Cloudflare sets the <code>__cf_bm</code> and <code>cf_clearance</code>{' '}
+              cookies described above. Cloudflare also processes your IP address for security
+              purposes (DDoS mitigation, bot detection). See{' '}
+              <a
+                href="https://www.cloudflare.com/privacypolicy/"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="legal-link"
+              >
+                Cloudflare's Privacy Policy
+              </a>.
+            </p>
+            <p>
+              <strong>Discord:</strong> When you sign in via Discord OAuth, your browser is
+              redirected to Discord's website. Discord may set its own cookies during this
+              redirect. These cookies are governed by{' '}
               <a
                 href="https://discord.com/privacy"
                 target="_blank"
@@ -120,8 +160,8 @@ export default function CookiePolicy() {
               </a>.
             </p>
             <p>
-              We load the Inter font from Google Fonts. Google may use cookies or cache
-              headers when serving font files. See{' '}
+              <strong>Google Fonts:</strong> We load the Inter font from Google Fonts. Google
+              may use cookies or cache headers when serving font files. See{' '}
               <a
                 href="https://developers.google.com/fonts/faq/privacy"
                 target="_blank"
@@ -132,8 +172,7 @@ export default function CookiePolicy() {
               </a>.
             </p>
             <p>
-              We do not embed any other third-party scripts, advertising pixels, social
-              media widgets, or analytics tools.
+              We do not embed any advertising pixels, social media widgets, or analytics tools.
             </p>
           </section>
 
@@ -178,14 +217,6 @@ export default function CookiePolicy() {
               reflects the most recent revision.
             </p>
           </section>
-        </div>
-
-        <div className="legal-footer-nav">
-          <Link to="/privacy" className="legal-link">Privacy Policy</Link>
-          <span className="legal-footer-sep">·</span>
-          <Link to="/terms" className="legal-link">Terms of Service</Link>
-          <span className="legal-footer-sep">·</span>
-          <Link to="/" className="legal-link">Back to Board</Link>
         </div>
       </div>
     </div>

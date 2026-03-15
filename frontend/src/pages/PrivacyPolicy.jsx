@@ -73,9 +73,10 @@ export default function PrivacyPolicy() {
               </li>
             </ul>
             <p className="legal-note">
-              <strong>What we do NOT collect:</strong> We do not collect IP addresses for
-              tracking, do not use analytics or advertising trackers, do not use cookies
-              (see Section 10), and do not perform behavioral profiling.
+              <strong>What we do NOT collect:</strong> We do not use analytics or advertising
+              trackers and do not perform behavioral profiling. Note that Cloudflare, which
+              proxies our traffic for security, does process IP addresses and may set
+              security cookies (see Sections 6 and 10).
             </p>
           </section>
 
@@ -139,6 +140,16 @@ export default function PrivacyPolicy() {
                 </a>.
               </li>
               <li>
+                <strong>Cloudflare (CDN &amp; Security):</strong> All traffic to our platform
+                is routed through Cloudflare's global network. Cloudflare provides DDoS
+                protection, web application firewall (WAF), and content delivery. Cloudflare
+                processes your IP address and may set HTTP cookies for bot management and
+                security verification (see Section 10). See{' '}
+                <a href="https://www.cloudflare.com/privacypolicy/" target="_blank" rel="noopener noreferrer" className="legal-link">
+                  Cloudflare's Privacy Policy
+                </a>.
+              </li>
+              <li>
                 <strong>Google Fonts:</strong> We load the Inter font from Google Fonts. This
                 means your browser makes a request to Google's servers when loading the page.
                 See{' '}
@@ -156,10 +167,12 @@ export default function PrivacyPolicy() {
           <section className="legal-section">
             <h2>7. International Data Transfers</h2>
             <p>
-              Some of our third-party services (Discord, OpenRouter, Google Fonts) may process
-              data outside the EU/EEA, particularly in the United States. These transfers are
-              protected by the EU-US Data Privacy Framework or Standard Contractual Clauses
-              (SCCs) as applicable under each provider's data processing agreements.
+              Some of our third-party services (Cloudflare, Discord, OpenRouter, Google Fonts)
+              may process data outside the EU/EEA. Cloudflare operates a global network and
+              may route your request through the nearest data center, which could be outside
+              the EU/EEA. These transfers are protected by the EU-US Data Privacy Framework,
+              Standard Contractual Clauses (SCCs), or adequacy decisions as applicable under
+              each provider's data processing agreements.
             </p>
           </section>
 
@@ -212,13 +225,29 @@ export default function PrivacyPolicy() {
           <section className="legal-section">
             <h2>10. Cookies &amp; Browser Storage</h2>
             <p>
-              <strong>{appName} does not use HTTP cookies.</strong> Instead, we use browser
-              Local Storage and Session Storage for strictly necessary purposes only:
+              Our application code does not set HTTP cookies directly. However,{' '}
+              <strong>Cloudflare</strong>, which proxies all traffic to our platform, may set
+              the following cookies for security purposes:
+            </p>
+            <ul>
+              <li>
+                <strong><code>__cf_bm</code></strong> (HTTP Cookie): Cloudflare Bot Management
+                cookie. Used to distinguish humans from bots. Expires after 30 minutes. Set by
+                Cloudflare, not by our application. Strictly necessary for security.
+              </li>
+              <li>
+                <strong><code>cf_clearance</code></strong> (HTTP Cookie): Set if you complete
+                a Cloudflare security challenge. Proves you passed the check so you are not
+                challenged again. Strictly necessary for access.
+              </li>
+            </ul>
+            <p>
+              In addition, we use browser Local Storage and Session Storage for essential functions:
             </p>
             <ul>
               <li>
                 <strong><code>pocketbase_auth</code></strong> (Local Storage): Your authentication
-                token that keeps you logged in. Strictly necessary for the service to function.
+                token that keeps you logged in. Strictly necessary.
               </li>
               <li>
                 <strong><code>oauth_provider</code></strong> (Local Storage): Temporary OAuth state
@@ -230,13 +259,14 @@ export default function PrivacyPolicy() {
               </li>
               <li>
                 <strong><code>feedbackr_cookie_consent</code></strong> (Local Storage): Records
-                your cookie consent preferences. Strictly necessary.
+                that you have seen the privacy notice. Strictly necessary.
               </li>
             </ul>
             <p>
-              Since all of these are strictly necessary for the platform to function, they are
-              exempt from consent requirements under the ePrivacy Directive. For full details,
-              see our <Link to="/cookies" className="legal-link">Cookie Policy</Link>.
+              All cookies and storage items listed above are strictly necessary for the platform
+              to function and are exempt from consent requirements under the ePrivacy Directive.
+              For full details, see our{' '}
+              <Link to="/cookies" className="legal-link">Cookie Policy</Link>.
             </p>
           </section>
 
@@ -246,6 +276,7 @@ export default function PrivacyPolicy() {
               We implement appropriate technical measures to protect your data:
             </p>
             <ul>
+              <li>Cloudflare DDoS protection, WAF, and bot management on all traffic</li>
               <li>Encrypted connections (HTTPS) for all data in transit</li>
               <li>Passwords are hashed using PocketBase's built-in bcrypt hashing</li>
               <li>OAuth authentication uses PKCE (Proof Key for Code Exchange) for secure authorization flows</li>
@@ -282,14 +313,6 @@ export default function PrivacyPolicy() {
               at the top indicates the most recent revision.
             </p>
           </section>
-        </div>
-
-        <div className="legal-footer-nav">
-          <Link to="/terms" className="legal-link">Terms of Service</Link>
-          <span className="legal-footer-sep">·</span>
-          <Link to="/cookies" className="legal-link">Cookie Policy</Link>
-          <span className="legal-footer-sep">·</span>
-          <Link to="/" className="legal-link">Back to Board</Link>
         </div>
       </div>
     </div>
