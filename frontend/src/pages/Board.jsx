@@ -31,59 +31,97 @@ export default function Board() {
   const [totalPages, setTotalPages] = useState(1);
   const [filtersOpen, setFiltersOpen] = useState(false);
   const sentinelRef = useRef(null);
-  const isLoadingRef = useRef(false);
 
-  // Reset everything when filters change
+  // Generation counter — increments on every filter change to discard stale responses
+  const fetchGenRef = useRef(0);
+
+  // Build the PocketBase filter string from current state
+  const buildFilter = useCallback(() => {
+    const filters = [];
+    if (category !== 'all') filters.push(`category = "${category}"`);
+    if (platform !== 'all') filters.push(`platform = "${platform}"`);
+    if (status !== 'all') filters.push(`status = "${status}"`);
+    if (search.trim()) {
+      const sanitized = search.trim().replace(/[^\w\s]/g, '').slice(0, 100);
+      if (sanitized) filters.push(`(title ~ "${sanitized}" || body ~ "${sanitized}")`);
+    }
+    return filters.join(' && ');
+  }, [category, platform, status, search]);
+
+  // When filters or sort change → reset to page 1 and fetch fresh
   useEffect(() => {
+    const gen = ++fetchGenRef.current;
+
     setPosts([]);
     setPage(1);
     setTotalPages(1);
     setInitialLoading(true);
-  }, [category, platform, status, sort, search]);
 
-  // Fetch posts whenever page changes
-  useEffect(() => {
-    fetchPosts();
-  }, [category, platform, status, sort, search, page]);
+    const fetchFirstPage = async () => {
+      try {
+        const result = await pb.collection('posts').getList(1, PER_PAGE, {
+          filter: buildFilter(),
+          sort,
+          expand: 'author',
+          requestKey: `posts-page-${gen}`,  // unique key prevents autoCancellation collisions
+        });
 
-  const fetchPosts = async () => {
-    if (isLoadingRef.current) return;
-    isLoadingRef.current = true;
+        // Discard if a newer filter change has already started
+        if (gen !== fetchGenRef.current) return;
 
-    const isFirstPage = page === 1;
-    if (isFirstPage) setInitialLoading(true);
-    else setLoadingMore(true);
+        setPosts(result.items);
+        setTotalItems(result.totalItems);
+        setTotalPages(result.totalPages);
+      } catch (err) {
+        if (err?.isAbort) return; // Request was intentionally cancelled
+        console.error('Failed to fetch posts:', err);
+      } finally {
+        if (gen === fetchGenRef.current) {
+          setInitialLoading(false);
+        }
+      }
+    };
+
+    fetchFirstPage();
+  }, [category, platform, status, sort, search, buildFilter]);
+
+  // Load more pages (triggered by infinite scroll)
+  const loadMore = useCallback(async (nextPage) => {
+    const gen = fetchGenRef.current; // capture current generation
+    setLoadingMore(true);
 
     try {
-      const filters = [];
-      if (category !== 'all') filters.push(`category = "${category}"`);
-      if (platform !== 'all') filters.push(`platform = "${platform}"`);
-      if (status !== 'all') filters.push(`status = "${status}"`);
-      if (search.trim()) {
-        const sanitized = search.trim().replace(/[^\w\s]/g, '').slice(0, 100);
-        if (sanitized) filters.push(`(title ~ "${sanitized}" || body ~ "${sanitized}")`);
-      }
-
-      const result = await pb.collection('posts').getList(page, PER_PAGE, {
-        filter: filters.join(' && '),
-        sort: sort,
+      const result = await pb.collection('posts').getList(nextPage, PER_PAGE, {
+        filter: buildFilter(),
+        sort,
         expand: 'author',
+        requestKey: `posts-page-${gen}-${nextPage}`,
       });
 
-      setPosts((prev) => isFirstPage ? result.items : [...prev, ...result.items]);
+      // Discard if filters changed while loading
+      if (gen !== fetchGenRef.current) return;
+
+      setPosts((prev) => [...prev, ...result.items]);
       setTotalItems(result.totalItems);
       setTotalPages(result.totalPages);
     } catch (err) {
-      console.error('Failed to fetch posts:', err);
+      if (err?.isAbort) return;
+      console.error('Failed to load more posts:', err);
     } finally {
-      setInitialLoading(false);
-      setLoadingMore(false);
-      isLoadingRef.current = false;
+      if (gen === fetchGenRef.current) {
+        setLoadingMore(false);
+      }
     }
-  };
+  }, [buildFilter, sort]);
 
   // IntersectionObserver to trigger loading next page
-  const hasMore = page < totalPages;
+  // Use refs for observer callback to always have fresh values
+  const pageRef = useRef(page);
+  const totalPagesRef = useRef(totalPages);
+  const loadingMoreRef = useRef(loadingMore);
+  pageRef.current = page;
+  totalPagesRef.current = totalPages;
+  loadingMoreRef.current = loadingMore;
 
   useEffect(() => {
     const sentinel = sentinelRef.current;
@@ -91,8 +129,11 @@ export default function Board() {
 
     const observer = new IntersectionObserver(
       (entries) => {
-        if (entries[0].isIntersecting && hasMore && !isLoadingRef.current) {
-          setPage((prev) => prev + 1);
+        const hasMore = pageRef.current < totalPagesRef.current;
+        if (entries[0].isIntersecting && hasMore && !loadingMoreRef.current) {
+          const nextPage = pageRef.current + 1;
+          setPage(nextPage);
+          loadMore(nextPage);
         }
       },
       { rootMargin: '200px' }
@@ -100,7 +141,7 @@ export default function Board() {
 
     observer.observe(sentinel);
     return () => observer.disconnect();
-  }, [hasMore, totalPages]);
+  }, [loadMore]);
 
   const hasFilters = category !== 'all' || platform !== 'all' || status !== 'all' || search.trim();
   const activeFilterCount = (category !== 'all' ? 1 : 0) + (platform !== 'all' ? 1 : 0) + (status !== 'all' ? 1 : 0);
@@ -307,7 +348,7 @@ export default function Board() {
                       <span>Loading more…</span>
                     </div>
                   )}
-                  {!hasMore && posts.length > PER_PAGE && (
+                  {page >= totalPages && posts.length > PER_PAGE && (
                     <div className="infinite-scroll-end">
                       You've seen all {totalItems.toLocaleString()} submissions
                     </div>
