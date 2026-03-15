@@ -1,15 +1,11 @@
 import { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import {
-  TrendingUp,
-  ChevronUp,
-  MessageCircle,
   CheckCircle2,
   Users,
   Zap,
   ArrowRight,
   Rocket,
-  Flame,
   Plus,
 } from 'lucide-react';
 import pb from '../lib/pocketbase';
@@ -18,7 +14,7 @@ import UserAvatar from './UserAvatar';
 export default function CommunitySidebar() {
   const navigate = useNavigate();
   const [contributors, setContributors] = useState([]);
-  const [trending, setTrending] = useState([]);
+
   const [shipped, setShipped] = useState([]);
   const [stats, setStats] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -31,7 +27,6 @@ export default function CommunitySidebar() {
     try {
       await Promise.all([
         fetchTopContributors(),
-        fetchTrending(),
         fetchRecentlyShipped(),
         fetchCommunityStats(),
       ]);
@@ -78,24 +73,7 @@ export default function CommunitySidebar() {
     }
   };
 
-  const fetchTrending = async () => {
-    try {
-      // Get posts from the last 7 days, sorted by votes
-      const weekAgo = new Date();
-      weekAgo.setDate(weekAgo.getDate() - 7);
-      const dateStr = weekAgo.toISOString().replace('T', ' ');
 
-      const result = await pb.collection('posts').getList(1, 5, {
-        filter: `created >= "${dateStr}"`,
-        sort: '-votes_count',
-        expand: 'author',
-      });
-
-      setTrending(result.items);
-    } catch (err) {
-      console.warn('[Sidebar] trending:', err);
-    }
-  };
 
   const fetchRecentlyShipped = async () => {
     try {
@@ -186,43 +164,7 @@ export default function CommunitySidebar() {
         </div>
       )}
 
-      {/* Trending This Week */}
-      {trending.length > 0 && (
-        <div className="sidebar-widget">
-          <div className="sidebar-widget-header">
-            <Flame size={14} />
-            <span>Trending This Week</span>
-          </div>
-          <div className="sidebar-widget-body">
-            {trending.map((post) => (
-              <div
-                key={post.id}
-                className="sidebar-trending-item"
-                onClick={() => navigate(`/post/${post.id}`)}
-              >
-                <div className="sidebar-trending-content">
-                  <span className="sidebar-trending-title">{post.title}</span>
-                  <div className="sidebar-trending-meta">
-                    <span className={`badge badge-${post.category}`} style={{ fontSize: '10px', padding: '1px 6px' }}>
-                      {post.category}
-                    </span>
-                    <span className="sidebar-trending-stat">
-                      <ChevronUp size={11} />
-                      {post.votes_count || 0}
-                    </span>
-                    {post.comments_count > 0 && (
-                      <span className="sidebar-trending-stat">
-                        <MessageCircle size={10} />
-                        {post.comments_count}
-                      </span>
-                    )}
-                  </div>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
+
 
       {/* Recently Shipped */}
       {shipped.length > 0 && (
@@ -274,8 +216,8 @@ export default function CommunitySidebar() {
               <span className="sidebar-stat-label">Contributors</span>
             </div>
             <div className="sidebar-stat">
-              <span className="sidebar-stat-value">{trending.length}</span>
-              <span className="sidebar-stat-label">Trending</span>
+              <span className="sidebar-stat-value">{shipped.length}</span>
+              <span className="sidebar-stat-label">Released</span>
             </div>
           </div>
         </div>

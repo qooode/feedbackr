@@ -4694,8 +4694,9 @@ details[open] .refine-history-toggle::before {
   align-items: center;
   justify-content: center;
   width: 100%;
-  padding: 10px 16px;
-  border-radius: var(--radius-lg);
+  height: 36px;
+  padding: 0 16px;
+  border-radius: var(--radius-md);
   background: var(--primary);
   color: var(--primary-foreground) !important;
   font-size: var(--font-size-sm);
