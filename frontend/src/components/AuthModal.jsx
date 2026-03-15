@@ -1,6 +1,7 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useAuth } from '../hooks/useAuth';
 import { X } from 'lucide-react';
+import pb from '../lib/pocketbase';
 
 export default function AuthModal({ onClose }) {
   const { loginWithDiscord, loginWithEmail, register } = useAuth();
@@ -17,6 +18,13 @@ export default function AuthModal({ onClose }) {
     return '';
   });
   const [loading, setLoading] = useState(false);
+  const [passwordEnabled, setPasswordEnabled] = useState(false);
+
+  useEffect(() => {
+    pb.collection('users').listAuthMethods().then((methods) => {
+      setPasswordEnabled(methods.password?.enabled === true);
+    }).catch(() => {});
+  }, []);
 
   const handleDiscord = async () => {
     setLoading(true);
@@ -82,71 +90,80 @@ export default function AuthModal({ onClose }) {
           Continue with Discord
         </button>
 
-        <div className="modal-divider">or</div>
+        {passwordEnabled && (
+          <>
+            <div className="modal-divider">or</div>
 
-        <form className="modal-form" onSubmit={handleSubmit}>
-          {mode === 'register' && (
-            <input
-              className="input"
-              type="text"
-              placeholder="Your name"
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-              required
-            />
-          )}
-          <input
-            className="input"
-            type="email"
-            placeholder="Email address"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            required
-          />
-          <input
-            className="input"
-            type="password"
-            placeholder="Password"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            required
-            minLength={8}
-          />
+            <form className="modal-form" onSubmit={handleSubmit}>
+              {mode === 'register' && (
+                <input
+                  className="input"
+                  type="text"
+                  placeholder="Your name"
+                  value={name}
+                  onChange={(e) => setName(e.target.value)}
+                  required
+                />
+              )}
+              <input
+                className="input"
+                type="email"
+                placeholder="Email address"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                required
+              />
+              <input
+                className="input"
+                type="password"
+                placeholder="Password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                required
+                minLength={8}
+              />
 
-          {error && <div className="error-message">{error}</div>}
+              {error && <div className="error-message">{error}</div>}
 
-          <button className="btn btn-primary btn-lg" type="submit" disabled={loading} style={{ width: '100%' }}>
-            {loading ? <div className="spinner" /> : (mode === 'login' ? 'Sign In' : 'Create Account')}
-          </button>
-        </form>
-
-        <p style={{
-          textAlign: 'center',
-          marginTop: 'var(--space-4)',
-          fontSize: 'var(--font-size-sm)',
-          color: 'var(--muted-foreground)',
-        }}>
-          {mode === 'login' ? (
-            <>Don't have an account?{' '}
-              <button
-                className="btn btn-ghost btn-sm"
-                onClick={() => { setMode('register'); setError(''); }}
-              >
-                Sign up
+              <button className="btn btn-primary btn-lg" type="submit" disabled={loading} style={{ width: '100%' }}>
+                {loading ? <div className="spinner" /> : (mode === 'login' ? 'Sign In' : 'Create Account')}
               </button>
-            </>
-          ) : (
-            <>Already have an account?{' '}
-              <button
-                className="btn btn-ghost btn-sm"
-                onClick={() => { setMode('login'); setError(''); }}
-              >
-                Sign in
-              </button>
-            </>
-          )}
-        </p>
+            </form>
+
+            <p style={{
+              textAlign: 'center',
+              marginTop: 'var(--space-4)',
+              fontSize: 'var(--font-size-sm)',
+              color: 'var(--muted-foreground)',
+            }}>
+              {mode === 'login' ? (
+                <>Don't have an account?{' '}
+                  <button
+                    className="btn btn-ghost btn-sm"
+                    onClick={() => { setMode('register'); setError(''); }}
+                  >
+                    Sign up
+                  </button>
+                </>
+              ) : (
+                <>Already have an account?{' '}
+                  <button
+                    className="btn btn-ghost btn-sm"
+                    onClick={() => { setMode('login'); setError(''); }}
+                  >
+                    Sign in
+                  </button>
+                </>
+              )}
+            </p>
+          </>
+        )}
+
+        {!passwordEnabled && error && (
+          <div className="error-message" style={{ marginTop: 'var(--space-3)' }}>{error}</div>
+        )}
       </div>
     </div>
   );
 }
+

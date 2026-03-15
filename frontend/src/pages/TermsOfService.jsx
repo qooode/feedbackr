@@ -44,9 +44,9 @@ export default function TermsOfService() {
             <h2>3. Account Registration</h2>
             <ul>
               <li>
-                You may sign in using Discord OAuth or by creating an account with your email
-                address and a password. You are responsible for maintaining the security of
-                your account credentials.
+                You sign in using Discord OAuth. If email/password registration is enabled,
+                you may also create an account with your email address and a password. You
+                are responsible for maintaining the security of your account credentials.
               </li>
               <li>
                 You must provide accurate information. Impersonation or misrepresentation

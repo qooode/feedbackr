@@ -51,9 +51,9 @@ export default function PrivacyPolicy() {
                 from Discord's API. This data is stored in our database to identify your account.
               </li>
               <li>
-                <strong>Account Information (Email Registration):</strong> If you register
-                with email, we store your email address, chosen display name, and a hashed
-                password. Passwords are never stored in plain text.
+                <strong>Account Information (Email Registration, if enabled):</strong> If
+                email/password registration is enabled, we store your email address, chosen
+                display name, and a hashed password. Passwords are never stored in plain text.
               </li>
               <li>
                 <strong>User-Generated Content:</strong> Feedback posts (title, body, category,
@@ -278,7 +278,7 @@ export default function PrivacyPolicy() {
             <ul>
               <li>Cloudflare DDoS protection, WAF, and bot management on all traffic</li>
               <li>Encrypted connections (HTTPS) for all data in transit</li>
-              <li>Passwords are hashed using PocketBase's built-in bcrypt hashing</li>
+              <li>Passwords, if email/password auth is enabled, are hashed using PocketBase's built-in bcrypt hashing</li>
               <li>OAuth authentication uses PKCE (Proof Key for Code Exchange) for secure authorization flows</li>
               <li>Server-side ownership enforcement prevents users from modifying other users' content</li>
               <li>Rate limiting prevents spam and abuse</li>
