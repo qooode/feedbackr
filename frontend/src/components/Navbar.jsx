@@ -14,6 +14,9 @@ const PAGE_LABELS = {
   '/roadmap': 'Roadmap',
   '/admin': 'Admin',
   '/my-feedback': 'My Feedback',
+  '/privacy': 'Privacy Policy',
+  '/terms': 'Terms of Service',
+  '/cookies': 'Cookie Policy',
 };
 
 function getPageLabel(pathname) {

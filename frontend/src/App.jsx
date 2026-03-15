@@ -2,6 +2,8 @@ import { BrowserRouter, Routes, Route } from 'react-router-dom';
 import { AuthProvider, useAuth } from './hooks/useAuth';
 import { FavoritesProvider } from './hooks/useFavorites';
 import Navbar from './components/Navbar';
+import Footer from './components/Footer';
+import CookieConsent from './components/CookieConsent';
 import Board from './pages/Board';
 import Submit from './pages/Submit';
 import PostDetail from './pages/PostDetail';
@@ -9,6 +11,9 @@ import AdminKanban from './pages/AdminKanban';
 import Changelog from './pages/Changelog';
 import Roadmap from './pages/Roadmap';
 import MyFeedback from './pages/MyFeedback';
+import PrivacyPolicy from './pages/PrivacyPolicy';
+import TermsOfService from './pages/TermsOfService';
+import CookiePolicy from './pages/CookiePolicy';
 
 function OAuthStatusBanner() {
   const { oauthStatus, clearOauthStatus } = useAuth();
@@ -84,7 +89,12 @@ function AppContent() {
         <Route path="/admin" element={<AdminKanban />} />
         <Route path="/changelog" element={<Changelog />} />
         <Route path="/roadmap" element={<Roadmap />} />
+        <Route path="/privacy" element={<PrivacyPolicy />} />
+        <Route path="/terms" element={<TermsOfService />} />
+        <Route path="/cookies" element={<CookiePolicy />} />
       </Routes>
+      <Footer />
+      <CookieConsent />
     </>
   );
 }
