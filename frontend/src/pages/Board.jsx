@@ -30,7 +30,7 @@ export default function Board() {
   const [totalItems, setTotalItems] = useState(0);
   const [totalPages, setTotalPages] = useState(1);
   const [filtersOpen, setFiltersOpen] = useState(false);
-  const sentinelRef = useRef(null);
+
 
   // Generation counter — increments on every filter change to discard stale responses
   const fetchGenRef = useRef(0);
@@ -86,6 +86,9 @@ export default function Board() {
   }, [category, platform, status, sort, search, buildFilter]);
 
   // Load more pages (triggered by infinite scroll)
+  // Keep loadMore in a ref so the observer callback always calls the latest version
+  const loadMoreRef = useRef(null);
+
   const loadMore = useCallback(async (nextPage) => {
     const gen = fetchGenRef.current; // capture current generation
     setLoadingMore(true);
@@ -114,8 +117,9 @@ export default function Board() {
     }
   }, [buildFilter, sort]);
 
-  // IntersectionObserver to trigger loading next page
-  // Use refs for observer callback to always have fresh values
+  loadMoreRef.current = loadMore;
+
+  // Refs so the observer callback always reads fresh values (no stale closures)
   const pageRef = useRef(page);
   const totalPagesRef = useRef(totalPages);
   const loadingMoreRef = useRef(loadingMore);
@@ -123,9 +127,20 @@ export default function Board() {
   totalPagesRef.current = totalPages;
   loadingMoreRef.current = loadingMore;
 
-  useEffect(() => {
-    const sentinel = sentinelRef.current;
-    if (!sentinel) return;
+  // Stable observer ref — created once and never torn down/recreated
+  const observerRef = useRef(null);
+
+  // Callback ref for the sentinel element — fires when it mounts/unmounts in the DOM
+  // This solves the conditional-render timing issue: the sentinel is inside
+  // {posts.length > 0 && ...} so a useEffect + useRef would miss it.
+  const sentinelCallbackRef = useCallback((node) => {
+    // Disconnect previous observer if any
+    if (observerRef.current) {
+      observerRef.current.disconnect();
+      observerRef.current = null;
+    }
+
+    if (!node) return; // sentinel unmounted
 
     const observer = new IntersectionObserver(
       (entries) => {
@@ -133,15 +148,15 @@ export default function Board() {
         if (entries[0].isIntersecting && hasMore && !loadingMoreRef.current) {
           const nextPage = pageRef.current + 1;
           setPage(nextPage);
-          loadMore(nextPage);
+          loadMoreRef.current(nextPage);
         }
       },
       { rootMargin: '200px' }
     );
 
-    observer.observe(sentinel);
-    return () => observer.disconnect();
-  }, [loadMore]);
+    observer.observe(node);
+    observerRef.current = observer;
+  }, []); // stable — never recreated
 
   const hasFilters = category !== 'all' || platform !== 'all' || status !== 'all' || search.trim();
   const activeFilterCount = (category !== 'all' ? 1 : 0) + (platform !== 'all' ? 1 : 0) + (status !== 'all' ? 1 : 0);
@@ -341,7 +356,7 @@ export default function Board() {
                 </div>
 
                 {/* Infinite scroll sentinel + loading indicator */}
-                <div ref={sentinelRef} className="infinite-scroll-sentinel">
+                <div ref={sentinelCallbackRef} className="infinite-scroll-sentinel">
                   {loadingMore && (
                     <div className="infinite-scroll-loader">
                       <Loader size={18} className="infinite-scroll-spinner" />
