@@ -944,6 +944,10 @@ select.input {
   flex-shrink: 0;
 }
 
+.board-toolbar-right .input {
+  font-size: var(--font-size-xs);
+}
+
 .board-filters-toggle {
   display: inline-flex;
   align-items: center;
