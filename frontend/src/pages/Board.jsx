@@ -1,5 +1,5 @@
-import { useState, useEffect } from 'react';
-import { Search, Plus, Inbox } from 'lucide-react';
+import { useState, useEffect, useRef } from 'react';
+import { Search, Plus, Inbox, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import pb from '../lib/pocketbase';
 import PostCard from '../components/PostCard';
@@ -13,6 +13,7 @@ const SORT_OPTIONS = [
   { value: '-created', label: 'Newest' },
   { value: 'created', label: 'Oldest' },
 ];
+const PER_PAGE = 20;
 
 export default function Board() {
   const { isLoggedIn } = useAuth();
@@ -23,10 +24,19 @@ export default function Board() {
   const [status, setStatus] = useState('all');
   const [sort, setSort] = useState('-votes_count');
   const [search, setSearch] = useState('');
+  const [page, setPage] = useState(1);
+  const [totalItems, setTotalItems] = useState(0);
+  const [totalPages, setTotalPages] = useState(1);
+  const listTopRef = useRef(null);
+
+  // Reset to page 1 when filters change
+  useEffect(() => {
+    setPage(1);
+  }, [category, platform, status, sort, search]);
 
   useEffect(() => {
     fetchPosts();
-  }, [category, platform, status, sort, search]);
+  }, [category, platform, status, sort, search, page]);
 
   const fetchPosts = async () => {
     setLoading(true);
@@ -40,13 +50,15 @@ export default function Board() {
         if (sanitized) filters.push(`(title ~ "${sanitized}" || body ~ "${sanitized}")`);
       }
 
-      const result = await pb.collection('posts').getList(1, 50, {
+      const result = await pb.collection('posts').getList(page, PER_PAGE, {
         filter: filters.join(' && '),
         sort: sort,
         expand: 'author',
       });
 
       setPosts(result.items);
+      setTotalItems(result.totalItems);
+      setTotalPages(result.totalPages);
     } catch (err) {
       console.error('Failed to fetch posts:', err);
     } finally {
@@ -54,14 +66,51 @@ export default function Board() {
     }
   };
 
+  const goToPage = (p) => {
+    const target = Math.max(1, Math.min(p, totalPages));
+    if (target === page) return;
+    setPage(target);
+    // Scroll to the top of the post list
+    listTopRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  };
+
+  // Generate page numbers to show (with ellipsis)
+  const getPageNumbers = () => {
+    const pages = [];
+    if (totalPages <= 7) {
+      for (let i = 1; i <= totalPages; i++) pages.push(i);
+    } else {
+      pages.push(1);
+      if (page > 3) pages.push('...');
+      const start = Math.max(2, page - 1);
+      const end = Math.min(totalPages - 1, page + 1);
+      for (let i = start; i <= end; i++) pages.push(i);
+      if (page < totalPages - 2) pages.push('...');
+      pages.push(totalPages);
+    }
+    return pages;
+  };
+
+  const hasFilters = category !== 'all' || platform !== 'all' || status !== 'all' || search.trim();
+
   return (
     <div className="page">
       <div className="container">
         <div className="page-header">
-          <h1 className="page-title">Feedback Board</h1>
-          <p className="page-subtitle">
-            Browse ideas, report bugs, and vote on what matters most.
-          </p>
+          <div className="page-header-row">
+            <div>
+              <h1 className="page-title">Feedback Board</h1>
+              <p className="page-subtitle">
+                Browse ideas, report bugs, and vote on what matters most.
+              </p>
+            </div>
+            <div className="board-total-counter" title="Total submissions">
+              <span className="board-total-number">{totalItems.toLocaleString()}</span>
+              <span className="board-total-label">
+                {hasFilters ? 'results' : (totalItems === 1 ? 'submission' : 'submissions')}
+              </span>
+            </div>
+          </div>
         </div>
 
         {/* Filter Bar */}
@@ -142,9 +191,12 @@ export default function Board() {
           ))}
         </div>
 
+        {/* Scroll anchor */}
+        <div ref={listTopRef} style={{ scrollMarginTop: 'calc(var(--navbar-height) + 16px)' }} />
+
         {/* Posts */}
         {loading ? (
-          <div className="loading-page">
+          <div className="loading-page" style={{ minHeight: '40vh' }}>
             <div className="spinner" />
           </div>
         ) : posts.length === 0 ? (
@@ -162,11 +214,72 @@ export default function Board() {
             </Link>
           </div>
         ) : (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-2)' }}>
-            {posts.map((post) => (
-              <PostCard key={post.id} post={post} />
-            ))}
-          </div>
+          <>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-2)' }}>
+              {posts.map((post) => (
+                <PostCard key={post.id} post={post} />
+              ))}
+            </div>
+
+            {/* Pagination */}
+            {totalPages > 1 && (
+              <div className="pagination">
+                <div className="pagination-info">
+                  Showing {((page - 1) * PER_PAGE) + 1}–{Math.min(page * PER_PAGE, totalItems)} of {totalItems.toLocaleString()}
+                </div>
+
+                <div className="pagination-controls">
+                  <button
+                    className="pagination-btn"
+                    onClick={() => goToPage(1)}
+                    disabled={page === 1}
+                    title="First page"
+                  >
+                    <ChevronsLeft size={16} />
+                  </button>
+                  <button
+                    className="pagination-btn"
+                    onClick={() => goToPage(page - 1)}
+                    disabled={page === 1}
+                    title="Previous page"
+                  >
+                    <ChevronLeft size={16} />
+                  </button>
+
+                  {getPageNumbers().map((p, i) =>
+                    p === '...' ? (
+                      <span key={`ellipsis-${i}`} className="pagination-ellipsis">…</span>
+                    ) : (
+                      <button
+                        key={p}
+                        className={`pagination-btn pagination-num ${page === p ? 'active' : ''}`}
+                        onClick={() => goToPage(p)}
+                      >
+                        {p}
+                      </button>
+                    )
+                  )}
+
+                  <button
+                    className="pagination-btn"
+                    onClick={() => goToPage(page + 1)}
+                    disabled={page === totalPages}
+                    title="Next page"
+                  >
+                    <ChevronRight size={16} />
+                  </button>
+                  <button
+                    className="pagination-btn"
+                    onClick={() => goToPage(totalPages)}
+                    disabled={page === totalPages}
+                    title="Last page"
+                  >
+                    <ChevronsRight size={16} />
+                  </button>
+                </div>
+              </div>
+            )}
+          </>
         )}
       </div>
     </div>
