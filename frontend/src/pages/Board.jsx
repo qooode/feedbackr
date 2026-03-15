@@ -109,7 +109,7 @@ export default function Board() {
           <h1 className="page-title">Feedback Board</h1>
           <p className="page-subtitle">
             Browse ideas, report bugs, and vote on what matters most.
-            {!loading && totalItems > 0 && (
+            {!initialLoading && totalItems > 0 && (
               <span className="board-total-pill">
                 {totalItems.toLocaleString()} {hasFilters ? 'results' : (totalItems === 1 ? 'submission' : 'submissions')}
               </span>
