@@ -3503,6 +3503,182 @@ a.navbar-user:hover {
 }
 
 /* =============================================================================
+   Roadmap
+   ============================================================================= */
+
+.roadmap-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: var(--space-6);
+  gap: var(--space-3);
+  flex-wrap: wrap;
+}
+
+.roadmap-filter-group {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+}
+
+.roadmap-total {
+  font-size: var(--font-size-xs);
+  color: var(--muted-foreground);
+}
+
+.roadmap-board {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: var(--space-4);
+  align-items: start;
+}
+
+.roadmap-column {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+}
+
+.roadmap-column-header {
+  padding: var(--space-4) var(--space-3);
+  margin-bottom: var(--space-2);
+}
+
+.roadmap-column-header-top {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  margin-bottom: 4px;
+}
+
+.roadmap-column-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.roadmap-column-title {
+  font-size: var(--font-size-sm);
+  font-weight: 600;
+  color: var(--foreground);
+  letter-spacing: -0.01em;
+}
+
+.roadmap-column-count {
+  font-size: var(--font-size-xs);
+  color: var(--muted-foreground);
+  background: var(--secondary);
+  padding: 1px 7px;
+  border-radius: 10px;
+  font-weight: 500;
+  margin-left: auto;
+}
+
+.roadmap-column-desc {
+  font-size: 11px;
+  color: var(--muted-foreground);
+  line-height: 1.3;
+}
+
+.roadmap-column-cards {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  min-height: 80px;
+}
+
+.roadmap-empty-col {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-2);
+  padding: var(--space-8) var(--space-4);
+  color: var(--muted-foreground);
+  font-size: var(--font-size-xs);
+  border: 1px dashed var(--border);
+  border-radius: var(--radius-lg);
+  opacity: 0.5;
+}
+
+.roadmap-card {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-3);
+  padding: var(--space-3) var(--space-4);
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  cursor: pointer;
+  transition: all var(--transition-fast);
+}
+
+.roadmap-card:hover {
+  border-color: #52525b;
+  background: rgba(39, 39, 42, 0.3);
+}
+
+.roadmap-card-content {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.roadmap-card-title {
+  font-size: var(--font-size-sm);
+  font-weight: 500;
+  color: var(--foreground);
+  line-height: 1.4;
+  letter-spacing: -0.01em;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.roadmap-card-meta {
+  display: flex;
+  align-items: center;
+  gap: var(--space-1);
+  flex-wrap: wrap;
+}
+
+.roadmap-card-stats {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-1);
+  flex-shrink: 0;
+  padding-top: 2px;
+}
+
+.roadmap-card-votes {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0;
+  font-size: var(--font-size-xs);
+  font-weight: 600;
+  color: var(--muted-foreground);
+  min-width: 28px;
+}
+
+.roadmap-card-votes svg {
+  color: var(--muted-foreground);
+}
+
+.roadmap-card-comments {
+  display: flex;
+  align-items: center;
+  gap: 3px;
+  font-size: 11px;
+  color: var(--muted-foreground);
+}
+
+/* =============================================================================
    Activity Timeline
    ============================================================================= */
 
@@ -3605,5 +3781,20 @@ a.navbar-user:hover {
     width: 100%;
     overflow-x: auto;
   }
+
+  .roadmap-board {
+    grid-template-columns: 1fr;
+    gap: var(--space-6);
+  }
+
+  .roadmap-toolbar {
+    flex-direction: column;
+    align-items: flex-start;
+  }
 }
 
+@media (min-width: 769px) and (max-width: 1024px) {
+  .roadmap-board {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}

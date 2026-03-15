@@ -7,6 +7,7 @@ import Submit from './pages/Submit';
 import PostDetail from './pages/PostDetail';
 import AdminKanban from './pages/AdminKanban';
 import Changelog from './pages/Changelog';
+import Roadmap from './pages/Roadmap';
 import MyFeedback from './pages/MyFeedback';
 
 function OAuthStatusBanner() {
@@ -82,6 +83,7 @@ function AppContent() {
         <Route path="/my-feedback" element={<MyFeedback />} />
         <Route path="/admin" element={<AdminKanban />} />
         <Route path="/changelog" element={<Changelog />} />
+        <Route path="/roadmap" element={<Roadmap />} />
       </Routes>
     </>
   );

@@ -1,6 +1,6 @@
 import { Link, useLocation } from 'react-router-dom';
 import { useAuth } from '../hooks/useAuth';
-import { LayoutDashboard, LayoutGrid, LogOut, LogIn, PenLine, Plus, Megaphone, Menu, X, ChevronRight } from 'lucide-react';
+import { LayoutDashboard, LayoutGrid, LogOut, LogIn, PenLine, Plus, Megaphone, Map, Menu, X, ChevronRight } from 'lucide-react';
 import AuthModal from './AuthModal';
 import UserAvatar from './UserAvatar';
 import NotificationBell from './NotificationBell';
@@ -11,6 +11,7 @@ const PAGE_LABELS = {
   '/': 'Board',
   '/submit': 'Submit',
   '/changelog': 'Updates',
+  '/roadmap': 'Roadmap',
   '/admin': 'Admin',
   '/my-feedback': 'My Feedback',
 };
@@ -98,6 +99,12 @@ export default function Navbar() {
                 Updates
               </span>
             </Link>
+            <Link to="/roadmap" className={isActive('/roadmap')}>
+              <span style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                <Map size={12} />
+                Roadmap
+              </span>
+            </Link>
             {isAdmin && (
               <Link to="/admin" className={isActive('/admin')}>
                 <span style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
@@ -175,6 +182,10 @@ export default function Navbar() {
           <Link to="/changelog" className={`mobile-drawer-link ${location.pathname === '/changelog' ? 'active' : ''}`} onClick={() => setMobileOpen(false)}>
             <Megaphone size={16} />
             Updates
+          </Link>
+          <Link to="/roadmap" className={`mobile-drawer-link ${location.pathname === '/roadmap' ? 'active' : ''}`} onClick={() => setMobileOpen(false)}>
+            <Map size={16} />
+            Roadmap
           </Link>
           {isAdmin && (
             <Link to="/admin" className={`mobile-drawer-link ${location.pathname === '/admin' ? 'active' : ''}`} onClick={() => setMobileOpen(false)}>
