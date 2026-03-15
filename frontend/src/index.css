@@ -937,6 +937,13 @@ select.input {
   margin-bottom: var(--space-2);
 }
 
+/* Shared height for all toolbar controls */
+.board-toolbar .input,
+.board-toolbar .board-filters-toggle {
+  height: 36px;
+  box-sizing: border-box;
+}
+
 .board-toolbar-right {
   display: flex;
   align-items: center;
@@ -946,13 +953,15 @@ select.input {
 
 .board-toolbar-right .input {
   font-size: var(--font-size-xs);
+  padding-top: 0;
+  padding-bottom: 0;
 }
 
 .board-filters-toggle {
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  padding: 7px 14px;
+  padding: 0 14px;
   border-radius: var(--radius-md);
   border: 1px solid var(--border);
   background: transparent;
