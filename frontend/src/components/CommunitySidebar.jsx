@@ -202,22 +202,20 @@ export default function CommunitySidebar() {
             <Zap size={14} />
             <span>Community</span>
           </div>
-          <div className="sidebar-stats-grid">
-            <div className="sidebar-stat">
+          <div className="sidebar-stats-row">
+            <div className="sidebar-stat-inline">
               <span className="sidebar-stat-value">{stats.totalPosts}</span>
-              <span className="sidebar-stat-label">Submissions</span>
+              <span className="sidebar-stat-label">submissions</span>
             </div>
-            <div className="sidebar-stat">
+            <span className="sidebar-stat-dot" />
+            <div className="sidebar-stat-inline">
               <span className="sidebar-stat-value">{stats.shipped}</span>
-              <span className="sidebar-stat-label">Shipped</span>
+              <span className="sidebar-stat-label">shipped</span>
             </div>
-            <div className="sidebar-stat">
+            <span className="sidebar-stat-dot" />
+            <div className="sidebar-stat-inline">
               <span className="sidebar-stat-value">{contributors.length}</span>
-              <span className="sidebar-stat-label">Contributors</span>
-            </div>
-            <div className="sidebar-stat">
-              <span className="sidebar-stat-value">{shipped.length}</span>
-              <span className="sidebar-stat-label">Released</span>
+              <span className="sidebar-stat-label">contributors</span>
             </div>
           </div>
         </div>

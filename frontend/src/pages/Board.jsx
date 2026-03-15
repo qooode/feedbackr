@@ -123,11 +123,6 @@ export default function Board() {
                 Browse ideas, report bugs, and vote on what matters most.
               </p>
             </div>
-            {!initialLoading && totalItems > 0 && (
-              <span className="board-total-pill">
-                {totalItems.toLocaleString()} {hasFilters ? 'results' : (totalItems === 1 ? 'submission' : 'submissions')}
-              </span>
-            )}
           </div>
         </div>
 
