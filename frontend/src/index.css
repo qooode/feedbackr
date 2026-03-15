@@ -4951,41 +4951,67 @@ details[open] .refine-history-toggle::before {
   background: rgba(255, 255, 255, 0.03);
 }
 
-/* --- Community Stats --- */
-.sidebar-stats-row {
+/* --- At a Glance --- */
+.sidebar-glance {
+  padding: var(--space-4);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+.sidebar-glance-numbers {
   display: flex;
   align-items: center;
-  justify-content: center;
-  gap: var(--space-3);
-  padding: var(--space-3) var(--space-4);
+  gap: var(--space-4);
 }
 
-.sidebar-stat-inline {
+.sidebar-glance-item {
   display: flex;
   align-items: baseline;
-  gap: 4px;
+  gap: 5px;
 }
 
-.sidebar-stat-dot {
-  width: 3px;
-  height: 3px;
-  border-radius: 50%;
-  background: var(--muted-foreground);
-  opacity: 0.3;
-  flex-shrink: 0;
-}
-
-.sidebar-stat-value {
-  font-size: var(--font-size-sm);
+.sidebar-glance-value {
+  font-size: var(--font-size-2xl);
   font-weight: 700;
   color: var(--foreground);
+  line-height: 1;
   font-variant-numeric: tabular-nums;
+  letter-spacing: -0.03em;
 }
 
-.sidebar-stat-label {
+.sidebar-glance-label {
   font-size: 11px;
   color: var(--muted-foreground);
   font-weight: 400;
+}
+
+.sidebar-glance-rate {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.sidebar-glance-rate-bar {
+  width: 100%;
+  height: 4px;
+  background: var(--muted);
+  border-radius: 2px;
+  overflow: hidden;
+}
+
+.sidebar-glance-rate-fill {
+  height: 100%;
+  background: var(--foreground);
+  border-radius: 2px;
+  transition: width 1s cubic-bezier(0.16, 1, 0.3, 1);
+  opacity: 0.6;
+}
+
+.sidebar-glance-rate-label {
+  font-size: 11px;
+  color: var(--muted-foreground);
+  font-weight: 500;
 }
 
 /* Mobile responsive */

@@ -195,27 +195,34 @@ export default function CommunitySidebar() {
         </div>
       )}
 
-      {/* Community Stats */}
+      {/* At a Glance */}
       {stats && (
         <div className="sidebar-widget">
           <div className="sidebar-widget-header">
             <Zap size={14} />
-            <span>Community</span>
+            <span>At a Glance</span>
           </div>
-          <div className="sidebar-stats-row">
-            <div className="sidebar-stat-inline">
-              <span className="sidebar-stat-value">{stats.totalPosts}</span>
-              <span className="sidebar-stat-label">submissions</span>
+          <div className="sidebar-glance">
+            <div className="sidebar-glance-numbers">
+              <div className="sidebar-glance-item">
+                <span className="sidebar-glance-value">{stats.totalPosts}</span>
+                <span className="sidebar-glance-label">submitted</span>
+              </div>
+              <div className="sidebar-glance-item">
+                <span className="sidebar-glance-value">{stats.shipped}</span>
+                <span className="sidebar-glance-label">shipped</span>
+              </div>
             </div>
-            <span className="sidebar-stat-dot" />
-            <div className="sidebar-stat-inline">
-              <span className="sidebar-stat-value">{stats.shipped}</span>
-              <span className="sidebar-stat-label">shipped</span>
-            </div>
-            <span className="sidebar-stat-dot" />
-            <div className="sidebar-stat-inline">
-              <span className="sidebar-stat-value">{contributors.length}</span>
-              <span className="sidebar-stat-label">contributors</span>
+            <div className="sidebar-glance-rate">
+              <div className="sidebar-glance-rate-bar">
+                <div
+                  className="sidebar-glance-rate-fill"
+                  style={{ width: `${stats.totalPosts > 0 ? Math.round((stats.shipped / stats.totalPosts) * 100) : 0}%` }}
+                />
+              </div>
+              <span className="sidebar-glance-rate-label">
+                {stats.totalPosts > 0 ? Math.round((stats.shipped / stats.totalPosts) * 100) : 0}% ship rate
+              </span>
             </div>
           </div>
         </div>
