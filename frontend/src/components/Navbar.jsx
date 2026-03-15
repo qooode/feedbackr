@@ -123,6 +123,9 @@ export default function Navbar() {
                 <Link to="/my-feedback" className="navbar-avatar-link navbar-desktop-only" title="My Feedback">
                   <UserAvatar user={user} size="30px" />
                 </Link>
+                <button className="btn btn-ghost btn-icon-sm navbar-desktop-only" onClick={handleLogout} title="Log out">
+                  <LogOut size={15} />
+                </button>
               </>
             ) : (
               <button className="btn btn-primary btn-sm navbar-desktop-only" onClick={() => setShowAuth(true)}>
