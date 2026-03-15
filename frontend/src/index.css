@@ -1970,6 +1970,84 @@ details[open] .refine-history-toggle::before {
   align-items: center;
 }
 
+/* Kanban sort controls */
+
+.kanban-sort-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 6px;
+  border: none;
+  background: transparent;
+  color: var(--muted-foreground);
+  font-size: 10px;
+  font-weight: 500;
+  cursor: pointer;
+  border-radius: var(--radius-sm);
+  transition: all var(--transition-fast);
+  opacity: 0.6;
+}
+
+.kanban-sort-btn:hover {
+  opacity: 1;
+  background: var(--muted);
+  color: var(--foreground);
+}
+
+.kanban-sort-btn.active {
+  opacity: 1;
+  color: var(--foreground);
+}
+
+.kanban-sort-label {
+  font-size: 10px;
+  letter-spacing: 0.01em;
+}
+
+.kanban-sort-menu {
+  position: absolute;
+  top: calc(100% + 4px);
+  right: 0;
+  z-index: 100;
+  min-width: 130px;
+  background: var(--background);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-lg);
+  padding: 3px;
+  animation: sortMenuIn 0.12s ease-out;
+}
+
+@keyframes sortMenuIn {
+  from { opacity: 0; transform: translateY(-4px) scale(0.97); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+.kanban-sort-option {
+  display: block;
+  width: 100%;
+  padding: 6px 10px;
+  border: none;
+  background: transparent;
+  color: var(--muted-foreground);
+  font-size: var(--font-size-xs);
+  font-weight: 500;
+  text-align: left;
+  cursor: pointer;
+  border-radius: var(--radius-sm);
+  transition: all var(--transition-fast);
+}
+
+.kanban-sort-option:hover {
+  background: var(--accent);
+  color: var(--foreground);
+}
+
+.kanban-sort-option.active {
+  color: var(--foreground);
+  background: rgba(250, 250, 250, 0.05);
+}
+
 /* --- Post Detail --- */
 
 .post-detail {

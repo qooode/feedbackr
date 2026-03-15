@@ -1,7 +1,7 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { DragDropContext, Droppable, Draggable } from '@hello-pangea/dnd';
-import { Shield, RefreshCw, Megaphone, X, Check, Tag, Send, ChevronDown, ChevronUp, Trash2, Eye, ImageIcon } from 'lucide-react';
+import { Shield, RefreshCw, Megaphone, X, Check, Tag, Send, ChevronDown, ChevronUp, Trash2, Eye, ImageIcon, ArrowUpDown } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
 import { useAuth } from '../hooks/useAuth';
 import UserAvatar from '../components/UserAvatar';
@@ -22,6 +22,29 @@ export default function AdminKanban() {
 
   const [posts, setPosts] = useState([]);
   const [loading, setLoading] = useState(true);
+
+  // Column sort state
+  const SORT_OPTIONS = [
+    { id: 'newest', label: 'Newest' },
+    { id: 'oldest', label: 'Oldest' },
+    { id: 'upvotes', label: 'Most Upvoted' },
+  ];
+  const [columnSorts, setColumnSorts] = useState({});
+  const [openSortMenu, setOpenSortMenu] = useState(null);
+  const sortMenuRef = useRef(null);
+
+  // Close sort menu on outside click
+  useEffect(() => {
+    const handleClickOutside = (e) => {
+      if (sortMenuRef.current && !sortMenuRef.current.contains(e.target)) {
+        setOpenSortMenu(null);
+      }
+    };
+    if (openSortMenu) {
+      document.addEventListener('mousedown', handleClickOutside);
+    }
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, [openSortMenu]);
 
   // Changelog composer state
   const [showComposer, setShowComposer] = useState(false);
@@ -76,7 +99,22 @@ export default function AdminKanban() {
   };
 
   const getColumnPosts = (status) => {
-    return posts.filter((p) => p.status === status);
+    const filtered = posts.filter((p) => p.status === status);
+    const sortMode = columnSorts[status] || 'newest';
+    return [...filtered].sort((a, b) => {
+      if (sortMode === 'oldest') {
+        return new Date(a.created) - new Date(b.created);
+      } else if (sortMode === 'upvotes') {
+        return (b.votes_count || 0) - (a.votes_count || 0);
+      }
+      // newest (default)
+      return new Date(b.created) - new Date(a.created);
+    });
+  };
+
+  const setColumnSort = (columnId, sortId) => {
+    setColumnSorts((prev) => ({ ...prev, [columnId]: sortId }));
+    setOpenSortMenu(null);
   };
 
   const donePosts = getColumnPosts('done');
@@ -438,7 +476,42 @@ export default function AdminKanban() {
                     <span className="kanban-column-title">
                       {column.label}
                     </span>
-                    <span className="kanban-column-count">{columnPosts.length}</span>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-1)' }}>
+                      <div style={{ position: 'relative' }} ref={openSortMenu === column.id ? sortMenuRef : undefined}>
+                        <button
+                          className={`kanban-sort-btn ${columnSorts[column.id] && columnSorts[column.id] !== 'newest' ? 'active' : ''}`}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setOpenSortMenu(openSortMenu === column.id ? null : column.id);
+                          }}
+                          title="Sort items"
+                        >
+                          <ArrowUpDown size={11} />
+                          {columnSorts[column.id] && columnSorts[column.id] !== 'newest' && (
+                            <span className="kanban-sort-label">
+                              {SORT_OPTIONS.find((o) => o.id === columnSorts[column.id])?.label}
+                            </span>
+                          )}
+                        </button>
+                        {openSortMenu === column.id && (
+                          <div className="kanban-sort-menu">
+                            {SORT_OPTIONS.map((opt) => (
+                              <button
+                                key={opt.id}
+                                className={`kanban-sort-option ${(columnSorts[column.id] || 'newest') === opt.id ? 'active' : ''}`}
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  setColumnSort(column.id, opt.id);
+                                }}
+                              >
+                                {opt.label}
+                              </button>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                      <span className="kanban-column-count">{columnPosts.length}</span>
+                    </div>
                   </div>
 
                   <Droppable droppableId={column.id}>
