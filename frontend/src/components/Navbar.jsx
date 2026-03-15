@@ -68,32 +68,34 @@ export default function Navbar() {
       <nav className="navbar">
         <div className="navbar-inner">
           {/* Left: Brand */}
-          <Link to="/" className="navbar-brand">
-            {LOGO_URL ? (
-              <img src={LOGO_URL} alt={APP_NAME} className="navbar-brand-logo" />
-            ) : (
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <path d="M7.9 20A9 9 0 1 0 4 16.1L2 22Z" />
-              </svg>
+          <div className="navbar-left">
+            <Link to="/" className="navbar-brand">
+              {LOGO_URL ? (
+                <img src={LOGO_URL} alt={APP_NAME} className="navbar-brand-logo" />
+              ) : (
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M7.9 20A9 9 0 1 0 4 16.1L2 22Z" />
+                </svg>
+              )}
+              <span className="navbar-brand-text">{APP_NAME}</span>
+            </Link>
+
+            {/* Mobile breadcrumb */}
+            {currentLabel && location.pathname !== '/' && (
+              <span className="navbar-breadcrumb">
+                <ChevronRight size={14} />
+                <span className="navbar-breadcrumb-label">{currentLabel}</span>
+              </span>
             )}
-            <span className="navbar-brand-text">{APP_NAME}</span>
-          </Link>
+          </div>
 
-          {/* Mobile breadcrumb */}
-          {currentLabel && location.pathname !== '/' && (
-            <span className="navbar-breadcrumb">
-              <ChevronRight size={14} />
-              <span className="navbar-breadcrumb-label">{currentLabel}</span>
-            </span>
-          )}
-
-          {/* Center: Nav pill bar */}
-          <div className="navbar-nav-pill">
+          {/* Center: Nav links */}
+          <div className="navbar-links">
             {NAV_ITEMS.map(({ path, label, icon: Icon }) => (
               <Link
                 key={path}
                 to={path}
-                className={`nav-pill-item ${isActive(path) ? 'active' : ''}`}
+                className={`navbar-link ${isActive(path) ? 'active' : ''}`}
               >
                 <Icon size={13} />
                 {label}
@@ -102,7 +104,7 @@ export default function Navbar() {
             {isAdmin && (
               <Link
                 to="/admin"
-                className={`nav-pill-item ${isActive('/admin') ? 'active' : ''}`}
+                className={`navbar-link ${isActive('/admin') ? 'active' : ''}`}
               >
                 <LayoutDashboard size={13} />
                 Admin
