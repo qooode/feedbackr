@@ -4728,7 +4728,7 @@ details[open] .refine-history-toggle::before {
   color: var(--muted-foreground);
   background: var(--card);
   border: 1px solid var(--border);
-  border-radius: 20px;
+  border-radius: var(--radius-md);
   padding: 3px 10px;
   transition: all var(--transition-fast);
   opacity: 0.8;
@@ -4738,6 +4738,15 @@ details[open] .refine-history-toggle::before {
   color: var(--foreground);
   border-color: #3f3f46;
   opacity: 1;
+}
+
+.sidebar-scroll-fade-top {
+  top: 0;
+  bottom: auto;
+  background: linear-gradient(to top, transparent, var(--background) 75%);
+  align-items: flex-start;
+  padding-top: 6px;
+  padding-bottom: 0;
 }
 
 /* Submit CTA */

@@ -7,6 +7,7 @@ import {
   ArrowRight,
   Rocket,
   ChevronDown,
+  ChevronUp,
   Plus,
   MessageSquare,
 } from 'lucide-react';
@@ -24,6 +25,7 @@ export default function CommunitySidebar() {
   const sidebarRef = useRef(null);
   const [canScroll, setCanScroll] = useState(false);
   const [isAtBottom, setIsAtBottom] = useState(false);
+  const [isAtTop, setIsAtTop] = useState(true);
 
   const checkScroll = useCallback(() => {
     requestAnimationFrame(() => {
@@ -41,6 +43,7 @@ export default function CommunitySidebar() {
       setCanScroll(hasOverflow);
       const atBottom = el.scrollHeight - el.scrollTop - el.clientHeight < 8;
       setIsAtBottom(atBottom);
+      setIsAtTop(el.scrollTop < 8);
     });
   }, []);
 
@@ -63,6 +66,12 @@ export default function CommunitySidebar() {
     const el = sidebarRef.current;
     if (!el) return;
     el.scrollBy({ top: 200, behavior: 'smooth' });
+  };
+
+  const handleScrollTop = () => {
+    const el = sidebarRef.current;
+    if (!el) return;
+    el.scrollBy({ top: -200, behavior: 'smooth' });
   };
 
   const fetchSidebarData = async () => {
@@ -328,6 +337,13 @@ export default function CommunitySidebar() {
         </div>
       )}
       </aside>
+      {canScroll && !isAtTop && (
+        <div className="sidebar-scroll-fade sidebar-scroll-fade-top" onClick={handleScrollTop}>
+          <span className="sidebar-scroll-pill">
+            <ChevronUp size={10} />
+          </span>
+        </div>
+      )}
       {canScroll && !isAtBottom && (
         <div className="sidebar-scroll-fade" onClick={handleScrollMore}>
           <span className="sidebar-scroll-pill">
