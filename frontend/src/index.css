@@ -5064,3 +5064,236 @@ details[open] .refine-history-toggle::before {
     grid-template-columns: repeat(2, 1fr);
   }
 }
+
+/* =============================================================================
+   Attachments — Upload & Display
+   ============================================================================= */
+
+/* Drag-over highlight */
+.card-drag-over {
+  border-color: #52525b !important;
+  background: rgba(82, 82, 91, 0.08);
+  box-shadow: inset 0 0 0 1px rgba(82, 82, 91, 0.3);
+}
+
+/* Attachment list inside compose area */
+.attachment-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  padding: var(--space-2) var(--space-4) var(--space-2);
+}
+
+.attachment-item {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: 4px 8px 4px 4px;
+  background: var(--secondary);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  font-size: var(--font-size-xs);
+  color: var(--muted-foreground);
+  max-width: 260px;
+  animation: attachment-in 0.2s ease-out;
+}
+
+@keyframes attachment-in {
+  from { opacity: 0; transform: scale(0.9); }
+  to { opacity: 1; transform: scale(1); }
+}
+
+.attachment-item.attachment-error {
+  border-color: rgba(220, 38, 38, 0.3);
+  background: rgba(220, 38, 38, 0.05);
+}
+
+.attachment-thumb {
+  width: 32px;
+  height: 32px;
+  border-radius: 4px;
+  object-fit: cover;
+  flex-shrink: 0;
+}
+
+.attachment-thumb-video {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--muted);
+  color: var(--muted-foreground);
+}
+
+.attachment-name {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.attachment-error-text {
+  color: var(--destructive);
+  font-size: 10px;
+  flex-shrink: 0;
+}
+
+.attachment-remove {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+  border: none;
+  background: transparent;
+  color: var(--muted-foreground);
+  border-radius: 50%;
+  cursor: pointer;
+  transition: all var(--transition-fast);
+  flex-shrink: 0;
+}
+
+.attachment-remove:hover {
+  background: var(--accent);
+  color: var(--foreground);
+}
+
+/* Publish preview attachments */
+.publish-attachments {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  margin-top: var(--space-4);
+}
+
+.publish-attachment-preview {
+  width: 100px;
+  height: 80px;
+  border-radius: var(--radius-sm);
+  overflow: hidden;
+  border: 1px solid var(--border);
+  transition: all var(--transition-fast);
+  display: block;
+}
+
+.publish-attachment-preview:hover {
+  border-color: #52525b;
+  transform: scale(1.03);
+}
+
+.publish-attachment-preview img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.publish-attachment-video {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  background: var(--muted);
+  color: var(--muted-foreground);
+  font-size: 10px;
+  text-align: center;
+  padding: 4px;
+}
+
+.publish-attachment-video span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: 100%;
+}
+
+/* Post detail — attachment gallery */
+.post-attachments {
+  margin-top: var(--space-6);
+  padding-top: var(--space-4);
+  border-top: 1px solid var(--border);
+}
+
+.post-attachments-label {
+  font-size: var(--font-size-xs);
+  font-weight: 600;
+  color: var(--muted-foreground);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  margin-bottom: var(--space-3);
+}
+
+.post-attachments-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: var(--space-3);
+}
+
+.post-attachment-image {
+  display: block;
+  border-radius: var(--radius-md);
+  overflow: hidden;
+  border: 1px solid var(--border);
+  transition: all var(--transition-fast);
+  aspect-ratio: auto;
+}
+
+.post-attachment-image:hover {
+  border-color: #52525b;
+  transform: scale(1.02);
+  box-shadow: var(--shadow-md);
+}
+
+.post-attachment-image img {
+  width: 100%;
+  height: auto;
+  display: block;
+  max-height: 400px;
+  object-fit: contain;
+  background: var(--muted);
+}
+
+.post-attachment-video {
+  border-radius: var(--radius-md);
+  overflow: hidden;
+  border: 1px solid var(--border);
+}
+
+.post-attachment-video video {
+  width: 100%;
+  display: block;
+  border-radius: var(--radius-md);
+  max-height: 400px;
+  background: #000;
+}
+
+/* Paperclip icon button */
+.btn-icon {
+  width: 32px;
+  height: 32px;
+  padding: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* Success color token */
+:root {
+  --success: #22c55e;
+}
+
+@media (max-width: 768px) {
+  .post-attachments-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .attachment-list {
+    padding: var(--space-2) var(--space-3) var(--space-2);
+  }
+
+  .attachment-item {
+    max-width: 100%;
+  }
+}

@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
-import { ArrowLeft, Clock, Send, Pencil, Trash2, X, Check, Reply, CornerDownRight } from 'lucide-react';
+import { ArrowLeft, Clock, Send, Pencil, Trash2, X, Check, Reply, CornerDownRight, Film } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
 import pb from '../lib/pocketbase';
 import VoteButton from '../components/VoteButton';
@@ -573,6 +573,28 @@ export default function PostDetail() {
               </div>
 
               <div className="post-detail-body"><ReactMarkdown>{post.body}</ReactMarkdown></div>
+
+              {/* Attachments */}
+              {post.attachments?.length > 0 && (
+                <div className="post-attachments">
+                  <div className="post-attachments-label">Attachments</div>
+                  <div className="post-attachments-grid">
+                    {post.attachments.map((url, i) => {
+                      const ext = url.split('.').pop()?.toLowerCase();
+                      const isVid = ['mp4', 'webm', 'mov', 'avi', 'mkv', 'm4v'].includes(ext);
+                      return isVid ? (
+                        <div key={i} className="post-attachment-video">
+                          <video src={url} controls preload="metadata" />
+                        </div>
+                      ) : (
+                        <a key={i} href={url} target="_blank" rel="noopener noreferrer" className="post-attachment-image">
+                          <img src={url} alt={`Attachment ${i + 1}`} loading="lazy" />
+                        </a>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
             </>
           )}
 

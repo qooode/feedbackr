@@ -47,3 +47,41 @@ export async function searchSimilar(description) {
     body: { description },
   });
 }
+
+/**
+ * Upload a file attachment via server-side proxy (Catbox)
+ * The userhash never leaves the server.
+ */
+export async function uploadAttachment(file) {
+  const formData = new FormData();
+  formData.append('file', file);
+
+  // Use pb.send with raw fetch body (FormData)
+  // PocketBase SDK will add the auth header automatically
+  const res = await fetch(`${pb.baseURL}/api/feedbackr/upload`, {
+    method: 'POST',
+    headers: {
+      Authorization: pb.authStore.token,
+    },
+    body: formData,
+  });
+
+  if (!res.ok) {
+    const data = await res.json().catch(() => ({}));
+    const err = new Error(data.message || 'Upload failed');
+    err.status = res.status;
+    throw err;
+  }
+
+  return res.json(); // { url: "https://files.catbox.moe/..." }
+}
+
+/**
+ * Delete attachment(s) from Catbox (admin only)
+ */
+export async function deleteAttachment(urls) {
+  return safeSend('/api/feedbackr/delete-attachment', {
+    method: 'POST',
+    body: { urls: Array.isArray(urls) ? urls : [urls] },
+  });
+}

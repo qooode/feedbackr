@@ -1,11 +1,15 @@
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import ReactMarkdown from 'react-markdown';
-import { Sparkles, Check, RotateCcw, Eye, MessageSquare, X, AlertTriangle, MessageCircle, Edit3, AlertCircle, Loader2, ArrowRight, Send } from 'lucide-react';
+import { Sparkles, Check, RotateCcw, Eye, MessageSquare, X, AlertTriangle, MessageCircle, Edit3, AlertCircle, Loader2, ArrowRight, Send, Paperclip, Image, Film, Trash2 } from 'lucide-react';
 import { useAuth } from '../hooks/useAuth';
-import { sendChatMessage, generatePost, searchSimilar } from '../lib/api';
+import { sendChatMessage, generatePost, searchSimilar, uploadAttachment } from '../lib/api';
 import AuthModal from '../components/AuthModal';
 import pb from '../lib/pocketbase';
+
+const MAX_ATTACHMENTS = 5;
+const MAX_FILE_SIZE = 50 * 1024 * 1024; // 50 MB
+const ALLOWED_TYPES = ['image/', 'video/'];
 
 const CATEGORIES = [
   { value: 'bug', label: 'Bug' },
@@ -56,6 +60,11 @@ export default function Submit() {
   const [similarPosts, setSimilarPosts] = useState([]);
   const [similarDismissed, setSimilarDismissed] = useState(false);
 
+  // Attachments
+  const [attachments, setAttachments] = useState([]); // [{ url, name, type, uploading?, error? }]
+  const [dragOver, setDragOver] = useState(false);
+  const fileInputRef = useRef(null);
+
   // Success
   const [showSuccess, setShowSuccess] = useState(false);
 
@@ -75,6 +84,66 @@ export default function Submit() {
 
   const charCount = input.length;
   const isReady = charCount >= 15;
+
+  // ── Attachment helpers ──
+  const isImage = (type) => type?.startsWith('image/');
+  const isVideo = (type) => type?.startsWith('video/');
+
+  const handleFiles = useCallback(async (files) => {
+    if (!isLoggedIn) { setShowAuth(true); return; }
+    const fileList = Array.from(files);
+    for (const file of fileList) {
+      // Validate
+      if (attachments.length >= MAX_ATTACHMENTS) {
+        setError(`Maximum ${MAX_ATTACHMENTS} attachments allowed.`);
+        break;
+      }
+      if (file.size > MAX_FILE_SIZE) {
+        setError(`${file.name} is too large (max 50 MB).`);
+        continue;
+      }
+      if (!ALLOWED_TYPES.some(t => file.type.startsWith(t))) {
+        setError(`${file.name} is not a supported file type. Only images and videos are allowed.`);
+        continue;
+      }
+
+      // Create local preview + start upload
+      const id = Date.now() + '-' + Math.random().toString(36).slice(2, 8);
+      const previewUrl = file.type.startsWith('image/') ? URL.createObjectURL(file) : null;
+      const entry = { id, name: file.name, type: file.type, previewUrl, uploading: true, url: null, error: null };
+
+      setAttachments(prev => [...prev, entry]);
+
+      try {
+        const result = await uploadAttachment(file);
+        setAttachments(prev => prev.map(a =>
+          a.id === id ? { ...a, uploading: false, url: result.url } : a
+        ));
+      } catch (err) {
+        console.error('Upload error:', err);
+        setAttachments(prev => prev.map(a =>
+          a.id === id ? { ...a, uploading: false, error: err?.message || 'Upload failed' } : a
+        ));
+      }
+    }
+  }, [attachments.length, isLoggedIn]);
+
+  const removeAttachment = (id) => {
+    setAttachments(prev => {
+      const item = prev.find(a => a.id === id);
+      if (item?.previewUrl) URL.revokeObjectURL(item.previewUrl);
+      return prev.filter(a => a.id !== id);
+    });
+  };
+
+  const handleDrop = useCallback((e) => {
+    e.preventDefault();
+    setDragOver(false);
+    if (e.dataTransfer.files?.length) handleFiles(e.dataTransfer.files);
+  }, [handleFiles]);
+
+  const handleDragOver = (e) => { e.preventDefault(); setDragOver(true); };
+  const handleDragLeave = () => setDragOver(false);
 
   // Get latest AI message
   const latestAiMessage = [...messages].reverse().find(m => m.role === 'assistant');
@@ -189,6 +258,11 @@ export default function Submit() {
     setPublishing(true);
     setError('');
 
+    // Collect successfully uploaded attachment URLs
+    const attachmentUrls = attachments
+      .filter(a => a.url && !a.error)
+      .map(a => a.url);
+
     try {
       const record = await pb.collection('posts').create({
         title: preview.title,
@@ -197,6 +271,7 @@ export default function Submit() {
         priority: preview.priority,
         platform: preview.platform || 'all',
         ai_transcript: messages.map(m => ({ role: m.role, content: m.content })),
+        attachments: attachmentUrls.length > 0 ? attachmentUrls : null,
       });
       setShowSuccess(true);
       setTimeout(() => navigate(`/post/${record.id}`), 1800);
@@ -233,6 +308,9 @@ export default function Submit() {
     setError('');
     setPreviewMode('preview');
     setAiOptions([]);
+    // Clean up attachment previews
+    attachments.forEach(a => { if (a.previewUrl) URL.revokeObjectURL(a.previewUrl); });
+    setAttachments([]);
   };
 
   const handleKeyDown = (e) => {
@@ -292,7 +370,13 @@ export default function Submit() {
 
           {/* Step 1: Initial input */}
           {!aiActive && !preview && (
-            <div className="card" style={{ overflow: 'hidden' }}>
+            <div
+              className={`card ${dragOver ? 'card-drag-over' : ''}`}
+              style={{ overflow: 'hidden' }}
+              onDrop={handleDrop}
+              onDragOver={handleDragOver}
+              onDragLeave={handleDragLeave}
+            >
               <textarea
                 ref={textareaRef}
                 className="compose-textarea"
@@ -303,6 +387,35 @@ export default function Submit() {
                 rows={5}
                 autoFocus
               />
+
+              {/* Attachment previews */}
+              {attachments.length > 0 && (
+                <div className="attachment-list">
+                  {attachments.map((att) => (
+                    <div key={att.id} className={`attachment-item ${att.error ? 'attachment-error' : ''}`}>
+                      {att.previewUrl ? (
+                        <img src={att.previewUrl} alt={att.name} className="attachment-thumb" />
+                      ) : (
+                        <div className="attachment-thumb attachment-thumb-video">
+                          <Film size={16} />
+                        </div>
+                      )}
+                      <span className="attachment-name">{att.name}</span>
+                      {att.uploading && <Loader2 size={12} className="animate-spin" />}
+                      {att.error && <span className="attachment-error-text">{att.error}</span>}
+                      {att.url && <Check size={12} style={{ color: 'var(--success)' }} />}
+                      <button
+                        className="attachment-remove"
+                        onClick={(e) => { e.stopPropagation(); removeAttachment(att.id); }}
+                        title="Remove"
+                      >
+                        <X size={12} />
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              )}
+
               <div className="compose-footer">
                 <div className="compose-footer-left">
                   {charCount > 0 ? (
@@ -317,14 +430,32 @@ export default function Submit() {
                     </span>
                   )}
                 </div>
-                <button
-                  className="btn btn-primary btn-sm"
-                  onClick={handleInitialSubmit}
-                  disabled={!input.trim()}
-                >
-                  Continue
-                  <ArrowRight size={13} />
-                </button>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                  <input
+                    ref={fileInputRef}
+                    type="file"
+                    accept="image/*,video/*"
+                    multiple
+                    style={{ display: 'none' }}
+                    onChange={(e) => { if (e.target.files?.length) handleFiles(e.target.files); e.target.value = ''; }}
+                  />
+                  <button
+                    className="btn btn-ghost btn-sm btn-icon"
+                    onClick={() => fileInputRef.current?.click()}
+                    title="Attach images or videos"
+                    type="button"
+                  >
+                    <Paperclip size={14} />
+                  </button>
+                  <button
+                    className="btn btn-primary btn-sm"
+                    onClick={handleInitialSubmit}
+                    disabled={!input.trim()}
+                  >
+                    Continue
+                    <ArrowRight size={13} />
+                  </button>
+                </div>
               </div>
             </div>
           )}
@@ -558,6 +689,24 @@ export default function Submit() {
                     <span className={`badge badge-priority-${preview.priority}`}>{preview.priority}</span>
                     <span className="badge badge-platform">{preview.platform === 'all' ? 'All Platforms' : preview.platform}</span>
                   </div>
+
+                  {/* Attachment previews in publish preview */}
+                  {attachments.filter(a => a.url).length > 0 && (
+                    <div className="publish-attachments">
+                      {attachments.filter(a => a.url).map((att) => (
+                        <a key={att.id} href={att.url} target="_blank" rel="noopener noreferrer" className="publish-attachment-preview">
+                          {isImage(att.type) ? (
+                            <img src={att.url} alt={att.name} />
+                          ) : (
+                            <div className="publish-attachment-video">
+                              <Film size={20} />
+                              <span>{att.name}</span>
+                            </div>
+                          )}
+                        </a>
+                      ))}
+                    </div>
+                  )}
                 </div>
               ) : (
                 <div className="publish-card-body">

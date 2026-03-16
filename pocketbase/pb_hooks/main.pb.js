@@ -7,6 +7,7 @@
 console.log("[Feedbackr] hooks v2 loaded")
 console.log("[Feedbackr] AI_MODEL:", $os.getenv("AI_MODEL") || "anthropic/claude-sonnet-4")
 console.log("[Feedbackr] OPENROUTER_API_KEY set:", !!$os.getenv("OPENROUTER_API_KEY"))
+console.log("[Feedbackr] CATBOX_USERHASH set:", !!$os.getenv("CATBOX_USERHASH"))
 
 // =============================================================================
 // RATE LIMITER (in-memory, resets on server restart)
@@ -563,6 +564,174 @@ routerAdd("POST", "/api/feedbackr/similar", function(e) {
 })
 
 // =============================================================================
+// CATBOX MEDIA UPLOAD PROXY
+// =============================================================================
+// Files go: Browser → PocketBase → Catbox.moe
+// The CATBOX_USERHASH never leaves the server.
+// =============================================================================
+
+var ALLOWED_MIME_PREFIXES = ["image/", "video/"]
+var ALLOWED_EXTENSIONS = [
+    "jpg", "jpeg", "png", "gif", "webp", "bmp", "svg", "avif",
+    "mp4", "webm", "mov", "avi", "mkv", "m4v"
+]
+var MAX_FILE_SIZE = 50 * 1024 * 1024 // 50 MB
+var MAX_ATTACHMENTS_PER_POST = 5
+
+routerAdd("POST", "/api/feedbackr/upload", function(e) {
+    try {
+        if (!e.auth) {
+            return e.json(401, { code: 401, message: "You must be logged in to upload files." })
+        }
+
+        var checkRateLimit = $app.store().get("checkRateLimit")
+        if (!checkRateLimit(e.auth.id, "create", 40)) {
+            return e.json(429, { code: 429, message: "You're uploading too quickly. Please wait a moment." })
+        }
+
+        var CATBOX_USERHASH = $os.getenv("CATBOX_USERHASH")
+        if (!CATBOX_USERHASH) {
+            console.log("[upload] CATBOX_USERHASH not configured")
+            return e.json(500, { code: 500, message: "File upload service not configured." })
+        }
+
+        // Get the uploaded file from the multipart form
+        var reqInfo = e.requestInfo()
+        var files = reqInfo.files
+        if (!files || !files["file"] || files["file"].length === 0) {
+            return e.json(400, { code: 400, message: "No file provided." })
+        }
+
+        var file = files["file"][0]
+        var fileName = file.name || "upload"
+        var fileSize = file.size || 0
+
+        console.log("[upload] file:", fileName, "size:", fileSize, "type:", file.type || "unknown")
+
+        // Validate file size
+        if (fileSize > MAX_FILE_SIZE) {
+            return e.json(400, { code: 400, message: "File too large. Maximum size is 50 MB." })
+        }
+
+        // Validate file extension
+        var ext = ""
+        var dotIdx = fileName.lastIndexOf(".")
+        if (dotIdx >= 0) ext = fileName.substring(dotIdx + 1).toLowerCase()
+        var extAllowed = false
+        for (var ei = 0; ei < ALLOWED_EXTENSIONS.length; ei++) {
+            if (ext === ALLOWED_EXTENSIONS[ei]) { extAllowed = true; break }
+        }
+        if (!extAllowed) {
+            return e.json(400, { code: 400, message: "File type not allowed. Only images and videos are accepted." })
+        }
+
+        // Validate MIME type if available
+        var mimeType = file.type || ""
+        if (mimeType) {
+            var mimeAllowed = false
+            for (var mi = 0; mi < ALLOWED_MIME_PREFIXES.length; mi++) {
+                if (mimeType.indexOf(ALLOWED_MIME_PREFIXES[mi]) === 0) { mimeAllowed = true; break }
+            }
+            if (!mimeAllowed) {
+                return e.json(400, { code: 400, message: "File type not allowed. Only images and videos are accepted." })
+            }
+        }
+
+        // Read file content and build multipart body for Catbox
+        // PocketBase JSVM provides file.content as bytes
+        var formBody = new FormData()
+        formBody.append("reqtype", "fileupload")
+        formBody.append("userhash", CATBOX_USERHASH)
+        formBody.append("fileToUpload", file)
+
+        var res = $http.send({
+            url: "https://catbox.moe/user/api.php",
+            method: "POST",
+            body: formBody,
+            timeout: 120,
+        })
+
+        console.log("[upload] catbox response:", res.statusCode, "body:", String(res.raw).slice(0, 200))
+
+        if (res.statusCode !== 200) {
+            return e.json(502, { code: 502, message: "Upload service temporarily unavailable. Please try again." })
+        }
+
+        var url = String(res.raw).trim()
+
+        // Validate the returned URL looks like a catbox URL
+        if (url.indexOf("https://files.catbox.moe/") !== 0) {
+            console.log("[upload] unexpected catbox response:", url.slice(0, 200))
+            return e.json(502, { code: 502, message: "Upload service returned an unexpected response. Please try again." })
+        }
+
+        return e.json(200, { url: url })
+
+    } catch(err) {
+        console.log("[upload] CRASH:", String(err))
+        return e.json(500, { code: 500, message: "Upload failed. Please try again." })
+    }
+})
+
+// Admin-only: delete files from Catbox
+routerAdd("POST", "/api/feedbackr/delete-attachment", function(e) {
+    try {
+        if (!e.auth) {
+            return e.json(401, { code: 401, message: "Not authenticated." })
+        }
+        if (!e.auth.get("is_admin")) {
+            return e.json(403, { code: 403, message: "Admin access required." })
+        }
+
+        var CATBOX_USERHASH = $os.getenv("CATBOX_USERHASH")
+        if (!CATBOX_USERHASH) {
+            return e.json(500, { code: 500, message: "File upload service not configured." })
+        }
+
+        var reqInfo = e.requestInfo()
+        var body = reqInfo.body || {}
+        var urls = body.urls || []
+
+        if (!urls.length) {
+            return e.json(400, { code: 400, message: "No URLs provided." })
+        }
+
+        // Extract filenames from catbox URLs
+        var filenames = []
+        for (var i = 0; i < urls.length; i++) {
+            var url = String(urls[i])
+            if (url.indexOf("https://files.catbox.moe/") === 0) {
+                filenames.push(url.replace("https://files.catbox.moe/", ""))
+            }
+        }
+
+        if (filenames.length === 0) {
+            return e.json(400, { code: 400, message: "No valid Catbox URLs provided." })
+        }
+
+        var formBody = new FormData()
+        formBody.append("reqtype", "deletefiles")
+        formBody.append("userhash", CATBOX_USERHASH)
+        formBody.append("files", filenames.join(" "))
+
+        var res = $http.send({
+            url: "https://catbox.moe/user/api.php",
+            method: "POST",
+            body: formBody,
+            timeout: 30,
+        })
+
+        console.log("[delete-attachment] catbox response:", res.statusCode, String(res.raw).slice(0, 200))
+
+        return e.json(200, { deleted: filenames.length })
+
+    } catch(err) {
+        console.log("[delete-attachment] CRASH:", String(err))
+        return e.json(500, { code: 500, message: "Delete failed." })
+    }
+})
+
+// =============================================================================
 // OWNERSHIP ENFORCEMENT
 // =============================================================================
 
@@ -583,6 +752,7 @@ onRecordUpdateRequest(function(e) {
         e.record.set("comments_count", e.record.original().get("comments_count"))
         e.record.set("author", e.record.original().get("author"))
         e.record.set("ai_transcript", e.record.original().get("ai_transcript"))
+        e.record.set("attachments", e.record.original().get("attachments"))
 
         var title = String(e.record.get("title") || "")
         if (title.length < 5) return e.json(400, { code: 400, message: "Title too short (min 5 chars)." })
@@ -663,6 +833,27 @@ onRecordCreateRequest(function(e) {
     var transcript = e.record.get("ai_transcript")
     if (transcript && JSON.stringify(transcript).length > 50000) {
         e.record.set("ai_transcript", null)
+    }
+    // Validate attachments — only allow valid Catbox URLs, max 5
+    var attachments = e.record.get("attachments")
+    if (attachments) {
+        try {
+            if (typeof attachments === "string") attachments = JSON.parse(attachments)
+            if (Array.isArray(attachments)) {
+                var validAttachments = []
+                for (var ai = 0; ai < attachments.length && ai < MAX_ATTACHMENTS_PER_POST; ai++) {
+                    var aUrl = String(attachments[ai])
+                    if (aUrl.indexOf("https://files.catbox.moe/") === 0) {
+                        validAttachments.push(aUrl)
+                    }
+                }
+                e.record.set("attachments", validAttachments)
+            } else {
+                e.record.set("attachments", null)
+            }
+        } catch(ex) {
+            e.record.set("attachments", null)
+        }
     }
     return e.next()
 }, "posts")

@@ -40,6 +40,10 @@ services:
       # URL to a custom logo image (PNG/SVG); leave empty for default icon
       - VITE_LOGO_URL=${VITE_LOGO_URL:-}
 
+      # ── Media Upload (optional) ──────────────────────
+      # Catbox.moe userhash for server-side file upload proxy
+      - CATBOX_USERHASH=${CATBOX_USERHASH:-}
+
       # ── Discord OAuth (optional) ──────────────────────
       # Configure in PocketBase admin UI after first boot
       # - DISCORD_CLIENT_ID=${DISCORD_CLIENT_ID}
