@@ -599,7 +599,7 @@ export default function PostDetail() {
                     <input
                       ref={editFileInputRef}
                       type="file"
-                      accept="image/*,video/*;capture=camera"
+                      accept="image/*,video/*"
                       multiple
                       style={{ display: 'none' }}
                       onChange={(e) => { if (e.target.files?.length) handleEditFiles(e.target.files); e.target.value = ''; }}

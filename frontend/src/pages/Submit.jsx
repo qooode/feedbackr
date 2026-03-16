@@ -458,7 +458,7 @@ export default function Submit() {
                   <input
                     ref={fileInputRef}
                     type="file"
-                    accept="image/*,video/*;capture=camera"
+                    accept="image/*,video/*"
                     multiple
                     style={{ display: 'none' }}
                     onChange={(e) => { if (e.target.files?.length) handleFiles(e.target.files); e.target.value = ''; }}
@@ -612,7 +612,7 @@ export default function Submit() {
                     <input
                       ref={fileInputRef}
                       type="file"
-                      accept="image/*,video/*;capture=camera"
+                      accept="image/*,video/*"
                       multiple
                       style={{ display: 'none' }}
                       onChange={(e) => { if (e.target.files?.length) handleFiles(e.target.files); e.target.value = ''; }}
@@ -837,7 +837,7 @@ export default function Submit() {
                   <input
                     ref={fileInputRef}
                     type="file"
-                    accept="image/*,video/*;capture=camera"
+                    accept="image/*,video/*"
                     multiple
                     style={{ display: 'none' }}
                     onChange={(e) => { if (e.target.files?.length) handleFiles(e.target.files); e.target.value = ''; }}
