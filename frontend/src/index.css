@@ -2621,10 +2621,12 @@ details[open] .refine-history-toggle::before {
 
 .comment-thread {
   border-bottom: 1px solid var(--border);
+  padding-bottom: var(--space-2);
 }
 
 .comment-thread:last-of-type {
   border-bottom: none;
+  padding-bottom: 0;
 }
 
 .comment-thread .comment {
@@ -2637,6 +2639,10 @@ details[open] .refine-history-toggle::before {
   border-left: 2px solid var(--border);
   padding-top: var(--space-3);
   padding-bottom: var(--space-3);
+}
+
+.comment-reply:last-child {
+  padding-bottom: 0;
 }
 
 .comment-reply .comment-header {
