@@ -298,7 +298,6 @@ changelogs:     list/view = everyone, create/update/delete = admin only
 | Markdown | [react-markdown](https://github.com/remarkjs/react-markdown) |
 | Icons | [Lucide React](https://lucide.dev) |
 | Styling | Vanilla CSS — Dark Glass theme |
-| Container | Alpine Linux + multi-stage Docker build |
 
 ## Contributing
 
