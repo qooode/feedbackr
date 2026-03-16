@@ -26,23 +26,30 @@ export default function CommunitySidebar() {
   const [isAtBottom, setIsAtBottom] = useState(false);
 
   const checkScroll = useCallback(() => {
-    const el = sidebarRef.current;
-    if (!el) return;
-    const hasOverflow = el.scrollHeight > el.clientHeight + 2;
-    setCanScroll(hasOverflow);
-    const atBottom = el.scrollHeight - el.scrollTop - el.clientHeight < 8;
-    setIsAtBottom(atBottom);
+    requestAnimationFrame(() => {
+      const el = sidebarRef.current;
+      if (!el) return;
+      const hasOverflow = el.scrollHeight > el.clientHeight + 2;
+      setCanScroll(hasOverflow);
+      const atBottom = el.scrollHeight - el.scrollTop - el.clientHeight < 8;
+      setIsAtBottom(atBottom);
+    });
   }, []);
 
   useEffect(() => {
     fetchSidebarData();
   }, []);
 
+  // Re-check whenever data changes, window resizes, or page scrolls
   useEffect(() => {
     checkScroll();
     window.addEventListener('resize', checkScroll);
-    return () => window.removeEventListener('resize', checkScroll);
-  }, [checkScroll, loading]);
+    window.addEventListener('scroll', checkScroll, { passive: true });
+    return () => {
+      window.removeEventListener('resize', checkScroll);
+      window.removeEventListener('scroll', checkScroll);
+    };
+  }, [checkScroll, loading, contributors, shipped, stats, recentComments]);
 
   const handleScrollMore = () => {
     const el = sidebarRef.current;

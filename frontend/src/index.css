@@ -4678,6 +4678,7 @@ details[open] .refine-history-toggle::before {
 }
 
 /* Sidebar wrapper — handles sticky + positioning */
+/* Note: sticky also acts as positioning context for absolute children */
 .sidebar-wrapper {
   width: 280px;
   flex-shrink: 0;
