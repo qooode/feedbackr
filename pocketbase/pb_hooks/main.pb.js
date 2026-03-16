@@ -570,60 +570,10 @@ routerAdd("POST", "/api/feedbackr/similar", function(e) {
 // The CATBOX_USERHASH never leaves the server.
 // =============================================================================
 
-var ALLOWED_MIMES = {
-    "image/jpeg": true, "image/png": true, "image/gif": true,
-    "image/webp": true, "image/bmp": true, "image/avif": true,
-    "video/mp4": true, "video/webm": true, "video/quicktime": true,
-    "video/x-msvideo": true, "video/x-matroska": true, "video/mp4v-es": true,
-}
 var ALLOWED_EXTENSIONS = [
     "jpg", "jpeg", "png", "gif", "webp", "bmp", "avif",
     "mp4", "webm", "mov", "avi", "mkv", "m4v"
 ]
-var MAX_FILE_SIZE = 200 * 1024 * 1024 // 200 MB (Catbox limit)
-
-// Magic byte signatures for file content validation
-var MAGIC_BYTES = [
-    { ext: ["jpg", "jpeg"], bytes: [0xFF, 0xD8, 0xFF] },
-    { ext: ["png"], bytes: [0x89, 0x50, 0x4E, 0x47] },
-    { ext: ["gif"], bytes: [0x47, 0x49, 0x46, 0x38] },
-    { ext: ["webp"], bytes: [0x52, 0x49, 0x46, 0x46], offset4: [0x57, 0x45, 0x42, 0x50] },
-    { ext: ["bmp"], bytes: [0x42, 0x4D] },
-    { ext: ["avif"], skipMagic: true }, // ftyp-based, checked separately
-    { ext: ["mp4", "m4v", "mov"], skipMagic: true }, // ftyp-based
-    { ext: ["webm", "mkv"], bytes: [0x1A, 0x45, 0xDF, 0xA3] },
-    { ext: ["avi"], bytes: [0x52, 0x49, 0x46, 0x46], offset4: [0x41, 0x56, 0x49, 0x20] },
-]
-
-function validateMagicBytes(fileContent, ext) {
-    if (!fileContent || fileContent.length < 12) return false
-    // Build a simple byte array from the first 12 bytes
-    var header = []
-    for (var i = 0; i < Math.min(12, fileContent.length); i++) {
-        header.push(fileContent[i] & 0xFF)
-    }
-    // Check ftyp-based formats (MP4, MOV, M4V, AVIF) — "ftyp" at offset 4
-    var ftypExts = ["mp4", "m4v", "mov", "avif"]
-    if (ftypExts.indexOf(ext) >= 0) {
-        return header[4] === 0x66 && header[5] === 0x74 && header[6] === 0x79 && header[7] === 0x70
-    }
-    for (var m = 0; m < MAGIC_BYTES.length; m++) {
-        var sig = MAGIC_BYTES[m]
-        if (sig.skipMagic) continue
-        if (sig.ext.indexOf(ext) < 0) continue
-        var match = true
-        for (var b = 0; b < sig.bytes.length; b++) {
-            if (header[b] !== sig.bytes[b]) { match = false; break }
-        }
-        if (match && sig.offset4) {
-            for (var o = 0; o < sig.offset4.length; o++) {
-                if (header[8 + o] !== sig.offset4[o]) { match = false; break }
-            }
-        }
-        if (match) return true
-    }
-    return false
-}
 var MAX_ATTACHMENTS_PER_POST = 5
 
 routerAdd("POST", "/api/feedbackr/upload", function(e) {
@@ -663,17 +613,18 @@ routerAdd("POST", "/api/feedbackr/upload", function(e) {
         console.log("[upload] file:", fileName, "size:", fileSize)
 
         // Validate file size
-        if (fileSize > MAX_FILE_SIZE) {
+        if (fileSize > 209715200) { // 200 MB
             return e.json(400, { code: 400, message: "File too large. Maximum size is 200 MB." })
         }
 
         // Validate file extension
+        var allowedExts = ["jpg","jpeg","png","gif","webp","bmp","avif","mp4","webm","mov","avi","mkv","m4v"]
         var ext = ""
         var dotIdx = fileName.lastIndexOf(".")
         if (dotIdx >= 0) ext = fileName.substring(dotIdx + 1).toLowerCase()
         var extAllowed = false
-        for (var ei = 0; ei < ALLOWED_EXTENSIONS.length; ei++) {
-            if (ext === ALLOWED_EXTENSIONS[ei]) { extAllowed = true; break }
+        for (var ei = 0; ei < allowedExts.length; ei++) {
+            if (ext === allowedExts[ei]) { extAllowed = true; break }
         }
         if (!extAllowed) {
             return e.json(400, { code: 400, message: "File type not allowed. Only images and videos are accepted." })
