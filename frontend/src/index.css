@@ -4683,17 +4683,10 @@ details[open] .refine-history-toggle::before {
   flex-shrink: 0;
   position: sticky;
   top: calc(var(--navbar-height) + var(--space-6));
+  align-self: flex-start;
   display: flex;
   flex-direction: column;
   gap: 10px;
-  max-height: calc(100vh - var(--navbar-height) - var(--space-8));
-  overflow-y: auto;
-  scrollbar-width: none;
-  -ms-overflow-style: none;
-}
-
-.community-sidebar::-webkit-scrollbar {
-  display: none;
 }
 
 /* Submit CTA */
