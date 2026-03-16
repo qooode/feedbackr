@@ -754,6 +754,15 @@ onRecordUpdateRequest(function(e) {
 
         // Validate attachments — only allow valid Catbox URLs, max 5
         var attachments = e.record.get("attachments")
+        // Fallback: read from raw request body if record.get missed it
+        if (!attachments) {
+            try {
+                var reqBody = e.requestInfo().body || {}
+                if (reqBody.attachments) {
+                    attachments = reqBody.attachments
+                }
+            } catch(reqErr) {}
+        }
         if (attachments) {
             try {
                 if (typeof attachments === "string") attachments = JSON.parse(attachments)
@@ -924,8 +933,25 @@ onRecordCreateRequest(function(e) {
     if (transcript && JSON.stringify(transcript).length > 50000) {
         e.record.set("ai_transcript", null)
     }
+
     // Validate attachments — only allow valid Catbox URLs, max 5
     var attachments = e.record.get("attachments")
+
+    // Fallback: if record.get missed it, read from raw request body
+    if (!attachments) {
+        try {
+            var reqBody = e.requestInfo().body || {}
+            if (reqBody.attachments) {
+                attachments = reqBody.attachments
+                console.log("[create-post] attachments from requestInfo().body, type:", typeof attachments)
+            }
+        } catch(reqErr) {
+            console.log("[create-post] requestInfo error:", String(reqErr))
+        }
+    }
+
+    console.log("[create-post] attachments raw:", JSON.stringify(attachments), "type:", typeof attachments)
+
     if (attachments) {
         try {
             if (typeof attachments === "string") attachments = JSON.parse(attachments)
@@ -937,11 +963,13 @@ onRecordCreateRequest(function(e) {
                         validAttachments.push(aUrl)
                     }
                 }
-                e.record.set("attachments", validAttachments)
+                console.log("[create-post] valid attachments:", validAttachments.length, JSON.stringify(validAttachments))
+                e.record.set("attachments", validAttachments.length > 0 ? validAttachments : null)
             } else {
                 e.record.set("attachments", null)
             }
         } catch(ex) {
+            console.log("[create-post] attachments parse error:", String(ex))
             e.record.set("attachments", null)
         }
     }
