@@ -1,5 +1,5 @@
 import { useNavigate } from 'react-router-dom';
-import { MessageCircle } from 'lucide-react';
+import { MessageCircle, Paperclip } from 'lucide-react';
 import VoteButton from './VoteButton';
 import UserAvatar from './UserAvatar';
 import FavoriteButton from './FavoriteButton';
@@ -42,6 +42,12 @@ export default function PostCard({ post }) {
             <span className="post-card-comments">
               <MessageCircle size={13} />
               {post.comments_count}
+            </span>
+          )}
+          {post.attachments?.length > 0 && (
+            <span className="post-card-attachments">
+              <Paperclip size={13} />
+              {post.attachments.length}
             </span>
           )}
           {post.expand?.author && (
