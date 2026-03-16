@@ -7,6 +7,7 @@ import {
   ArrowRight,
   Rocket,
   Plus,
+  MessageSquare,
 } from 'lucide-react';
 import pb from '../lib/pocketbase';
 import UserAvatar from './UserAvatar';
@@ -17,6 +18,7 @@ export default function CommunitySidebar() {
 
   const [shipped, setShipped] = useState([]);
   const [stats, setStats] = useState(null);
+  const [recentComments, setRecentComments] = useState([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -29,6 +31,7 @@ export default function CommunitySidebar() {
         fetchTopContributors(),
         fetchRecentlyShipped(),
         fetchCommunityStats(),
+        fetchRecentComments(),
       ]);
     } catch (err) {
       console.warn('[Sidebar] partial data load:', err);
@@ -102,6 +105,19 @@ export default function CommunitySidebar() {
       });
     } catch (err) {
       console.warn('[Sidebar] stats:', err);
+    }
+  };
+
+  const fetchRecentComments = async () => {
+    try {
+      const result = await pb.collection('comments').getList(1, 6, {
+        sort: '-created',
+        expand: 'author,post',
+        fields: 'id,body,created,expand.author.id,expand.author.name,expand.author.username,expand.author.avatar,expand.author.collectionId,expand.author.collectionName,expand.post.id,expand.post.title,expand.post.category',
+      });
+      setRecentComments(result.items);
+    } catch (err) {
+      console.warn('[Sidebar] recent comments:', err);
     }
   };
 
@@ -224,6 +240,46 @@ export default function CommunitySidebar() {
                 {stats.totalPosts > 0 ? Math.round((stats.shipped / stats.totalPosts) * 100) : 0}% ship rate
               </span>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* Recent Activity */}
+      {recentComments.length > 0 && (
+        <div className="sidebar-widget">
+          <div className="sidebar-widget-header">
+            <MessageSquare size={14} />
+            <span>Recent Activity</span>
+          </div>
+          <div className="sidebar-widget-body">
+            {recentComments.map((comment) => {
+              const author = comment.expand?.author;
+              const post = comment.expand?.post;
+              if (!post) return null;
+              const snippet = comment.body?.length > 60
+                ? comment.body.slice(0, 60).trim() + '…'
+                : comment.body;
+              return (
+                <div
+                  key={comment.id}
+                  className="sidebar-activity-item"
+                  onClick={() => navigate(`/post/${post.id}`)}
+                >
+                  <UserAvatar user={author} size="20px" />
+                  <div className="sidebar-activity-content">
+                    <div className="sidebar-activity-meta">
+                      <span className="sidebar-activity-author">
+                        {author?.name || author?.username || 'Anonymous'}
+                      </span>
+                      <span className="sidebar-activity-verb">commented on</span>
+                    </div>
+                    <span className="sidebar-activity-post">{post.title}</span>
+                    <span className="sidebar-activity-snippet">"{snippet}"</span>
+                    <span className="sidebar-activity-time">{timeAgo(comment.created)}</span>
+                  </div>
+                </div>
+              );
+            })}
           </div>
         </div>
       )}
