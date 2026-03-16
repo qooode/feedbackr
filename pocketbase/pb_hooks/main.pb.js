@@ -45,6 +45,25 @@ $app.store().set("checkRateLimit", function(userId, bucket, fallbackMax) {
     return true
 })
 
+// Helper: PocketBase JSVM returns JSON fields as Go byte arrays [91,34,...]
+// This decodes them into proper JS values.
+$app.store().set("decodeJsonField", function(val) {
+    if (!val) return null
+    if (typeof val === "string") {
+        try { return JSON.parse(val) } catch(e) { return null }
+    }
+    // Detect Go []byte: array-like object where first element is a number
+    if (typeof val === "object" && typeof val.length === "number" && val.length > 0 && typeof val[0] === "number") {
+        try {
+            var chars = []
+            for (var i = 0; i < val.length; i++) chars.push(String.fromCharCode(val[i]))
+            return JSON.parse(chars.join(""))
+        } catch(e) { return null }
+    }
+    // Already a proper JS object/array
+    return val
+})
+
 // =============================================================================
 // AI ROUTES
 // =============================================================================
@@ -753,34 +772,19 @@ onRecordUpdateRequest(function(e) {
         e.record.set("ai_transcript", e.record.original().get("ai_transcript"))
 
         // Validate attachments — only allow valid Catbox URLs, max 5
-        var attachments = e.record.get("attachments")
-        // Fallback: read from raw request body if record.get missed it
-        if (!attachments) {
-            try {
-                var reqBody = e.requestInfo().body || {}
-                if (reqBody.attachments) {
-                    attachments = reqBody.attachments
+        var decodeJsonField = $app.store().get("decodeJsonField")
+        var attachments = decodeJsonField(e.record.get("attachments"))
+        if (attachments && Array.isArray(attachments)) {
+            var validAttachments = []
+            for (var ai = 0; ai < attachments.length && ai < 5; ai++) {
+                var aUrl = String(attachments[ai])
+                if (aUrl.indexOf("https://files.catbox.moe/") === 0) {
+                    validAttachments.push(aUrl)
                 }
-            } catch(reqErr) {}
-        }
-        if (attachments) {
-            try {
-                if (typeof attachments === "string") attachments = JSON.parse(attachments)
-                if (Array.isArray(attachments)) {
-                    var validAttachments = []
-                    for (var ai = 0; ai < attachments.length && ai < 5; ai++) {
-                        var aUrl = String(attachments[ai])
-                        if (aUrl.indexOf("https://files.catbox.moe/") === 0) {
-                            validAttachments.push(aUrl)
-                        }
-                    }
-                    e.record.set("attachments", validAttachments.length > 0 ? validAttachments : null)
-                } else {
-                    e.record.set("attachments", null)
-                }
-            } catch(ex) {
-                e.record.set("attachments", null)
             }
+            e.record.set("attachments", validAttachments.length > 0 ? validAttachments : null)
+        } else if (attachments) {
+            e.record.set("attachments", null)
         }
 
         var title = String(e.record.get("title") || "")
@@ -808,10 +812,9 @@ onRecordDeleteRequest(function(e) {
 // After a post is updated, delete any attachments that were removed
 onRecordAfterUpdateSuccess(function(e) {
     try {
-        var oldAttachments = e.record.original().get("attachments") || []
-        var newAttachments = e.record.get("attachments") || []
-        if (typeof oldAttachments === "string") { try { oldAttachments = JSON.parse(oldAttachments) } catch(x) { oldAttachments = [] } }
-        if (typeof newAttachments === "string") { try { newAttachments = JSON.parse(newAttachments) } catch(x) { newAttachments = [] } }
+        var decodeJsonField = $app.store().get("decodeJsonField")
+        var oldAttachments = decodeJsonField(e.record.original().get("attachments")) || []
+        var newAttachments = decodeJsonField(e.record.get("attachments")) || []
         if (!Array.isArray(oldAttachments)) oldAttachments = []
         if (!Array.isArray(newAttachments)) newAttachments = []
 
@@ -845,8 +848,8 @@ onRecordAfterUpdateSuccess(function(e) {
 // After a post is deleted, clean up all its attachments
 onRecordAfterDeleteSuccess(function(e) {
     try {
-        var attachments = e.record.get("attachments") || []
-        if (typeof attachments === "string") { try { attachments = JSON.parse(attachments) } catch(x) { attachments = [] } }
+        var decodeJsonField = $app.store().get("decodeJsonField")
+        var attachments = decodeJsonField(e.record.get("attachments")) || []
         if (!Array.isArray(attachments)) attachments = []
         var prefix = "https://files.catbox.moe/"
         var toDelete = []
@@ -935,43 +938,19 @@ onRecordCreateRequest(function(e) {
     }
 
     // Validate attachments — only allow valid Catbox URLs, max 5
-    var attachments = e.record.get("attachments")
-
-    // Fallback: if record.get missed it, read from raw request body
-    if (!attachments) {
-        try {
-            var reqBody = e.requestInfo().body || {}
-            if (reqBody.attachments) {
-                attachments = reqBody.attachments
-                console.log("[create-post] attachments from requestInfo().body, type:", typeof attachments)
+    var decodeJsonField = $app.store().get("decodeJsonField")
+    var attachments = decodeJsonField(e.record.get("attachments"))
+    if (attachments && Array.isArray(attachments)) {
+        var validAttachments = []
+        for (var ai = 0; ai < attachments.length && ai < 5; ai++) {
+            var aUrl = String(attachments[ai])
+            if (aUrl.indexOf("https://files.catbox.moe/") === 0) {
+                validAttachments.push(aUrl)
             }
-        } catch(reqErr) {
-            console.log("[create-post] requestInfo error:", String(reqErr))
         }
-    }
-
-    console.log("[create-post] attachments raw:", JSON.stringify(attachments), "type:", typeof attachments)
-
-    if (attachments) {
-        try {
-            if (typeof attachments === "string") attachments = JSON.parse(attachments)
-            if (Array.isArray(attachments)) {
-                var validAttachments = []
-                for (var ai = 0; ai < attachments.length && ai < 5; ai++) {
-                    var aUrl = String(attachments[ai])
-                    if (aUrl.indexOf("https://files.catbox.moe/") === 0) {
-                        validAttachments.push(aUrl)
-                    }
-                }
-                console.log("[create-post] valid attachments:", validAttachments.length, JSON.stringify(validAttachments))
-                e.record.set("attachments", validAttachments.length > 0 ? validAttachments : null)
-            } else {
-                e.record.set("attachments", null)
-            }
-        } catch(ex) {
-            console.log("[create-post] attachments parse error:", String(ex))
-            e.record.set("attachments", null)
-        }
+        e.record.set("attachments", validAttachments.length > 0 ? validAttachments : null)
+    } else if (attachments) {
+        e.record.set("attachments", null)
     }
     return e.next()
 }, "posts")
