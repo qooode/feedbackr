@@ -1,12 +1,13 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
-import { ArrowLeft, Clock, Send, Pencil, Trash2, X, Check, Reply, CornerDownRight, Film } from 'lucide-react';
+import { ArrowLeft, Clock, Send, Pencil, Trash2, X, Check, Reply, CornerDownRight, Film, Paperclip, Image, Loader2 } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
 import pb from '../lib/pocketbase';
 import VoteButton from '../components/VoteButton';
 import UserAvatar from '../components/UserAvatar';
 import FavoriteButton from '../components/FavoriteButton';
 import { useAuth } from '../hooks/useAuth';
+import { uploadAttachment } from '../lib/api';
 
 export default function PostDetail() {
   const { id } = useParams();
@@ -43,6 +44,13 @@ export default function PostDetail() {
   // Delete comment state
   const [confirmDeleteCommentId, setConfirmDeleteCommentId] = useState(null);
   const [deletingComment, setDeletingComment] = useState(false);
+
+  // Edit post attachments
+  const [editAttachments, setEditAttachments] = useState([]); // [{ id, name, type, url, previewUrl?, uploading?, error? }]
+  const [editDragOver, setEditDragOver] = useState(false);
+  const editFileInputRef = useRef(null);
+  const MAX_ATTACHMENTS = 5;
+  const MAX_FILE_SIZE = 200 * 1024 * 1024;
 
   useEffect(() => {
     fetchPost();
@@ -157,6 +165,21 @@ export default function PostDetail() {
   const startEditPost = () => {
     setEditTitle(post.title);
     setEditBody(post.body);
+    // Load existing attachments into editable state
+    const existing = (post.attachments || []).map((url, i) => {
+      const ext = url.split('.').pop()?.toLowerCase() || '';
+      const isVid = ['mp4', 'webm', 'mov', 'avi', 'mkv', 'm4v'].includes(ext);
+      return {
+        id: `existing-${i}-${Date.now()}`,
+        name: url.split('/').pop() || `file-${i}`,
+        type: isVid ? 'video/mp4' : 'image/jpeg',
+        url,
+        previewUrl: null,
+        uploading: false,
+        error: null,
+      };
+    });
+    setEditAttachments(existing);
     setEditingPost(true);
   };
 
@@ -164,17 +187,26 @@ export default function PostDetail() {
     setEditingPost(false);
     setEditTitle('');
     setEditBody('');
+    // Clean up any blob URLs
+    editAttachments.forEach(a => { if (a.previewUrl) URL.revokeObjectURL(a.previewUrl); });
+    setEditAttachments([]);
   };
 
   const saveEditPost = async () => {
     if (!editTitle.trim() || !editBody.trim() || savingPost) return;
     setSavingPost(true);
     try {
+      const attachmentUrls = editAttachments
+        .filter(a => a.url && !a.error)
+        .map(a => a.url);
       await pb.collection('posts').update(id, {
         title: editTitle.trim(),
         body: editBody.trim(),
+        attachments: attachmentUrls.length > 0 ? attachmentUrls : null,
       });
       setEditingPost(false);
+      editAttachments.forEach(a => { if (a.previewUrl) URL.revokeObjectURL(a.previewUrl); });
+      setEditAttachments([]);
       fetchPost();
     } catch (err) {
       console.error('Edit post error:', err);
@@ -249,6 +281,58 @@ export default function PostDetail() {
 
   const isCommentOwner = (comment) => user && comment.author === user.id;
   const canEditComment = (comment) => isCommentOwner(comment) || isAdmin;
+
+  // ── Attachment edit helpers ──
+  const isEditImage = (type) => type?.startsWith('image/');
+
+  const handleEditFiles = useCallback(async (files) => {
+    const fileList = Array.from(files);
+    for (const file of fileList) {
+      if (editAttachments.length >= MAX_ATTACHMENTS) {
+        alert(`Maximum ${MAX_ATTACHMENTS} attachments allowed.`);
+        break;
+      }
+      if (file.size > MAX_FILE_SIZE) {
+        alert(`${file.name} is too large (max 200 MB).`);
+        continue;
+      }
+      if (!file.type.startsWith('image/') && !file.type.startsWith('video/')) {
+        alert(`${file.name} is not a supported file type.`);
+        continue;
+      }
+      const entryId = Date.now() + '-' + Math.random().toString(36).slice(2, 8);
+      const previewUrl = file.type.startsWith('image/') ? URL.createObjectURL(file) : null;
+      const entry = { id: entryId, name: file.name, type: file.type, previewUrl, uploading: true, url: null, error: null };
+      setEditAttachments(prev => [...prev, entry]);
+      try {
+        const result = await uploadAttachment(file);
+        setEditAttachments(prev => prev.map(a =>
+          a.id === entryId ? { ...a, uploading: false, url: result.url } : a
+        ));
+      } catch (err) {
+        setEditAttachments(prev => prev.map(a =>
+          a.id === entryId ? { ...a, uploading: false, error: err?.message || 'Upload failed' } : a
+        ));
+      }
+    }
+  }, [editAttachments.length]);
+
+  const removeEditAttachment = (attId) => {
+    setEditAttachments(prev => {
+      const item = prev.find(a => a.id === attId);
+      if (item?.previewUrl) URL.revokeObjectURL(item.previewUrl);
+      return prev.filter(a => a.id !== attId);
+    });
+  };
+
+  const handleEditDrop = useCallback((e) => {
+    e.preventDefault();
+    setEditDragOver(false);
+    if (e.dataTransfer.files?.length) handleEditFiles(e.dataTransfer.files);
+  }, [handleEditFiles]);
+
+  const handleEditDragOver = (e) => { e.preventDefault(); setEditDragOver(true); };
+  const handleEditDragLeave = () => setEditDragOver(false);
 
   const timeAgo = (dateStr) => {
     const seconds = Math.floor((Date.now() - new Date(dateStr)) / 1000);
@@ -486,6 +570,74 @@ export default function PostDetail() {
                     <X size={13} />
                     Cancel
                   </button>
+                </div>
+
+                {/* Attachment management during edit */}
+                <div className="edit-attachments-section">
+                  <div className="edit-attachments-header">
+                    <span className="edit-attachments-label">
+                      <Image size={12} />
+                      Attachments ({editAttachments.filter(a => a.url).length}/{MAX_ATTACHMENTS})
+                    </span>
+                    <input
+                      ref={editFileInputRef}
+                      type="file"
+                      accept="image/*,video/*;capture=camera"
+                      multiple
+                      style={{ display: 'none' }}
+                      onChange={(e) => { if (e.target.files?.length) handleEditFiles(e.target.files); e.target.value = ''; }}
+                    />
+                    {editAttachments.length < MAX_ATTACHMENTS && (
+                      <button
+                        className="btn btn-ghost btn-sm"
+                        onClick={() => editFileInputRef.current?.click()}
+                        type="button"
+                      >
+                        <Paperclip size={12} />
+                        Add
+                      </button>
+                    )}
+                  </div>
+                  {editAttachments.length > 0 ? (
+                    <div className="edit-attachments-grid">
+                      {editAttachments.map((att) => (
+                        <div key={att.id} className={`edit-attachment-card ${att.error ? 'edit-attachment-error' : ''}`}>
+                          {att.uploading ? (
+                            <div className="edit-attachment-loading">
+                              <Loader2 size={18} className="animate-spin" />
+                            </div>
+                          ) : isEditImage(att.type) ? (
+                            <img src={att.url || att.previewUrl} alt={att.name} className="edit-attachment-img" />
+                          ) : (
+                            <div className="edit-attachment-vid">
+                              <Film size={18} />
+                            </div>
+                          )}
+                          <button
+                            className="edit-attachment-remove"
+                            onClick={() => removeEditAttachment(att.id)}
+                            title="Remove attachment"
+                          >
+                            <X size={12} />
+                          </button>
+                          {att.error && (
+                            <div className="edit-attachment-error-text">{att.error}</div>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <div
+                      className={`edit-attachments-dropzone ${editDragOver ? 'dropzone-active' : ''}`}
+                      onClick={() => editFileInputRef.current?.click()}
+                      onDrop={handleEditDrop}
+                      onDragOver={handleEditDragOver}
+                      onDragLeave={handleEditDragLeave}
+                    >
+                      <Image size={20} />
+                      <span>Drop files or tap to add photos & videos</span>
+                    </div>
+                  )}
                 </div>
               </>
             ) : (

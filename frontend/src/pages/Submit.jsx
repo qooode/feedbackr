@@ -8,7 +8,7 @@ import AuthModal from '../components/AuthModal';
 import pb from '../lib/pocketbase';
 
 const MAX_ATTACHMENTS = 5;
-const MAX_FILE_SIZE = 50 * 1024 * 1024; // 50 MB
+const MAX_FILE_SIZE = 200 * 1024 * 1024; // 200 MB (Catbox limit)
 const ALLOWED_TYPES = ['image/', 'video/'];
 
 const CATEGORIES = [
@@ -99,7 +99,7 @@ export default function Submit() {
         break;
       }
       if (file.size > MAX_FILE_SIZE) {
-        setError(`${file.name} is too large (max 50 MB).`);
+        setError(`${file.name} is too large (max 200 MB).`);
         continue;
       }
       if (!ALLOWED_TYPES.some(t => file.type.startsWith(t))) {
@@ -434,7 +434,7 @@ export default function Submit() {
                   <input
                     ref={fileInputRef}
                     type="file"
-                    accept="image/*,video/*"
+                    accept="image/*,video/*;capture=camera"
                     multiple
                     style={{ display: 'none' }}
                     onChange={(e) => { if (e.target.files?.length) handleFiles(e.target.files); e.target.value = ''; }}
@@ -544,6 +544,34 @@ export default function Submit() {
                 </details>
               )}
 
+              {/* Attachments — visible during AI refine */}
+              {attachments.length > 0 && (
+                <div className="attachment-list">
+                  {attachments.map((att) => (
+                    <div key={att.id} className={`attachment-item ${att.error ? 'attachment-error' : ''}`}>
+                      {att.previewUrl ? (
+                        <img src={att.previewUrl} alt={att.name} className="attachment-thumb" />
+                      ) : (
+                        <div className="attachment-thumb attachment-thumb-video">
+                          <Film size={16} />
+                        </div>
+                      )}
+                      <span className="attachment-name">{att.name}</span>
+                      {att.uploading && <Loader2 size={12} className="animate-spin" />}
+                      {att.error && <span className="attachment-error-text">{att.error}</span>}
+                      {att.url && <Check size={12} style={{ color: 'var(--success)' }} />}
+                      <button
+                        className="attachment-remove"
+                        onClick={(e) => { e.stopPropagation(); removeAttachment(att.id); }}
+                        title="Remove"
+                      >
+                        <X size={12} />
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              )}
+
               {/* Follow-up input OR Generate button */}
               {!aiLoading && !showGenerate && (
                 <div className="refine-reply">
@@ -557,6 +585,22 @@ export default function Submit() {
                     onKeyDown={handleFollowupKeyDown}
                   />
                   <div className="refine-reply-actions">
+                    <input
+                      ref={fileInputRef}
+                      type="file"
+                      accept="image/*,video/*;capture=camera"
+                      multiple
+                      style={{ display: 'none' }}
+                      onChange={(e) => { if (e.target.files?.length) handleFiles(e.target.files); e.target.value = ''; }}
+                    />
+                    <button
+                      className="btn btn-ghost btn-sm btn-icon"
+                      onClick={() => fileInputRef.current?.click()}
+                      title="Attach images or videos"
+                      type="button"
+                    >
+                      <Paperclip size={14} />
+                    </button>
                     <button className="btn btn-ghost btn-sm" onClick={handleReset}>
                       <RotateCcw size={12} />
                       Reset
@@ -723,6 +767,75 @@ export default function Submit() {
                     rows={5}
                     placeholder="Post body"
                   />
+
+                  {/* Attachment management in edit mode */}
+                  <div className="edit-attachments-section">
+                    <div className="edit-attachments-header">
+                      <span className="edit-attachments-label">
+                        <Image size={12} />
+                        Attachments ({attachments.filter(a => a.url).length}/{MAX_ATTACHMENTS})
+                      </span>
+                      <input
+                        ref={fileInputRef}
+                        type="file"
+                        accept="image/*,video/*;capture=camera"
+                        multiple
+                        style={{ display: 'none' }}
+                        onChange={(e) => { if (e.target.files?.length) handleFiles(e.target.files); e.target.value = ''; }}
+                      />
+                      {attachments.length < MAX_ATTACHMENTS && (
+                        <button
+                          className="btn btn-ghost btn-sm"
+                          onClick={() => fileInputRef.current?.click()}
+                          type="button"
+                        >
+                          <Paperclip size={12} />
+                          Add
+                        </button>
+                      )}
+                    </div>
+                    {attachments.length > 0 ? (
+                      <div className="edit-attachments-grid">
+                        {attachments.map((att) => (
+                          <div key={att.id} className={`edit-attachment-card ${att.error ? 'edit-attachment-error' : ''}`}>
+                            {att.uploading ? (
+                              <div className="edit-attachment-loading">
+                                <Loader2 size={18} className="animate-spin" />
+                              </div>
+                            ) : att.previewUrl || (att.url && isImage(att.type)) ? (
+                              <img src={att.url || att.previewUrl} alt={att.name} className="edit-attachment-img" />
+                            ) : (
+                              <div className="edit-attachment-vid">
+                                <Film size={18} />
+                              </div>
+                            )}
+                            <button
+                              className="edit-attachment-remove"
+                              onClick={() => removeAttachment(att.id)}
+                              title="Remove attachment"
+                            >
+                              <X size={12} />
+                            </button>
+                            {att.error && (
+                              <div className="edit-attachment-error-text">{att.error}</div>
+                            )}
+                          </div>
+                        ))}
+                      </div>
+                    ) : (
+                      <div
+                        className={`edit-attachments-dropzone ${dragOver ? 'dropzone-active' : ''}`}
+                        onClick={() => fileInputRef.current?.click()}
+                        onDrop={handleDrop}
+                        onDragOver={handleDragOver}
+                        onDragLeave={handleDragLeave}
+                      >
+                        <Image size={20} />
+                        <span>Drop files or tap to add photos & videos</span>
+                      </div>
+                    )}
+                  </div>
+
                   <div className="publish-meta-row">
                     <div className="publish-meta-item">
                       <label className="publish-meta-label">Category</label>
