@@ -4677,13 +4677,18 @@ details[open] .refine-history-toggle::before {
   min-width: 0;
 }
 
-/* Sidebar container */
-.community-sidebar {
+/* Sidebar wrapper — handles sticky + positioning */
+.sidebar-wrapper {
   width: 280px;
   flex-shrink: 0;
   position: sticky;
   top: calc(var(--navbar-height) + var(--space-6));
   align-self: flex-start;
+  max-height: calc(100vh - var(--navbar-height) - var(--space-8));
+}
+
+/* Sidebar container — scrollable */
+.community-sidebar {
   display: flex;
   flex-direction: column;
   gap: 10px;
@@ -4695,6 +4700,44 @@ details[open] .refine-history-toggle::before {
 
 .community-sidebar::-webkit-scrollbar {
   display: none;
+}
+
+/* Scroll fade indicator */
+.sidebar-scroll-fade {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 56px;
+  background: linear-gradient(to bottom, transparent, var(--background) 75%);
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  padding-bottom: 6px;
+  cursor: pointer;
+  pointer-events: auto;
+  animation: sidebarFadeIn 0.3s ease;
+}
+
+.sidebar-scroll-pill {
+  display: flex;
+  align-items: center;
+  gap: 3px;
+  font-size: 10px;
+  font-weight: 500;
+  color: var(--muted-foreground);
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 20px;
+  padding: 3px 10px;
+  transition: all var(--transition-fast);
+  opacity: 0.8;
+}
+
+.sidebar-scroll-fade:hover .sidebar-scroll-pill {
+  color: var(--foreground);
+  border-color: #3f3f46;
+  opacity: 1;
 }
 
 /* Submit CTA */
@@ -5063,7 +5106,7 @@ details[open] .refine-history-toggle::before {
 /* Mobile responsive */
 @media (max-width: 768px) {
   /* Sidebar: hide on mobile */
-  .community-sidebar {
+  .sidebar-wrapper {
     display: none;
   }
 

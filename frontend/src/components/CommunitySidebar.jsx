@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import {
   CheckCircle2,
@@ -6,6 +6,7 @@ import {
   Zap,
   ArrowRight,
   Rocket,
+  ChevronDown,
   Plus,
   MessageSquare,
 } from 'lucide-react';
@@ -20,10 +21,34 @@ export default function CommunitySidebar() {
   const [stats, setStats] = useState(null);
   const [recentComments, setRecentComments] = useState([]);
   const [loading, setLoading] = useState(true);
+  const sidebarRef = useRef(null);
+  const [canScroll, setCanScroll] = useState(false);
+  const [isAtBottom, setIsAtBottom] = useState(false);
+
+  const checkScroll = useCallback(() => {
+    const el = sidebarRef.current;
+    if (!el) return;
+    const hasOverflow = el.scrollHeight > el.clientHeight + 2;
+    setCanScroll(hasOverflow);
+    const atBottom = el.scrollHeight - el.scrollTop - el.clientHeight < 8;
+    setIsAtBottom(atBottom);
+  }, []);
 
   useEffect(() => {
     fetchSidebarData();
   }, []);
+
+  useEffect(() => {
+    checkScroll();
+    window.addEventListener('resize', checkScroll);
+    return () => window.removeEventListener('resize', checkScroll);
+  }, [checkScroll, loading]);
+
+  const handleScrollMore = () => {
+    const el = sidebarRef.current;
+    if (!el) return;
+    el.scrollBy({ top: 200, behavior: 'smooth' });
+  };
 
   const fetchSidebarData = async () => {
     try {
@@ -134,18 +159,21 @@ export default function CommunitySidebar() {
 
   if (loading) {
     return (
-      <aside className="community-sidebar">
-        <div className="sidebar-widget">
-          <div className="sidebar-widget-loading">
-            <div className="spinner" style={{ width: 16, height: 16 }} />
+      <div className="sidebar-wrapper">
+        <aside className="community-sidebar">
+          <div className="sidebar-widget">
+            <div className="sidebar-widget-loading">
+              <div className="spinner" style={{ width: 16, height: 16 }} />
+            </div>
           </div>
-        </div>
-      </aside>
+        </aside>
+      </div>
     );
   }
 
   return (
-    <aside className="community-sidebar">
+    <div className="sidebar-wrapper">
+      <aside className="community-sidebar" ref={sidebarRef} onScroll={checkScroll}>
       {/* Submit CTA */}
       <Link to="/submit" className="sidebar-cta">
         <div className="sidebar-cta-content">
@@ -284,6 +312,14 @@ export default function CommunitySidebar() {
           </div>
         </div>
       )}
-    </aside>
+      </aside>
+      {canScroll && !isAtBottom && (
+        <div className="sidebar-scroll-fade" onClick={handleScrollMore}>
+          <span className="sidebar-scroll-pill">
+            More <ChevronDown size={10} />
+          </span>
+        </div>
+      )}
+    </div>
   );
 }
