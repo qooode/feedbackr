@@ -257,8 +257,14 @@ export default function Submit() {
     }
   };
 
+  const hasUploading = attachments.some(a => a.uploading);
+
   const handlePublish = async () => {
     if (!preview) return;
+    if (hasUploading) {
+      setError('Please wait for uploads to finish before publishing.');
+      return;
+    }
     setPublishing(true);
     setError('');
 
@@ -266,6 +272,8 @@ export default function Submit() {
     const attachmentUrls = attachments
       .filter(a => a.url && !a.error)
       .map(a => a.url);
+
+    console.log('[publish] attachments state:', attachments.length, 'valid URLs:', attachmentUrls.length, attachmentUrls);
 
     try {
       const record = await pb.collection('posts').create({
@@ -277,6 +285,7 @@ export default function Submit() {
         ai_transcript: messages.map(m => ({ role: m.role, content: m.content })),
         attachments: attachmentUrls.length > 0 ? attachmentUrls : null,
       });
+      console.log('[publish] created record:', record.id, 'attachments:', record.attachments);
       setShowSuccess(true);
       setTimeout(() => navigate(`/post/${record.id}`), 1800);
     } catch (err) {
@@ -880,12 +889,17 @@ export default function Submit() {
                 <button
                   className={`btn btn-sm ${similarPosts.length > 0 && !similarDismissed ? 'btn-ghost' : 'btn-primary'}`}
                   onClick={handlePublish}
-                  disabled={publishing}
+                  disabled={publishing || hasUploading}
                 >
                   {publishing ? (
                     <>
                       <Loader2 size={13} className="animate-spin" />
                       Publishing...
+                    </>
+                  ) : hasUploading ? (
+                    <>
+                      <Loader2 size={13} className="animate-spin" />
+                      Uploading...
                     </>
                   ) : similarPosts.length > 0 && !similarDismissed ? (
                     <>
