@@ -4688,12 +4688,11 @@ details[open] .refine-history-toggle::before {
   max-height: calc(100vh - var(--navbar-height) - var(--space-8));
 }
 
-/* Sidebar container — scrollable */
+/* Sidebar container — scrollable, max-height set dynamically via JS */
 .community-sidebar {
   display: flex;
   flex-direction: column;
   gap: 10px;
-  max-height: calc(100vh - var(--navbar-height) - var(--space-8));
   overflow-y: auto;
   scrollbar-width: none;
   -ms-overflow-style: none;

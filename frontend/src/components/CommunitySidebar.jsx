@@ -29,6 +29,14 @@ export default function CommunitySidebar() {
     requestAnimationFrame(() => {
       const el = sidebarRef.current;
       if (!el) return;
+
+      // Dynamically calculate available height based on actual position
+      const rect = el.getBoundingClientRect();
+      const availableHeight = window.innerHeight - rect.top - 24; // 24px bottom padding
+      if (availableHeight > 0) {
+        el.style.maxHeight = `${availableHeight}px`;
+      }
+
       const hasOverflow = el.scrollHeight > el.clientHeight + 2;
       setCanScroll(hasOverflow);
       const atBottom = el.scrollHeight - el.scrollTop - el.clientHeight < 8;
