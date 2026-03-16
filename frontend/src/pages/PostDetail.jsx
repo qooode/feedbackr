@@ -7,7 +7,7 @@ import VoteButton from '../components/VoteButton';
 import UserAvatar from '../components/UserAvatar';
 import FavoriteButton from '../components/FavoriteButton';
 import { useAuth } from '../hooks/useAuth';
-import { uploadAttachment } from '../lib/api';
+import { uploadAttachment, deleteAttachment } from '../lib/api';
 import Lightbox from '../components/Lightbox';
 
 export default function PostDetail() {
@@ -189,6 +189,14 @@ export default function PostDetail() {
   };
 
   const cancelEditPost = () => {
+    // Clean up any newly uploaded files from Catbox (i.e., files that weren't in the original post)
+    const originalUrls = new Set(post.attachments || []);
+    const newlyUploadedUrls = editAttachments
+      .filter(a => a.url && !originalUrls.has(a.url))
+      .map(a => a.url);
+    if (newlyUploadedUrls.length > 0) {
+      deleteAttachment(newlyUploadedUrls).catch(err => console.warn('Catbox cleanup failed:', err));
+    }
     setEditingPost(false);
     setEditTitle('');
     setEditBody('');
@@ -326,6 +334,10 @@ export default function PostDetail() {
     setEditAttachments(prev => {
       const item = prev.find(a => a.id === attId);
       if (item?.previewUrl) URL.revokeObjectURL(item.previewUrl);
+      // Delete from Catbox if already uploaded (fire-and-forget)
+      if (item?.url) {
+        deleteAttachment(item.url).catch(err => console.warn('Catbox cleanup failed:', err));
+      }
       return prev.filter(a => a.id !== attId);
     });
   };

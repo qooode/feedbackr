@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import ReactMarkdown from 'react-markdown';
 import { Sparkles, Check, RotateCcw, Eye, MessageSquare, X, AlertTriangle, MessageCircle, Edit3, AlertCircle, Loader2, ArrowRight, Send, Paperclip, Image, Film, Trash2 } from 'lucide-react';
 import { useAuth } from '../hooks/useAuth';
-import { sendChatMessage, generatePost, searchSimilar, uploadAttachment } from '../lib/api';
+import { sendChatMessage, generatePost, searchSimilar, uploadAttachment, deleteAttachment } from '../lib/api';
 import AuthModal from '../components/AuthModal';
 import pb from '../lib/pocketbase';
 
@@ -132,6 +132,10 @@ export default function Submit() {
     setAttachments(prev => {
       const item = prev.find(a => a.id === id);
       if (item?.previewUrl) URL.revokeObjectURL(item.previewUrl);
+      // Delete from Catbox if already uploaded (fire-and-forget)
+      if (item?.url) {
+        deleteAttachment(item.url).catch(err => console.warn('Catbox cleanup failed:', err));
+      }
       return prev.filter(a => a.id !== id);
     });
   };
@@ -308,7 +312,11 @@ export default function Submit() {
     setError('');
     setPreviewMode('preview');
     setAiOptions([]);
-    // Clean up attachment previews
+    // Clean up attachment previews and delete from Catbox
+    const uploadedUrls = attachments.filter(a => a.url).map(a => a.url);
+    if (uploadedUrls.length > 0) {
+      deleteAttachment(uploadedUrls).catch(err => console.warn('Catbox cleanup failed:', err));
+    }
     attachments.forEach(a => { if (a.previewUrl) URL.revokeObjectURL(a.previewUrl); });
     setAttachments([]);
   };

@@ -77,7 +77,7 @@ export async function uploadAttachment(file) {
 }
 
 /**
- * Delete attachment(s) from Catbox (admin only)
+ * Delete attachment(s) from Catbox (server-side cleanup)
  */
 export async function deleteAttachment(urls) {
   return safeSend('/api/feedbackr/delete-attachment', {

@@ -663,14 +663,18 @@ routerAdd("POST", "/api/feedbackr/upload", function(e) {
     }
 })
 
-// Admin-only: delete files from Catbox
+// Delete files from Catbox — any authenticated user can clean up uploads
+// Security: Catbox only allows deleting files uploaded with our userhash,
+// so users cannot delete arbitrary files from other Catbox accounts.
 routerAdd("POST", "/api/feedbackr/delete-attachment", function(e) {
     try {
         if (!e.auth) {
             return e.json(401, { code: 401, message: "Not authenticated." })
         }
-        if (!e.auth.get("is_admin")) {
-            return e.json(403, { code: 403, message: "Admin access required." })
+
+        var checkRateLimit = $app.store().get("checkRateLimit")
+        if (!checkRateLimit(e.auth.id, "create", 40)) {
+            return e.json(429, { code: 429, message: "Too many requests. Please wait a moment." })
         }
 
         var CATBOX_USERHASH = $os.getenv("CATBOX_USERHASH")
@@ -684,6 +688,11 @@ routerAdd("POST", "/api/feedbackr/delete-attachment", function(e) {
 
         if (!urls.length) {
             return e.json(400, { code: 400, message: "No URLs provided." })
+        }
+
+        // Cap at 10 URLs per request to prevent abuse
+        if (urls.length > 10) {
+            urls = urls.slice(0, 10)
         }
 
         // Extract filenames from catbox URLs
