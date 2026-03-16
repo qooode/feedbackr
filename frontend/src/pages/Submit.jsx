@@ -733,24 +733,6 @@ export default function Submit() {
                     <span className={`badge badge-priority-${preview.priority}`}>{preview.priority}</span>
                     <span className="badge badge-platform">{preview.platform === 'all' ? 'All Platforms' : preview.platform}</span>
                   </div>
-
-                  {/* Attachment previews in publish preview */}
-                  {attachments.filter(a => a.url).length > 0 && (
-                    <div className="publish-attachments">
-                      {attachments.filter(a => a.url).map((att) => (
-                        <a key={att.id} href={att.url} target="_blank" rel="noopener noreferrer" className="publish-attachment-preview">
-                          {isImage(att.type) ? (
-                            <img src={att.url} alt={att.name} />
-                          ) : (
-                            <div className="publish-attachment-video">
-                              <Film size={20} />
-                              <span>{att.name}</span>
-                            </div>
-                          )}
-                        </a>
-                      ))}
-                    </div>
-                  )}
                 </div>
               ) : (
                 <div className="publish-card-body">
@@ -767,74 +749,6 @@ export default function Submit() {
                     rows={5}
                     placeholder="Post body"
                   />
-
-                  {/* Attachment management in edit mode */}
-                  <div className="edit-attachments-section">
-                    <div className="edit-attachments-header">
-                      <span className="edit-attachments-label">
-                        <Image size={12} />
-                        Attachments ({attachments.filter(a => a.url).length}/{MAX_ATTACHMENTS})
-                      </span>
-                      <input
-                        ref={fileInputRef}
-                        type="file"
-                        accept="image/*,video/*;capture=camera"
-                        multiple
-                        style={{ display: 'none' }}
-                        onChange={(e) => { if (e.target.files?.length) handleFiles(e.target.files); e.target.value = ''; }}
-                      />
-                      {attachments.length < MAX_ATTACHMENTS && (
-                        <button
-                          className="btn btn-ghost btn-sm"
-                          onClick={() => fileInputRef.current?.click()}
-                          type="button"
-                        >
-                          <Paperclip size={12} />
-                          Add
-                        </button>
-                      )}
-                    </div>
-                    {attachments.length > 0 ? (
-                      <div className="edit-attachments-grid">
-                        {attachments.map((att) => (
-                          <div key={att.id} className={`edit-attachment-card ${att.error ? 'edit-attachment-error' : ''}`}>
-                            {att.uploading ? (
-                              <div className="edit-attachment-loading">
-                                <Loader2 size={18} className="animate-spin" />
-                              </div>
-                            ) : att.previewUrl || (att.url && isImage(att.type)) ? (
-                              <img src={att.url || att.previewUrl} alt={att.name} className="edit-attachment-img" />
-                            ) : (
-                              <div className="edit-attachment-vid">
-                                <Film size={18} />
-                              </div>
-                            )}
-                            <button
-                              className="edit-attachment-remove"
-                              onClick={() => removeAttachment(att.id)}
-                              title="Remove attachment"
-                            >
-                              <X size={12} />
-                            </button>
-                            {att.error && (
-                              <div className="edit-attachment-error-text">{att.error}</div>
-                            )}
-                          </div>
-                        ))}
-                      </div>
-                    ) : (
-                      <div
-                        className={`edit-attachments-dropzone ${dragOver ? 'dropzone-active' : ''}`}
-                        onClick={() => fileInputRef.current?.click()}
-                        onDrop={handleDrop}
-                        onDragOver={handleDragOver}
-                        onDragLeave={handleDragLeave}
-                      >
-                        <Image size={20} />
-                        <span>Drop files or tap to add photos & videos</span>
-                      </div>
-                    )}
-                  </div>
 
                   <div className="publish-meta-row">
                     <div className="publish-meta-item">
@@ -882,6 +796,74 @@ export default function Submit() {
                   </div>
                 </div>
               )}
+
+              {/* Attachment management — always visible in preview card */}
+              <div className="edit-attachments-section" style={{ margin: '0 var(--space-4)', marginBottom: 'var(--space-3)' }}>
+                <div className="edit-attachments-header">
+                  <span className="edit-attachments-label">
+                    <Image size={12} />
+                    Attachments ({attachments.filter(a => a.url).length}/{MAX_ATTACHMENTS})
+                  </span>
+                  <input
+                    ref={fileInputRef}
+                    type="file"
+                    accept="image/*,video/*;capture=camera"
+                    multiple
+                    style={{ display: 'none' }}
+                    onChange={(e) => { if (e.target.files?.length) handleFiles(e.target.files); e.target.value = ''; }}
+                  />
+                  {attachments.length < MAX_ATTACHMENTS && (
+                    <button
+                      className="btn btn-ghost btn-sm"
+                      onClick={() => fileInputRef.current?.click()}
+                      type="button"
+                    >
+                      <Paperclip size={12} />
+                      Add
+                    </button>
+                  )}
+                </div>
+                {attachments.length > 0 ? (
+                  <div className="edit-attachments-grid">
+                    {attachments.map((att) => (
+                      <div key={att.id} className={`edit-attachment-card ${att.error ? 'edit-attachment-error' : ''}`}>
+                        {att.uploading ? (
+                          <div className="edit-attachment-loading">
+                            <Loader2 size={18} className="animate-spin" />
+                          </div>
+                        ) : att.previewUrl || (att.url && isImage(att.type)) ? (
+                          <img src={att.url || att.previewUrl} alt={att.name} className="edit-attachment-img" />
+                        ) : (
+                          <div className="edit-attachment-vid">
+                            <Film size={18} />
+                          </div>
+                        )}
+                        <button
+                          className="edit-attachment-remove"
+                          onClick={() => removeAttachment(att.id)}
+                          title="Remove attachment"
+                        >
+                          <X size={12} />
+                        </button>
+                        {att.error && (
+                          <div className="edit-attachment-error-text">{att.error}</div>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <div
+                    className={`edit-attachments-dropzone ${dragOver ? 'dropzone-active' : ''}`}
+                    onClick={() => fileInputRef.current?.click()}
+                    onDrop={handleDrop}
+                    onDragOver={handleDragOver}
+                    onDragLeave={handleDragLeave}
+                  >
+                    <Image size={20} />
+                    <span>Drop files or tap to add photos & videos</span>
+                  </div>
+                )}
+              </div>
 
               <div className="publish-actions">
                 <button className="btn btn-ghost btn-sm" onClick={handleReset}>
