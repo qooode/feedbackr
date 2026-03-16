@@ -643,22 +643,28 @@ routerAdd("POST", "/api/feedbackr/upload", function(e) {
             return e.json(500, { code: 500, message: "File upload service not configured." })
         }
 
-        // Get the uploaded file from the multipart form
-        var reqInfo = e.requestInfo()
-        var files = reqInfo.files
-        if (!files || !files["file"] || files["file"].length === 0) {
+        // Get the uploaded file using PocketBase's custom route file API
+        var files
+        try {
+            files = e.findUploadedFiles("file")
+        } catch(fileErr) {
+            console.log("[upload] findUploadedFiles error:", String(fileErr))
             return e.json(400, { code: 400, message: "No file provided." })
         }
 
-        var file = files["file"][0]
-        var fileName = file.name || "upload"
+        if (!files || files.length === 0) {
+            return e.json(400, { code: 400, message: "No file provided." })
+        }
+
+        var file = files[0]
+        var fileName = file.originalName || file.name || "upload"
         var fileSize = file.size || 0
 
-        console.log("[upload] file:", fileName, "size:", fileSize, "type:", file.type || "unknown")
+        console.log("[upload] file:", fileName, "size:", fileSize)
 
         // Validate file size
         if (fileSize > MAX_FILE_SIZE) {
-            return e.json(400, { code: 400, message: "File too large. Maximum size is 50 MB." })
+            return e.json(400, { code: 400, message: "File too large. Maximum size is 200 MB." })
         }
 
         // Validate file extension
@@ -673,26 +679,24 @@ routerAdd("POST", "/api/feedbackr/upload", function(e) {
             return e.json(400, { code: 400, message: "File type not allowed. Only images and videos are accepted." })
         }
 
-        // Validate MIME type — strict allowlist
-        var mimeType = file.type || ""
-        if (mimeType && !ALLOWED_MIMES[mimeType]) {
-            return e.json(400, { code: 400, message: "File type not allowed. Only images and videos are accepted." })
-        }
-
-        // Validate magic bytes — ensure file content matches extension
+        // Read first bytes for magic byte validation
         try {
-            var content = file.content
-            if (content && content.length > 0 && !validateMagicBytes(content, ext)) {
-                console.log("[upload] magic byte validation failed for:", fileName, "ext:", ext)
-                return e.json(400, { code: 400, message: "File content does not match its extension. Please upload a valid image or video." })
+            if (file.reader) {
+                var buf = new Uint8Array(12)
+                file.reader.read(buf)
+                // Seek back to start so Catbox gets the full file
+                file.reader.seek(0, 0)
+                if (!validateMagicBytes(buf, ext)) {
+                    console.log("[upload] magic byte validation failed for:", fileName, "ext:", ext)
+                    return e.json(400, { code: 400, message: "File content does not match its extension. Please upload a valid image or video." })
+                }
             }
         } catch(mbErr) {
             console.log("[upload] magic byte check error (non-fatal):", String(mbErr))
             // Non-fatal — allow upload to proceed if we can't read bytes
         }
 
-        // Read file content and build multipart body for Catbox
-        // PocketBase JSVM provides file.content as bytes
+        // Build multipart body for Catbox using the filesystem.File object
         var formBody = new FormData()
         formBody.append("reqtype", "fileupload")
         formBody.append("userhash", CATBOX_USERHASH)
