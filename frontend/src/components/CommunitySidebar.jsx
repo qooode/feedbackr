@@ -256,26 +256,18 @@ export default function CommunitySidebar() {
               const author = comment.expand?.author;
               const post = comment.expand?.post;
               if (!post) return null;
-              const snippet = comment.body?.length > 60
-                ? comment.body.slice(0, 60).trim() + '…'
-                : comment.body;
               return (
                 <div
                   key={comment.id}
-                  className="sidebar-activity-item"
+                  className="sidebar-shipped-item"
                   onClick={() => navigate(`/post/${post.id}`)}
                 >
-                  <UserAvatar user={author} size="20px" />
-                  <div className="sidebar-activity-content">
-                    <div className="sidebar-activity-meta">
-                      <span className="sidebar-activity-author">
-                        {author?.name || author?.username || 'Anonymous'}
-                      </span>
-                      <span className="sidebar-activity-verb">commented on</span>
-                    </div>
-                    <span className="sidebar-activity-post">{post.title}</span>
-                    <span className="sidebar-activity-snippet">"{snippet}"</span>
-                    <span className="sidebar-activity-time">{timeAgo(comment.created)}</span>
+                  <MessageSquare size={14} className="sidebar-activity-icon" />
+                  <div className="sidebar-shipped-content">
+                    <span className="sidebar-shipped-title">{post.title}</span>
+                    <span className="sidebar-shipped-time">
+                      {author?.name || author?.username || 'Anonymous'} · {timeAgo(comment.created)}
+                    </span>
                   </div>
                 </div>
               );
