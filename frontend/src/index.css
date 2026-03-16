@@ -5211,9 +5211,10 @@ details[open] .refine-history-toggle::before {
 
 /* Post detail — attachment gallery */
 .post-attachments {
-  margin-top: var(--space-6);
-  padding-top: var(--space-4);
+  margin-top: var(--space-8);
+  padding-top: var(--space-6);
   border-top: 1px solid var(--border);
+  margin-bottom: var(--space-4);
 }
 
 .post-attachments-label {
