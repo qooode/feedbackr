@@ -8,6 +8,7 @@ import UserAvatar from '../components/UserAvatar';
 import FavoriteButton from '../components/FavoriteButton';
 import { useAuth } from '../hooks/useAuth';
 import { uploadAttachment } from '../lib/api';
+import Lightbox from '../components/Lightbox';
 
 export default function PostDetail() {
   const { id } = useParams();
@@ -51,6 +52,10 @@ export default function PostDetail() {
   const editFileInputRef = useRef(null);
   const MAX_ATTACHMENTS = 5;
   const MAX_FILE_SIZE = 200 * 1024 * 1024;
+
+  // Lightbox state
+  const [lightboxOpen, setLightboxOpen] = useState(false);
+  const [lightboxIndex, setLightboxIndex] = useState(0);
 
   useEffect(() => {
     fetchPost();
@@ -734,18 +739,36 @@ export default function PostDetail() {
                     {post.attachments.map((url, i) => {
                       const ext = url.split('.').pop()?.toLowerCase();
                       const isVid = ['mp4', 'webm', 'mov', 'avi', 'mkv', 'm4v'].includes(ext);
-                      return isVid ? (
-                        <div key={i} className="post-attachment-video">
-                          <video src={url} controls preload="metadata" />
-                        </div>
-                      ) : (
-                        <a key={i} href={url} target="_blank" rel="noopener noreferrer" className="post-attachment-image">
-                          <img src={url} alt={`Attachment ${i + 1}`} loading="lazy" />
-                        </a>
+                      return (
+                        <button
+                          key={i}
+                          className={isVid ? 'post-attachment-video-thumb' : 'post-attachment-image'}
+                          onClick={() => { setLightboxIndex(i); setLightboxOpen(true); }}
+                          type="button"
+                        >
+                          {isVid ? (
+                            <>
+                              <video src={url} preload="metadata" muted />
+                              <div className="post-attachment-play">
+                                <Film size={20} />
+                              </div>
+                            </>
+                          ) : (
+                            <img src={url} alt={`Attachment ${i + 1}`} loading="lazy" />
+                          )}
+                        </button>
                       );
                     })}
                   </div>
                 </div>
+              )}
+
+              {lightboxOpen && post.attachments?.length > 0 && (
+                <Lightbox
+                  urls={post.attachments}
+                  startIndex={lightboxIndex}
+                  onClose={() => setLightboxOpen(false)}
+                />
               )}
             </>
           )}
