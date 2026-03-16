@@ -921,6 +921,7 @@ onRecordCreateRequest(function(e) {
     e.record.set("author", e.auth.id)
     e.record.set("status", "new")
     e.record.set("votes_count", 0)
+    e.record.set("comments_count", 0)
     var title = String(e.record.get("title") || "")
     if (title.length < 5) return e.json(400, { code: 400, message: "Title too short (min 5 chars)." })
     if (title.length > 300) return e.json(400, { code: 400, message: "Title too long (max 300 chars)." })
