@@ -788,6 +788,91 @@ onRecordDeleteRequest(function(e) {
     return e.next()
 }, "posts")
 
+// =============================================================================
+// AUTO-DELETE REMOVED ATTACHMENTS FROM CATBOX
+// =============================================================================
+
+// Helper: delete files from Catbox (fire-and-forget)
+function deleteCatboxFiles(filenames) {
+    if (!filenames || filenames.length === 0) return
+    var userhash = $os.getenv("CATBOX_USERHASH")
+    if (!userhash) return
+    try {
+        var formBody = new FormData()
+        formBody.append("reqtype", "deletefiles")
+        formBody.append("userhash", userhash)
+        formBody.append("files", filenames.join(" "))
+        var res = $http.send({
+            url: "https://catbox.moe/user/api.php",
+            method: "POST",
+            body: formBody,
+            timeout: 15,
+        })
+        console.log("[catbox-cleanup] deleted", filenames.length, "files, response:", res.statusCode)
+    } catch(err) {
+        console.log("[catbox-cleanup] delete error (non-fatal):", String(err))
+    }
+}
+
+// Extract catbox filename from URL
+function catboxFilename(url) {
+    var prefix = "https://files.catbox.moe/"
+    if (String(url).indexOf(prefix) === 0) {
+        return String(url).replace(prefix, "")
+    }
+    return ""
+}
+
+// After a post is updated, delete any attachments that were removed
+onRecordAfterUpdateSuccess(function(e) {
+    try {
+        var oldAttachments = e.record.original().get("attachments") || []
+        var newAttachments = e.record.get("attachments") || []
+        if (typeof oldAttachments === "string") { try { oldAttachments = JSON.parse(oldAttachments) } catch(x) { oldAttachments = [] } }
+        if (typeof newAttachments === "string") { try { newAttachments = JSON.parse(newAttachments) } catch(x) { newAttachments = [] } }
+        if (!Array.isArray(oldAttachments)) oldAttachments = []
+        if (!Array.isArray(newAttachments)) newAttachments = []
+
+        // Find URLs that were in old but not in new
+        var newSet = {}
+        for (var ni = 0; ni < newAttachments.length; ni++) { newSet[String(newAttachments[ni])] = true }
+        var toDelete = []
+        for (var oi = 0; oi < oldAttachments.length; oi++) {
+            var oldUrl = String(oldAttachments[oi])
+            if (!newSet[oldUrl]) {
+                var fname = catboxFilename(oldUrl)
+                if (fname) toDelete.push(fname)
+            }
+        }
+        if (toDelete.length > 0) {
+            console.log("[catbox-cleanup] post", e.record.id, "- removing", toDelete.length, "deleted attachments")
+            deleteCatboxFiles(toDelete)
+        }
+    } catch(err) {
+        console.log("[catbox-cleanup] update hook error (non-fatal):", String(err))
+    }
+}, "posts")
+
+// After a post is deleted, clean up all its attachments
+onRecordAfterDeleteSuccess(function(e) {
+    try {
+        var attachments = e.record.get("attachments") || []
+        if (typeof attachments === "string") { try { attachments = JSON.parse(attachments) } catch(x) { attachments = [] } }
+        if (!Array.isArray(attachments)) attachments = []
+        var toDelete = []
+        for (var i = 0; i < attachments.length; i++) {
+            var fname = catboxFilename(String(attachments[i]))
+            if (fname) toDelete.push(fname)
+        }
+        if (toDelete.length > 0) {
+            console.log("[catbox-cleanup] post", e.record.id, "deleted - removing", toDelete.length, "attachments")
+            deleteCatboxFiles(toDelete)
+        }
+    } catch(err) {
+        console.log("[catbox-cleanup] delete hook error (non-fatal):", String(err))
+    }
+}, "posts")
+
 onRecordUpdateRequest(function(e) {
     if (!e.auth) return e.json(401, { code: 401, message: "Not authenticated." })
     var isOwner = e.record.get("author") === e.auth.id
