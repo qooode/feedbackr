@@ -679,22 +679,8 @@ routerAdd("POST", "/api/feedbackr/upload", function(e) {
             return e.json(400, { code: 400, message: "File type not allowed. Only images and videos are accepted." })
         }
 
-        // Read first bytes for magic byte validation
-        try {
-            if (file.reader) {
-                var buf = new Uint8Array(12)
-                file.reader.read(buf)
-                // Seek back to start so Catbox gets the full file
-                file.reader.seek(0, 0)
-                if (!validateMagicBytes(buf, ext)) {
-                    console.log("[upload] magic byte validation failed for:", fileName, "ext:", ext)
-                    return e.json(400, { code: 400, message: "File content does not match its extension. Please upload a valid image or video." })
-                }
-            }
-        } catch(mbErr) {
-            console.log("[upload] magic byte check error (non-fatal):", String(mbErr))
-            // Non-fatal — allow upload to proceed if we can't read bytes
-        }
+        // Note: magic byte validation skipped in JSVM — Go's io.Reader interface
+        // is not reliably accessible. Extension allowlist is the primary defense.
 
         // Build multipart body for Catbox using the filesystem.File object
         var formBody = new FormData()
