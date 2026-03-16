@@ -64,6 +64,8 @@ export default function Submit() {
   const [attachments, setAttachments] = useState([]); // [{ url, name, type, uploading?, error? }]
   const [dragOver, setDragOver] = useState(false);
   const fileInputRef = useRef(null);
+  const attachmentsRef = useRef(attachments);
+  attachmentsRef.current = attachments;
 
   // Success
   const [showSuccess, setShowSuccess] = useState(false);
@@ -93,8 +95,8 @@ export default function Submit() {
     if (!isLoggedIn) { setShowAuth(true); return; }
     const fileList = Array.from(files);
     for (const file of fileList) {
-      // Validate
-      if (attachments.length >= MAX_ATTACHMENTS) {
+      // Validate using ref for current count (avoids stale closure)
+      if (attachmentsRef.current.length >= MAX_ATTACHMENTS) {
         setError(`Maximum ${MAX_ATTACHMENTS} attachments allowed.`);
         break;
       }
@@ -126,7 +128,7 @@ export default function Submit() {
         ));
       }
     }
-  }, [attachments.length, isLoggedIn]);
+  }, [isLoggedIn]);
 
   const removeAttachment = (id) => {
     setAttachments(prev => {
@@ -258,11 +260,16 @@ export default function Submit() {
   };
 
   const hasUploading = attachments.some(a => a.uploading);
+  const hasFailedUploads = attachments.some(a => a.error);
 
   const handlePublish = async () => {
     if (!preview) return;
     if (hasUploading) {
       setError('Please wait for uploads to finish before publishing.');
+      return;
+    }
+    if (hasFailedUploads) {
+      setError('Some attachments failed to upload. Please remove them or try re-adding them before publishing.');
       return;
     }
     setPublishing(true);
@@ -817,9 +824,15 @@ export default function Submit() {
               {/* Attachment management — always visible in preview card */}
               <div className="edit-attachments-section" style={{ margin: '0 var(--space-4)', marginBottom: 'var(--space-3)' }}>
                 <div className="edit-attachments-header">
-                  <span className="edit-attachments-label">
+                <span className="edit-attachments-label">
                     <Image size={12} />
                     Attachments ({attachments.filter(a => a.url).length}/{MAX_ATTACHMENTS})
+                    {hasFailedUploads && (
+                      <span style={{ color: 'var(--destructive)', fontSize: 'var(--font-size-xs)', marginLeft: '6px' }}>
+                        <AlertTriangle size={10} style={{ display: 'inline', verticalAlign: 'middle', marginRight: '2px' }} />
+                        {attachments.filter(a => a.error).length} failed
+                      </span>
+                    )}
                   </span>
                   <input
                     ref={fileInputRef}
@@ -887,7 +900,7 @@ export default function Submit() {
                   Start Over
                 </button>
                 <button
-                  className={`btn btn-sm ${similarPosts.length > 0 && !similarDismissed ? 'btn-ghost' : 'btn-primary'}`}
+                  className={`btn btn-sm ${hasFailedUploads ? 'btn-destructive' : similarPosts.length > 0 && !similarDismissed ? 'btn-ghost' : 'btn-primary'}`}
                   onClick={handlePublish}
                   disabled={publishing || hasUploading}
                 >
@@ -900,6 +913,11 @@ export default function Submit() {
                     <>
                       <Loader2 size={13} className="animate-spin" />
                       Uploading...
+                    </>
+                  ) : hasFailedUploads ? (
+                    <>
+                      <AlertTriangle size={13} />
+                      Fix Uploads
                     </>
                   ) : similarPosts.length > 0 && !similarDismissed ? (
                     <>
