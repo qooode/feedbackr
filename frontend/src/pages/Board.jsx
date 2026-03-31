@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
-import { Search, Plus, Inbox, Loader, SlidersHorizontal, X } from 'lucide-react';
+import { Search, Plus, Inbox, Loader, SlidersHorizontal, X, CheckCircle } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import pb from '../lib/pocketbase';
 import PostCard from '../components/PostCard';
@@ -26,6 +26,7 @@ export default function Board() {
   const [status, setStatus] = useState('all');
   const [sort, setSort] = useState('-votes_count');
   const [search, setSearch] = useState('');
+  const [showCompleted, setShowCompleted] = useState(false);
   const [page, setPage] = useState(1);
   const [totalItems, setTotalItems] = useState(0);
   const [totalPages, setTotalPages] = useState(1);
@@ -41,12 +42,18 @@ export default function Board() {
     if (category !== 'all') filters.push(`category = "${category}"`);
     if (platform !== 'all') filters.push(`platform = "${platform}"`);
     if (status !== 'all') filters.push(`status = "${status}"`);
+    // Hide done/released posts unless the user explicitly toggled "Completed" on,
+    // or is already filtering by a specific status (so selecting "done" in the
+    // status filter still works as expected).
+    if (!showCompleted && status === 'all') {
+      filters.push(`status != "done" && status != "released"`);
+    }
     if (search.trim()) {
       const sanitized = search.trim().replace(/[^\w\s]/g, '').slice(0, 100);
       if (sanitized) filters.push(`(title ~ "${sanitized}" || body ~ "${sanitized}")`);
     }
     return filters.join(' && ');
-  }, [category, platform, status, search]);
+  }, [category, platform, status, search, showCompleted]);
 
   // When filters or sort change → reset to page 1 and fetch fresh
   useEffect(() => {
@@ -83,7 +90,7 @@ export default function Board() {
     };
 
     fetchFirstPage();
-  }, [category, platform, status, sort, search, buildFilter]);
+  }, [category, platform, status, sort, search, showCompleted, buildFilter]);
 
   // Load more pages (triggered by infinite scroll)
   // Keep loadMore in a ref so the observer callback always calls the latest version
@@ -158,13 +165,14 @@ export default function Board() {
     observerRef.current = observer;
   }, []); // stable — never recreated
 
-  const hasFilters = category !== 'all' || platform !== 'all' || status !== 'all' || search.trim();
-  const activeFilterCount = (category !== 'all' ? 1 : 0) + (platform !== 'all' ? 1 : 0) + (status !== 'all' ? 1 : 0);
+  const hasFilters = category !== 'all' || platform !== 'all' || status !== 'all' || showCompleted || search.trim();
+  const activeFilterCount = (category !== 'all' ? 1 : 0) + (platform !== 'all' ? 1 : 0) + (status !== 'all' ? 1 : 0) + (showCompleted ? 1 : 0);
 
   const clearAllFilters = () => {
     setCategory('all');
     setPlatform('all');
     setStatus('all');
+    setShowCompleted(false);
     setSort('-votes_count');
   };
 
@@ -222,6 +230,16 @@ export default function Board() {
                     </option>
                   ))}
                 </select>
+
+                {/* Completed toggle */}
+                <button
+                  className={`board-completed-toggle ${showCompleted ? 'active' : ''}`}
+                  onClick={() => setShowCompleted((prev) => !prev)}
+                  title={showCompleted ? 'Hide completed items' : 'Show completed items'}
+                >
+                  <CheckCircle size={14} />
+                  <span>Completed</span>
+                </button>
 
                 {/* Filters toggle */}
                 <button
@@ -317,6 +335,12 @@ export default function Board() {
                   <span className="board-active-chip">
                     {status.replace('_', ' ')}
                     <button onClick={() => setStatus('all')}><X size={10} /></button>
+                  </span>
+                )}
+                {showCompleted && (
+                  <span className="board-active-chip">
+                    Completed
+                    <button onClick={() => setShowCompleted(false)}><X size={10} /></button>
                   </span>
                 )}
               </div>
